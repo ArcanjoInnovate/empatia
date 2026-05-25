@@ -1,0 +1,17 @@
+📱 PRESENTATION = GARÇOM
+
+Ele:
+
+conversa com o cliente
+anota pedido
+entrega comida
+
+Ele NÃO:
+
+cozinha
+compra ingredientes
+decide receita
+
+📌 Traduzindo:
+
+UI só coleta dados e mostra resultado
