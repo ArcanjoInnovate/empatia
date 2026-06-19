@@ -1,6 +1,7 @@
-import 'package:empatia/core/models/child_model.dart';
+import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // ── Design tokens ────────────────────────────────────────────
 const _pink   = Color(0xFFFF6B9D);
@@ -10,9 +11,6 @@ const _purple = Color(0xFF8B5CF6);
 const _childEmojis = ['👦', '👧', '👶', '🧒', '👦🏽', '👧🏽'];
 
 /// 👨‍👩‍👧‍👦 CHILDREN SECTION
-///
-/// Exibe a lista de filhos, botão de adicionar,
-/// e gerencia os modais de add/edit/remover.
 class ChildrenSection extends StatelessWidget {
   final List<ChildModel> children;
   final ProfileController controller;
@@ -38,8 +36,6 @@ class ChildrenSection extends StatelessWidget {
     );
   }
 
-  // ── Modais ─────────────────────────────────────────────────
-
   void _confirmRemove(BuildContext context, ChildModel child) {
     showDialog(
       context: context,
@@ -57,8 +53,7 @@ class ChildrenSection extends StatelessWidget {
               Navigator.pop(context);
               controller.removeChild(child.id!);
             },
-            child: const Text('Remover',
-                style: TextStyle(color: Colors.red)),
+            child: const Text('Remover', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -143,7 +138,6 @@ class _ChildCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Emoji clicável
           GestureDetector(
             onTap: onEdit,
             child: Container(
@@ -164,8 +158,6 @@ class _ChildCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Nome e idade
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,8 +182,6 @@ class _ChildCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Ações
           IconButton(
             onPressed: onEdit,
             icon: const Icon(Icons.edit_rounded,
@@ -226,10 +216,7 @@ class _AddChildButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _pink.withOpacity(0.3),
-            width: 2,
-          ),
+          border: Border.all(color: _pink.withOpacity(0.3), width: 2),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -252,7 +239,7 @@ class _AddChildButton extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// FORMULÁRIO DE FILHO (add e edit compartilham o mesmo sheet)
+// FORMULÁRIO DE FILHO
 // ══════════════════════════════════════════════════════════════
 
 class _ChildFormSheet extends StatefulWidget {
@@ -281,6 +268,11 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
   late final TextEditingController _ageCtrl;
   late String _selectedEmoji;
 
+  // ── Erros inline ─────────────────────────────────────────────
+  String? _nameError;
+  String? _ageError;
+  bool    _loading = false;
+
   @override
   void initState() {
     super.initState();
@@ -296,6 +288,59 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
     super.dispose();
   }
 
+  // ── Validação ─────────────────────────────────────────────────
+
+  /// Retorna true se tudo estiver válido.
+  bool _validate() {
+    final name = _nameCtrl.text.trim();
+    final ageRaw = _ageCtrl.text.trim();
+
+    String? nameErr;
+    String? ageErr;
+
+    // Nome obrigatório
+    if (name.isEmpty) {
+      nameErr = 'Informe o nome da criança';
+    } else if (name.length < 2) {
+      nameErr = 'Mínimo de 2 caracteres';
+    }
+
+    // Idade obrigatória
+    if (ageRaw.isEmpty) {
+      ageErr = 'Informe a idade';
+    } else {
+      final parsed = int.tryParse(ageRaw);
+      if (parsed == null) {
+        ageErr = 'Apenas números';
+      } else if (parsed < 0 || parsed > 17) {
+        // ── Erro inline de idade — não usa SnackBar ───────────────
+        ageErr = 'A criança deve ter entre 0 e 17 anos';
+      }
+    }
+
+    setState(() {
+      _nameError = nameErr;
+      _ageError  = ageErr;
+    });
+
+    return nameErr == null && ageErr == null;
+  }
+
+  Future<void> _submit() async {
+    if (!_validate()) return;
+
+    setState(() => _loading = true);
+    final ok = await widget.onConfirm(
+      _nameCtrl.text.trim(),
+      _ageCtrl.text.trim(),
+      _selectedEmoji,
+    );
+    if (mounted) setState(() => _loading = false);
+    if (ok && mounted) Navigator.pop(context);
+  }
+
+  // ── Build ─────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -305,90 +350,136 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Handle
-          Container(
-            width: 36, height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(4),
+          Center(
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
-          Text(widget.title,
+          Center(
+            child: Text(
+              widget.title,
               style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: _navy)),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: _navy,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              'Nome e idade são obrigatórios',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+          ),
           const SizedBox(height: 20),
 
-          // Emoji picker
-          Wrap(
-            spacing: 10,
-            children: _childEmojis.map((e) {
-              final sel = e == _selectedEmoji;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedEmoji = e),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 50, height: 50,
-                  decoration: BoxDecoration(
-                    color: sel
-                        ? _pink.withOpacity(0.15)
-                        : const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: sel ? _pink : Colors.transparent,
-                      width: 2,
+          // ── Emoji picker ──────────────────────────────────────────
+          Center(
+            child: Wrap(
+              spacing: 10,
+              children: _childEmojis.map((e) {
+                final sel = e == _selectedEmoji;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedEmoji = e),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 50, height: 50,
+                    decoration: BoxDecoration(
+                      color: sel
+                          ? _pink.withOpacity(0.15)
+                          : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: sel ? _pink : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(e, style: const TextStyle(fontSize: 28)),
                     ),
                   ),
-                  child: Center(
-                    child: Text(e, style: const TextStyle(fontSize: 28)),
-                  ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Campo nome ────────────────────────────────────────────
+          _FieldLabel(label: '👦 Nome', error: _nameError),
+          const SizedBox(height: 6),
+          _InputField(
+            controller: _nameCtrl,
+            hint: 'Ex: Lucas, Maria...',
+            hasError: _nameError != null,
+            onChanged: (_) {
+              if (_nameError != null) setState(() => _nameError = null);
+            },
           ),
           const SizedBox(height: 16),
 
-          // Campos nome + idade
-          Row(
-            children: [
-              Expanded(flex: 2, child: _field(_nameCtrl, 'Nome')),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _field(_ageCtrl, 'Idade',
-                    keyboardType: TextInputType.number),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Botão confirmar
-          GestureDetector(
-            onTap: () async {
-              final ok = await widget.onConfirm(
-                _nameCtrl.text,
-                _ageCtrl.text,
-                _selectedEmoji,
-              );
-              if (ok && context.mounted) Navigator.pop(context);
+          // ── Campo idade ───────────────────────────────────────────
+          _FieldLabel(label: '🎂 Idade', error: _ageError),
+          const SizedBox(height: 6),
+          _InputField(
+            controller: _ageCtrl,
+            hint: 'Ex: 5',
+            hasError: _ageError != null,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (_) {
+              if (_ageError != null) setState(() => _ageError = null);
             },
-            child: Container(
+          ),
+
+          // ── Banner de erro de faixa etária ────────────────────────
+          if (_ageError != null &&
+              _ageError!.contains('entre 0 e 17')) ...[
+            const SizedBox(height: 10),
+            _AgeBanner(message: _ageError!),
+          ],
+
+          const SizedBox(height: 24),
+
+          // ── Botão confirmar ───────────────────────────────────────
+          GestureDetector(
+            onTap: _loading ? null : _submit,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [_pink, _purple]),
+                gradient: _loading
+                    ? null
+                    : const LinearGradient(colors: [_pink, _purple]),
+                color: _loading ? Colors.grey.shade200 : null,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Center(
-                child: Text(widget.confirmLabel,
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white)),
+                child: _loading
+                    ? const SizedBox(
+                        width: 22, height: 22,
+                        child: CircularProgressIndicator(
+                          color: _pink, strokeWidth: 2.5,
+                        ),
+                      )
+                    : Text(
+                        widget.confirmLabel,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -396,28 +487,145 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
       ),
     );
   }
+}
 
-  Widget _field(
-    TextEditingController ctrl,
-    String label, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+// ── Label com erro inline ─────────────────────────────────────────────────────
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  final String? error;
+
+  const _FieldLabel({required this.label, this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: _navy,
+          ),
+        ),
+        if (error != null && !error!.contains('entre 0 e 17')) ...[
+          const SizedBox(height: 3),
+          Text(
+            error!,
+            style: const TextStyle(fontSize: 11, color: Colors.red),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Campo de texto ────────────────────────────────────────────────────────────
+
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool hasError;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final void Function(String) onChanged;
+
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    required this.hasError,
+    required this.onChanged,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return TextField(
-      controller: ctrl,
+      controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      onChanged: onChanged,
       decoration: InputDecoration(
-        labelText: label,
+        hintText: hint,
+        hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
         filled: true,
-        fillColor: const Color(0xFFF8F8FF),
+        fillColor: hasError ? Colors.red.shade50 : const Color(0xFFF8F8FF),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              BorderSide(color: _pink.withOpacity(0.3)),
+          borderSide: BorderSide(
+            color: hasError ? Colors.red : _pink.withOpacity(0.3),
+            width: hasError ? 2 : 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _pink, width: 2),
+          borderSide: BorderSide(
+            color: hasError ? Colors.red : _pink,
+            width: 2,
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Banner de erro de faixa etária ────────────────────────────────────────────
+
+class _AgeBanner extends StatelessWidget {
+  final String message;
+  const _AgeBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.red.shade200, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Text('🚸', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Faixa etária inválida',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

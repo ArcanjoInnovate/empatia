@@ -1,4 +1,5 @@
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/features/dream/presentation/pages/dream_page.dart';
 import 'package:empatia/features/profile/presentation/page/profile/profile_page.dart';
 import 'package:flutter/material.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -59,23 +60,7 @@ class _MainNavigationState extends State<MainNavigation> {
           ],
         ),
       ),
-      const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('💭', style: TextStyle(fontSize: 60)),
-            SizedBox(height: 16),
-            Text(
-              'Sonhos',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF1E3A8A),
-              ),
-            ),
-          ],
-        ),
-      ),
+      DreamPage(),
       ProfilePage(),
     ];
   }

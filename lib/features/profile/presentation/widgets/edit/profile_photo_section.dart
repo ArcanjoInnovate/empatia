@@ -1,24 +1,21 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // ── Design tokens ────────────────────────────────────────────
-const _pink = Color(0xFFFF6B9D);
-const _navy = Color(0xFF1E3A8A);
+const _pink   = Color(0xFFFF6B9D);
+const _navy   = Color(0xFF1E3A8A);
 const _purple = Color(0xFF8B5CF6);
 
 /// 📸 PROFILE PHOTO SECTION
 ///
 /// Widget para escolher foto de perfil OU emoji.
-///
-/// MODOS:
-/// - Foto: usuário pode tirar foto ou escolher da galeria
-/// - Emoji: usuário escolhe emoji como avatar
+/// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
 class ProfilePhotoSection extends StatefulWidget {
   final String? currentPhotoUrl;
   final String currentEmoji;
-  final Function(File? photo, String emoji) onPhotoChanged;
+  final Function(XFile? photo, String emoji) onPhotoChanged; // era File?
   final List<String> availableEmojis;
 
   const ProfilePhotoSection({
@@ -34,7 +31,7 @@ class ProfilePhotoSection extends StatefulWidget {
 }
 
 class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
-  File? _selectedPhoto;
+  XFile?  _selectedPhoto; // era File?
   late String _selectedEmoji;
   bool _usePhoto = false;
 
@@ -104,19 +101,21 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
   // ══════════════════════════════════════════════════════════
 
   Future<void> _pickImage(ImageSource source) async {
-    bool hasPermission = false;
-
-    if (source == ImageSource.camera) {
-      hasPermission = await _requestCameraPermission();
-    } else {
-      hasPermission = await _requestGalleryPermission();
+    // No web o browser gerencia permissão — permission_handler não funciona
+    if (!kIsWeb) {
+      bool hasPermission = false;
+      if (source == ImageSource.camera) {
+        hasPermission = await _requestCameraPermission();
+      } else {
+        hasPermission = await _requestGalleryPermission();
+      }
+      if (!hasPermission) return;
     }
-
-    if (!hasPermission) return;
 
     try {
       final XFile? image = await _picker.pickImage(
-        source: source,
+        // Câmera via browser é instável; força galeria no web
+        source: kIsWeb ? ImageSource.gallery : source,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
@@ -124,7 +123,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
 
       if (image != null) {
         setState(() {
-          _selectedPhoto = File(image.path);
+          _selectedPhoto = image; // XFile direto — sem File(image.path)
           _usePhoto = true;
         });
         widget.onPhotoChanged(_selectedPhoto, _selectedEmoji);
@@ -144,6 +143,12 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
   }
 
   void _showImageSourceSheet() {
+    // No web abre o file picker direto, sem bottom sheet
+    if (kIsWeb) {
+      _pickImage(ImageSource.gallery);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -155,8 +160,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 36,
-              height: 4,
+              width: 36, height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(4),
@@ -252,7 +256,6 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Toggle: Foto vs Emoji
         Row(
           children: [
             _buildModeChip(
@@ -260,9 +263,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
               label: 'Foto',
               selected: _usePhoto,
               onTap: () {
-                if (!_usePhoto) {
-                  _showImageSourceSheet();
-                }
+                if (!_usePhoto) _showImageSourceSheet();
               },
             ),
             const SizedBox(width: 12),
@@ -278,8 +279,6 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
           ],
         ),
         const SizedBox(height: 16),
-
-        // Preview
         Center(
           child: _usePhoto ? _buildPhotoPreview() : _buildEmojiPicker(),
         ),
@@ -352,20 +351,20 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
             ),
             child: ClipOval(
               child: _selectedPhoto != null
-                  ? Image.file(_selectedPhoto!, fit: BoxFit.cover)
+                  // XFile.path é blob URL no web, caminho no mobile
+                  // Image.network funciona nos dois
+                  ? Image.network(_selectedPhoto!.path, fit: BoxFit.cover)
                   : widget.currentPhotoUrl != null
                       ? Image.network(
                           widget.currentPhotoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _emptyPhotoPlaceholder(),
+                          errorBuilder: (_, __, ___) => _emptyPhotoPlaceholder(),
                         )
                       : _emptyPhotoPlaceholder(),
             ),
           ),
           Positioned(
-            bottom: 0,
-            right: 0,
+            bottom: 0, right: 0,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -394,7 +393,6 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
   Widget _buildEmojiPicker() {
     return Column(
       children: [
-        // Emoji selecionado (grande)
         Container(
           width: 120,
           height: 120,
@@ -415,8 +413,6 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
           ),
         ),
         const SizedBox(height: 20),
-
-        // Grid de emojis
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -455,14 +451,13 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style:
-              const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
-        ),
+        content: Text(message,
+            style: const TextStyle(
+                fontWeight: FontWeight.w700, color: Colors.white)),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

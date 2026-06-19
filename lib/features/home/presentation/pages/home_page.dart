@@ -1,4 +1,4 @@
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 

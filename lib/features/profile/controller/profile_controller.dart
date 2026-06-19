@@ -1,45 +1,39 @@
-import 'dart:io';
 import 'package:empatia/features/profile/data/service/location_service.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:flutter/material.dart';
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
+import 'package:image_picker/image_picker.dart';
 
-/// Estados possíveis da tela
 enum SaveState { idle, loading, success, error }
 
 /// 🎮 PROFILE CONTROLLER
-/// 
-/// É o CAIXA que atende os clientes.
-/// Ele recebe pedidos da tela e chama os Services.
-/// 
-/// RESPONSABILIDADES:
-/// - Gerenciar estado da UI (loading, sucesso, erro)
-/// - Chamar Services quando botões são clicados
-/// - Notificar a tela quando algo muda
+///
+/// Gerencia estado da UI e chama os Services.
 class ProfileController extends ChangeNotifier {
   final ProfileService _profileService;
   final LocationService _locationService;
 
   ProfileController(this._profileService, this._locationService);
 
-  // ── ESTADO ───────────────────────────────────────────
+  // ── Estado ───────────────────────────────────────────────
   SaveState _saveState = SaveState.idle;
   String? _errorMessage;
+  bool _togglingMode = false;
 
   SaveState get saveState => _saveState;
   String? get errorMessage => _errorMessage;
+  bool get togglingMode => _togglingMode;
 
-  // Stream do usuário (vem do service)
   Stream<UserModel?> get userStream => _profileService.watchUser();
 
-  /// Reseta estado após mostrar mensagem
   void resetState() {
     _saveState = SaveState.idle;
     _errorMessage = null;
     notifyListeners();
   }
 
-  // ── SALVAR PERFIL ────────────────────────────────────
+  
+  // ── Salvar perfil ────────────────────────────────────────
   Future<void> saveProfile({
     required String? name,
     required String? age,
@@ -50,9 +44,9 @@ class ProfileController extends ChangeNotifier {
     required String? profileEmoji,
     required String? sexo,
     required UserModel currentUser,
-    double? latitude,   // ← NOVO
-    double? longitude,  // ← NOVO
-    File? profilePhoto, // ← NOVO: foto de perfil
+    double? latitude,
+    double? longitude,
+    XFile? profilePhoto,
   }) async {
     _saveState = SaveState.loading;
     notifyListeners();
@@ -68,11 +62,10 @@ class ProfileController extends ChangeNotifier {
         profileEmoji: profileEmoji,
         sexo: sexo,
         currentUser: currentUser,
-        latitude: latitude,    // ← NOVO
-        longitude: longitude,  // ← NOVO
-        profilePhoto: profilePhoto, // ← NOVO
+        latitude: latitude,
+        longitude: longitude,
+        profilePhoto: profilePhoto,
       );
-
       _saveState = SaveState.success;
       notifyListeners();
     } catch (e) {
@@ -82,18 +75,37 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
-  // ── FILHOS ───────────────────────────────────────────
+  // ── Alternar modo ────────────────────────────────────────
+
+  /// 🔄 Alterna entre modo "donor" e "receiver".
+  ///
+  /// [currentMode] = modo atual do usuário (vem do UserModel.activeMode).
+  /// Calcula o oposto e salva no Firebase.
+  Future<void> toggleMode(String? currentMode) async {
+    final newMode = (currentMode == 'donor') ? 'receiver' : 'donor';
+
+    _togglingMode = true;
+    notifyListeners();
+
+    try {
+      await _profileService.toggleMode(newMode);
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+    } finally {
+      _togglingMode = false;
+      notifyListeners();
+    }
+  }
+
+  // ── Filhos ───────────────────────────────────────────────
   Future<bool> addChild({
     required String? name,
     required String? age,
     required String emoji,
   }) async {
     try {
-      await _profileService.addChild(
-        name: name,
-        age: age,
-        emoji: emoji,
-      );
+      await _profileService.addChild(name: name, age: age, emoji: emoji);
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');

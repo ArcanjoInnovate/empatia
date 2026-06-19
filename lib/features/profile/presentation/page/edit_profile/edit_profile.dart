@@ -1,11 +1,11 @@
-import 'dart:io';
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:empatia/features/profile/data/service/location_service.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/children_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/location_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/profile_photo_section.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 // ── Design tokens ─────────────────────────────────────────────
@@ -14,7 +14,11 @@ const _navy   = Color(0xFF1E3A8A);
 const _purple = Color(0xFF8B5CF6);
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({Key? key}) : super(key: key);
+  /// Usuário já carregado na tela anterior.
+  /// Elimina o StreamBuilder e o lag de ~3s na abertura.
+  final UserModel currentUser;
+
+  const EditProfilePage({Key? key, required this.currentUser}) : super(key: key);
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -34,13 +38,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _selectedCidade;
   double? _cityLat;
   double? _cityLng;
-  File?   _selectedProfilePhoto; // ← NOVO: foto de perfil selecionada
+  XFile?   _selectedProfilePhoto; // ← NOVO: foto de perfil selecionada
 
   /// true = usuário selecionou bairro da lista (ou veio do banco)
   bool _neighborhoodConfirmed = false;
 
-  bool       _fieldsInitialized = false;
-  UserModel? _currentUser;
   ProfileController? _profileController;
 
   // ── Listas de emojis ───────────────────────────────────────
@@ -67,6 +69,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // ══════════════════════════════════════════════════════════
   // LIFECYCLE
   // ══════════════════════════════════════════════════════════
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializa campos imediatamente — sem esperar stream do Firebase.
+    _initFields(widget.currentUser);
+  }
 
   @override
   void didChangeDependencies() {
@@ -102,8 +111,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _initFields(UserModel user) {
-    if (_fieldsInitialized) return;
-    _fieldsInitialized = true;
 
     _nameController.text         = user.name ?? '';
     _ageController.text          = user.age?.toString() ?? '';
@@ -126,8 +133,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // ══════════════════════════════════════════════════════════
 
   void _onSave(ProfileController controller) {
-    if (_currentUser == null) return;
-
     // Valida bairro: se digitou mas não selecionou da lista, bloqueia
     final bairroDigitado = _neighborhoodController.text.trim();
     if (bairroDigitado.isNotEmpty && !_neighborhoodConfirmed) {
@@ -146,7 +151,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       state:        _selectedEstado,
       neighborhood: bairroDigitado.isEmpty ? null : bairroDigitado,
       profileEmoji: _selectedEmoji,
-      currentUser:  _currentUser!,
+      currentUser:  widget.currentUser,
       sexo:         _selectedSexo,
       latitude:     _cityLat,
       longitude:    _cityLng,
@@ -161,63 +166,42 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final controller      = context.watch<ProfileController>();
     final locationService = context.read<LocationService>();
 
+    // context.watch escopo estreito: apenas o botão salvar recria.
+    // O restante da tela usa context.read para evitar rebuilds desnecessários.
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
           _buildHeader(),
           Expanded(
-            child: StreamBuilder<UserModel?>(
-              stream: controller.userStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    !_fieldsInitialized) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: _pink),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Erro ao carregar perfil:\n${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final user = snapshot.data;
-                if (user != null) {
-                  _currentUser = user;
-                  _initFields(user);
-                }
-
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildSection(
-                        emoji: '✨',
-                        title: 'Editar Perfil',
-                        child: _buildProfileSection(locationService),
-                      ),
-                      _buildSection(
-                        emoji: '👨‍👩‍👧‍👦',
-                        title: 'Meus Filhos',
-                        child: ChildrenSection(
-                          children: user?.children ?? [],
-                          controller: controller,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSaveButton(controller),
-                      const SizedBox(height: 32),
-                    ],
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildSection(
+                    emoji: '✨',
+                    title: 'Editar Perfil',
+                    child: _buildProfileSection(locationService),
                   ),
-                );
-              },
+                  _buildSection(
+                    emoji: '👨‍👩‍👧‍👦',
+                    title: 'Meus Filhos',
+                    child: ChildrenSection(
+                      children: widget.currentUser.children ?? [],
+                      controller: context.read<ProfileController>(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Selector: só o botão salvar recria quando saveState muda
+                  Selector<ProfileController, SaveState>(
+                    selector: (_, c) => c.saveState,
+                    builder: (_, __, ___) => _buildSaveButton(
+                        context.read<ProfileController>()),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ],
@@ -237,7 +221,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _buildFieldLabel('📸', 'Foto de Perfil'),
         const SizedBox(height: 12),
         ProfilePhotoSection(
-          currentPhotoUrl: _currentUser?.profileImage,
+          currentPhotoUrl: widget.currentUser.profileImage,
           currentEmoji: _selectedEmoji,
           availableEmojis: _emojisAtivos,
           onPhotoChanged: (photo, emoji) {

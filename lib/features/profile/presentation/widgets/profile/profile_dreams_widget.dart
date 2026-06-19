@@ -1,4 +1,4 @@
-import 'package:empatia/core/models/dream_model.dart';
+import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
 
@@ -118,55 +118,12 @@ class DreamCardWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              if (progress != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: progressColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${(progress * 100).toInt()}%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: progressColor,
-                    ),
-                  ),
-                ),
-              ],
+              
+              
             ],
           ),
-          if (progress != null) ...[
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Progresso',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade500)),
-                Text(progressLabel,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.grey.shade100,
-                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                minHeight: 8,
-              ),
-            ),
-          ],
-        ],
-      ),
+          
+      ]),
     );
   }
 }

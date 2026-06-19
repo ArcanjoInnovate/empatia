@@ -1,5 +1,8 @@
 import 'package:empatia/core/navigation/main_navigation.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
+import 'package:empatia/features/auth/presentation/pages/forgout_password_page.dart';
 import 'package:empatia/features/auth/presentation/pages/register_page.dart';
 import 'package:empatia/features/auth/presentation/pages/sucess_auth_page.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +16,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
-  final _emailController = TextEditingController();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
@@ -72,9 +75,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   void _handleLogin() async {
     setState(() {
-      _emailError = null;
+      _emailError   = null;
       _passwordError = null;
-      _loginError = null;
+      _loginError   = null;
     });
 
     bool hasError = false;
@@ -109,16 +112,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     setState(() => _isLoading = false);
 
     if (result == 'success') {
-      // Buscar dados do usuário do Firebase
       final userData = await controller.getUserData();
-
       if (userData != null && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => SuccessAnimationPage(
               message: 'Bem-vindo!',
-              user: userData, // ← PASSAR O USUÁRIO
+              user: userData,
             ),
           ),
         );
@@ -134,27 +135,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFF6B9D), // Pink
-              Color(0xFFFFC837), // Yellow
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFF06B6D4), // Cyan
-            ],
-            stops: [0.0, 0.3, 0.6, 1.0],
-          ),
-        ),
+        decoration: AppDecorations.loginBackground,
         child: Stack(
           children: [
-            // Bolhas flutuantes coloridas
             ..._buildFloatingBubbles(),
-
-            // Estrelas brilhantes
             ..._buildSparkles(),
-
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -177,66 +162,27 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   List<Widget> _buildFloatingBubbles() {
     return [
-      _buildBubble(
-        top: 80,
-        left: 30,
-        size: 60,
-        color: Colors.white.withOpacity(0.15),
-        delay: 0,
-      ),
-      _buildBubble(
-        top: 150,
-        right: 40,
-        size: 80,
-        color: Colors.white.withOpacity(0.1),
-        delay: 0.5,
-      ),
-      _buildBubble(
-        bottom: 200,
-        left: 20,
-        size: 100,
-        color: Colors.white.withOpacity(0.08),
-        delay: 1,
-      ),
-      _buildBubble(
-        bottom: 300,
-        right: 30,
-        size: 70,
-        color: Colors.white.withOpacity(0.12),
-        delay: 1.5,
-      ),
-      _buildBubble(
-        top: 250,
-        left: 50,
-        size: 50,
-        color: Colors.white.withOpacity(0.1),
-        delay: 0.8,
-      ),
+      _buildBubble(top: 80,    left: 30,  size: 60,  opacity: 0.15, delay: 0),
+      _buildBubble(top: 150,   right: 40, size: 80,  opacity: 0.10, delay: 0.5),
+      _buildBubble(bottom: 200, left: 20, size: 100, opacity: 0.08, delay: 1),
+      _buildBubble(bottom: 300, right: 30, size: 70, opacity: 0.12, delay: 1.5),
+      _buildBubble(top: 250,   left: 50,  size: 50,  opacity: 0.10, delay: 0.8),
     ];
   }
 
   Widget _buildBubble({
-    double? top,
-    double? bottom,
-    double? left,
-    double? right,
-    required double size,
-    required Color color,
-    required double delay,
+    double? top, double? bottom, double? left, double? right,
+    required double size, required double opacity, required double delay,
   }) {
     return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
+      top: top, bottom: bottom, left: left, right: right,
       child: AnimatedBuilder(
         animation: _floatAnimation,
         builder: (_, __) => Transform.translate(
           offset: Offset(0, _floatAnimation.value * (1 + delay)),
           child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            width: size, height: size,
+            decoration: AppDecorations.bubble(Colors.white.withOpacity(opacity)),
           ),
         ),
       ),
@@ -245,40 +191,33 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   List<Widget> _buildSparkles() {
     final sparkles = [
-      _Sparkle(emoji: '✨', top: 100, left: 15, size: 24),
-      _Sparkle(emoji: '⭐', top: 180, right: 25, size: 28),
-      _Sparkle(emoji: '💫', top: 300, left: 35, size: 22),
-      _Sparkle(emoji: '🌟', bottom: 250, right: 20, size: 26),
-      _Sparkle(emoji: '✨', bottom: 150, left: 25, size: 20),
-      _Sparkle(emoji: '💖', top: 140, right: 60, size: 24),
-      _Sparkle(emoji: '🎈', bottom: 180, left: 60, size: 28),
-      _Sparkle(emoji: '🦄', top: 230, left: 10, size: 30),
-      _Sparkle(emoji: '🌈', top: 90, right: 35, size: 26),
+      _Sparkle(emoji: '✨', top: 100,    left: 15,   size: 24),
+      _Sparkle(emoji: '⭐', top: 180,    right: 25,  size: 28),
+      _Sparkle(emoji: '💫', top: 300,    left: 35,   size: 22),
+      _Sparkle(emoji: '🌟', bottom: 250, right: 20,  size: 26),
+      _Sparkle(emoji: '✨', bottom: 150, left: 25,   size: 20),
+      _Sparkle(emoji: '💖', top: 140,    right: 60,  size: 24),
+      _Sparkle(emoji: '🎈', bottom: 180, left: 60,   size: 28),
+      _Sparkle(emoji: '🦄', top: 230,    left: 10,   size: 30),
+      _Sparkle(emoji: '🌈', top: 90,     right: 35,  size: 26),
     ];
 
-    return sparkles
-        .map(
-          (s) => Positioned(
-            top: s.top,
-            bottom: s.bottom,
-            left: s.left,
-            right: s.right,
-            child: AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (_, __) => Transform.translate(
-                offset: Offset(0, _bounceAnimation.value),
-                child: AnimatedBuilder(
-                  animation: _pulseAnimation,
-                  builder: (_, __) => Transform.scale(
-                    scale: _pulseAnimation.value,
-                    child: Text(s.emoji, style: TextStyle(fontSize: s.size)),
-                  ),
-                ),
-              ),
+    return sparkles.map((s) => Positioned(
+      top: s.top, bottom: s.bottom, left: s.left, right: s.right,
+      child: AnimatedBuilder(
+        animation: _bounceAnimation,
+        builder: (_, __) => Transform.translate(
+          offset: Offset(0, _bounceAnimation.value),
+          child: AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (_, __) => Transform.scale(
+              scale: _pulseAnimation.value,
+              child: Text(s.emoji, style: TextStyle(fontSize: s.size)),
             ),
           ),
-        )
-        .toList();
+        ),
+      ),
+    )).toList();
   }
 
   Widget _buildAnimatedLogo() {
@@ -288,74 +227,33 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         offset: Offset(0, _bounceAnimation.value * 0.5),
         child: Column(
           children: [
-            // Logo com animação de pulso
             AnimatedBuilder(
               animation: _pulseAnimation,
               builder: (_, __) => Transform.scale(
                 scale: _pulseAnimation.value,
                 child: Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF6B9D).withOpacity(0.4),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
+                  width: 130, height: 130,
+                  decoration: AppDecorations.loginLogo,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Anel colorido girando
                       AnimatedBuilder(
                         animation: _floatController,
                         builder: (_, __) => Transform.rotate(
                           angle: _floatController.value * 2 * math.pi,
                           child: Container(
-                            width: 122,
-                            height: 122,
-                            decoration: BoxDecoration(
+                            width: 122, height: 122,
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: const SweepGradient(
-                                colors: [
-                                  Color(0xFFFF6B9D),
-                                  Color(0xFFFFC837),
-                                  Color(0xFF4ADE80),
-                                  Color(0xFF06B6D4),
-                                  Color(0xFF8B5CF6),
-                                  Color(0xFFFF6B9D),
-                                ],
-                              ),
+                              gradient: AppTheme.logoSweep,
                             ),
                           ),
                         ),
                       ),
-                      // Centro com coração
                       Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFFFF6B9D), Color(0xFFFF1493)],
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.favorite,
-                          size: 50,
-                          color: Colors.white,
-                        ),
+                        width: 100, height: 100,
+                        decoration: AppDecorations.loginLogoInner,
+                        child: const Icon(Icons.favorite, size: 50, color: Colors.white),
                       ),
                     ],
                   ),
@@ -363,31 +261,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 16),
-            // Nome do app com sombra colorida
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFFFFF), Color(0xFFFFF9E6)],
-                ),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFFC837).withOpacity(0.5),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
+              decoration: AppDecorations.appNameTag,
               child: Text(
                 'EMPATIA 💖',
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.w900,
-                  foreground: Paint()
-                    ..shader = const LinearGradient(
-                      colors: [Color(0xFFFF6B9D), Color(0xFF8B5CF6)],
-                    ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
+                  foreground: AppDecorations.textShader(
+                    [AppTheme.kidsPink, AppTheme.kidsPurple],
+                    width: 200,
+                  ),
                   letterSpacing: 2,
                 ),
               ),
@@ -395,16 +280,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
+              decoration: AppDecorations.brandTagBox,
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -413,9 +289,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   Text(
                     'Pingo Brinquedos',
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFFF6B9D),
+                      fontSize: 14, fontWeight: FontWeight.w800,
+                      color: AppTheme.kidsPink,
                     ),
                   ),
                   SizedBox(width: 6),
@@ -431,73 +306,32 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Widget _buildCard() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6B9D).withOpacity(0.3),
-            blurRadius: 40,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.2),
-            blurRadius: 50,
-            spreadRadius: 5,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.loginCard,
       child: Column(
         children: [
-          // Barra arco-íris mais vibrante
-          Container(
-            height: 10,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFF6B9D),
-                  Color(0xFFFFC837),
-                  Color(0xFF4ADE80),
-                  Color(0xFF06B6D4),
-                  Color(0xFF8B5CF6),
-                  Color(0xFFFF6B9D),
-                ],
-              ),
-            ),
-          ),
+          Container(height: 10, decoration: AppDecorations.cardRainbowBar),
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
             child: Column(
               children: [
-                // Título super chamativo
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFFF9E6), Color(0xFFFFE6F0)],
-                    ),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
+                  decoration: AppDecorations.loginTitleBox,
                   child: const Column(
                     children: [
                       Text(
                         '👋 Oi, amiguinho!',
                         style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFFFF6B9D),
+                          fontSize: 28, fontWeight: FontWeight.w900,
+                          color: AppTheme.kidsPink,
                         ),
                       ),
                       SizedBox(height: 6),
                       Text(
                         'Vamos brincar juntos? 🎈',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF8B5CF6),
+                          fontSize: 16, fontWeight: FontWeight.w600,
+                          color: AppTheme.kidsPurple,
                         ),
                       ),
                     ],
@@ -505,7 +339,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 28),
 
-                // Email
                 _buildMagicField(
                   controller: _emailController,
                   label: 'Seu email 📧',
@@ -514,11 +347,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   errorText: _emailError,
                   keyboardType: TextInputType.emailAddress,
                   onChanged: (_) => setState(() => _emailError = null),
-                  gradientColors: const [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
+                  gradientColors: AppTheme.gradientEmail,
                 ),
                 const SizedBox(height: 18),
 
-                // Senha
                 _buildMagicField(
                   controller: _passwordController,
                   label: 'Senha secreta 🔐',
@@ -527,17 +359,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   errorText: _passwordError,
                   obscureText: !_isPasswordVisible,
                   onChanged: (_) => setState(() => _passwordError = null),
-                  gradientColors: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  gradientColors: AppTheme.gradientPassword,
                   suffix: GestureDetector(
                     onTap: () => setState(
                       () => _isPasswordVisible = !_isPasswordVisible,
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      decoration: AppDecorations.passwordTogglePurple,
                       child: Text(
                         _isPasswordVisible ? '🙈' : '👁️',
                         style: const TextStyle(fontSize: 20),
@@ -545,31 +374,63 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
-                // Erro de login
+                // ── Esqueci a senha ──────────────────────────────────────
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordPage(),
+                      ),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8,
+                      ),
+                      decoration: AppDecorations.forgotPasswordLink,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('🔑', style: TextStyle(fontSize: 16)),
+                          SizedBox(width: 6),
+                          Text(
+                            'Esqueci a senha',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.kidsPurple,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // ────────────────────────────────────────────────────────
+
+                const SizedBox(height: 20),
+
                 if (_loginError != null) ...[
                   _buildErrorBubble(_loginError!),
                   const SizedBox(height: 20),
                 ],
 
-                // Botão de login super chamativo
-                _buildMagicButton(),
+                _buildLoginButton(),
                 const SizedBox(height: 24),
 
-                // Divisor fofo
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         height: 2,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              const Color(0xFFFF6B9D).withOpacity(0.3),
-                            ],
-                          ),
+                          gradient: LinearGradient(colors: [
+                            Colors.transparent,
+                            AppTheme.kidsPink.withOpacity(0.3),
+                          ]),
                         ),
                       ),
                     ),
@@ -578,9 +439,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       child: Text(
                         '✨ ou ✨',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFFF6B9D),
+                          fontSize: 16, fontWeight: FontWeight.w700,
+                          color: AppTheme.kidsPink,
                         ),
                       ),
                     ),
@@ -588,12 +448,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       child: Container(
                         height: 2,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFFFF6B9D).withOpacity(0.3),
-                              Colors.transparent,
-                            ],
-                          ),
+                          gradient: LinearGradient(colors: [
+                            AppTheme.kidsPink.withOpacity(0.3),
+                            Colors.transparent,
+                          ]),
                         ),
                       ),
                     ),
@@ -601,30 +459,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 24),
 
-                // Link para cadastro
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const RegisterPage()),
                   ),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFC837), Color(0xFFFFD700)],
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFC837).withOpacity(0.5),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: AppDecorations.createAccountButton,
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -633,10 +475,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         Text(
                           'CRIAR CONTA NOVA',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 1,
+                            fontSize: 16, fontWeight: FontWeight.w900,
+                            color: Colors.white, letterSpacing: 1,
                           ),
                         ),
                         SizedBox(width: 10),
@@ -653,7 +493,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMagicButton() {
+  Widget _buildLoginButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _handleLogin,
       child: AnimatedBuilder(
@@ -661,41 +501,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         builder: (_, __) => Transform.scale(
           scale: _isLoading ? 1.0 : _pulseAnimation.value,
           child: Container(
-            width: double.infinity,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFFFF6B9D),
-                  Color(0xFFFF1493),
-                  Color(0xFFFF6B9D),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF6B9D).withOpacity(0.6),
-                  blurRadius: 25,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: const Color(0xFFFF1493).withOpacity(0.4),
-                  blurRadius: 35,
-                  spreadRadius: 5,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
+            width: double.infinity, height: 64,
+            decoration: AppDecorations.loginButton,
             child: Center(
               child: _isLoading
                   ? const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: Colors.white,
-                      ),
+                      width: 28, height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
                     )
                   : const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -705,10 +517,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         Text(
                           'VAMOS LÁ!',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 2,
+                            fontSize: 20, fontWeight: FontWeight.w900,
+                            color: Colors.white, letterSpacing: 2,
                           ),
                         ),
                         SizedBox(width: 12),
@@ -743,63 +553,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              foreground: Paint()
-                ..shader = LinearGradient(
-                  colors: gradientColors,
-                ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
+              fontSize: 16, fontWeight: FontWeight.w800,
+              foreground: AppDecorations.textShader(gradientColors),
             ),
           ),
         ),
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: hasError
-                  ? [const Color(0xFFFFE6E6), const Color(0xFFFFF0F0)]
-                  : [Colors.white, Colors.white],
-            ),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              width: 3,
-              color: hasError ? const Color(0xFFFF6B6B) : Colors.transparent,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: hasError
-                    ? const Color(0xFFFF6B6B).withOpacity(0.3)
-                    : gradientColors[0].withOpacity(0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
+          decoration: AppDecorations.fieldOuter(
+            gradientColors: gradientColors, hasError: hasError,
           ),
           child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: LinearGradient(
-                colors: [
-                  gradientColors[0].withOpacity(0.1),
-                  gradientColors[1].withOpacity(0.05),
-                ],
-              ),
-            ),
+            decoration: AppDecorations.fieldInner(gradientColors),
             child: Row(
               children: [
                 const SizedBox(width: 18),
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradientColors),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: gradientColors[0].withOpacity(0.4),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
+                  decoration: AppDecorations.fieldIcon(gradientColors),
                   child: Text(icon, style: const TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 14),
@@ -810,15 +581,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     keyboardType: keyboardType,
                     onChanged: onChanged,
                     style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF1a1a2e),
+                      fontSize: 16, color: AppTheme.textDark,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 15,
+                        color: Colors.grey.shade400, fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -843,28 +612,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFE6E6), Color(0xFFFFF0F0)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFF6B6B), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6B6B).withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.errorBubble,
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF6B6B),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: AppDecorations.errorIcon,
             child: const Text('😅', style: TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
@@ -872,8 +625,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             child: Text(
               message,
               style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFFFF6B6B),
+                fontSize: 14, color: AppTheme.errorRed,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -890,10 +642,7 @@ class _Sparkle {
   final double size;
   const _Sparkle({
     required this.emoji,
-    this.top,
-    this.bottom,
-    this.left,
-    this.right,
+    this.top, this.bottom, this.left, this.right,
     required this.size,
   });
 }

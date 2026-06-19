@@ -1,6 +1,8 @@
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/profile/presentation/page/edit_profile/edit_profile.dart';
-import 'package:empatia/features/setting/presentation/pages/settings_page.dart';
+import 'package:empatia/features/settings/features/account_verification/presentation/pages/account_settings_page.dart';
+import 'package:empatia/features/settings/presentation/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
@@ -10,10 +12,7 @@ const _amber  = Color(0xFFFFC837);
 const _purple = Color(0xFF8B5CF6);
 const _green  = Color(0xFF4ADE80);
 
-/// 🎨 PROFILE HEADER WIDGET
-///
-/// SliverAppBar com gradiente, avatar, nome, badge de verificação,
-/// metadados (idade · gênero · localização) e status.
+
 class ProfileHeaderWidget extends StatelessWidget {
   final UserModel user;
 
@@ -76,7 +75,7 @@ class _HeaderBackground extends StatelessWidget {
                     children: [
                       _iconBtn(Icons.edit_rounded, onTap: () {
                         Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const EditProfilePage()));
+                            MaterialPageRoute(builder: (_) => EditProfilePage(currentUser: user)));
                       }),
                       const SizedBox(width: 8),
                       _iconBtn(Icons.settings_rounded, onTap: () {
@@ -160,17 +159,25 @@ class ProfileAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mostra anel dourado no avatar quando perfil totalmente verificado
+    final fullyVerified = ProfileService.isFullyVerified(user);
+
     return Container(
       width: 88,
       height: 88,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
-        border: Border.all(color: Colors.white, width: 3),
+        border: Border.all(
+          color: fullyVerified ? _amber : Colors.white,
+          width: fullyVerified ? 3.5 : 3,
+        ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 16,
+              color: fullyVerified
+                  ? _amber.withOpacity(0.5)
+                  : Colors.black.withOpacity(0.2),
+              blurRadius: fullyVerified ? 20 : 16,
               offset: const Offset(0, 6)),
         ],
       ),
@@ -194,24 +201,33 @@ class ProfileAvatarWidget extends StatelessWidget {
 
 // ── Verification chip ────────────────────────────────────────────────────────
 
+/// Exibe o chip de verificação com três estados:
+///
+///   • **Perfil Verificado** (verde com ⭐) — as três etapas concluídas:
+///     telefone, e-mail e perfil completo. Clicável para ver detalhes.
+///
+///   • **Verificar** (âmbar/cinza) — uma ou mais etapas pendentes.
+///     Clicável para abrir o sheet com as etapas.
 class VerificationChipWidget extends StatelessWidget {
   final UserModel user;
   const VerificationChipWidget({Key? key, required this.user}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final verified = user.isVerified == true;
+    final fullyVerified = ProfileService.isFullyVerified(user);
+
     return GestureDetector(
       onTap: () => _showVerificationSheet(context, user),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: verified
+          color: fullyVerified
               ? _green.withOpacity(0.2)
               : Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: verified ? _green : Colors.white38,
+            color: fullyVerified ? _green : Colors.white38,
             width: 1.5,
           ),
         ),
@@ -219,20 +235,26 @@ class VerificationChipWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              verified ? Icons.verified_rounded : Icons.shield_outlined,
-              color: verified ? _green : Colors.white70,
+              fullyVerified
+                  ? Icons.verified_rounded
+                  : Icons.shield_outlined,
+              color: fullyVerified ? _green : Colors.white70,
               size: 13,
             ),
             const SizedBox(width: 5),
             Text(
-              verified ? 'Verificado' : 'Não verificado',
+              fullyVerified ? 'Perfil Verificado' : 'Não verificado',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: verified ? _green : Colors.white70,
+                color: fullyVerified ? _green : Colors.white70,
               ),
             ),
-            if (!verified) ...[
+            if (fullyVerified) ...[
+              const SizedBox(width: 4),
+              const Text('⭐', style: TextStyle(fontSize: 11)),
+            ],
+            if (!fullyVerified) ...[
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -305,7 +327,6 @@ class ProfileMetaRowWidget extends StatelessWidget {
         color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
       ),
-      // ← CORREÇÃO: constraints para não ultrapassar a tela
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width - 80,
       ),
@@ -319,7 +340,6 @@ class ProfileMetaRowWidget extends StatelessWidget {
             children: [
               Text(e.value.emoji, style: const TextStyle(fontSize: 13)),
               const SizedBox(width: 4),
-              // ← CORREÇÃO: localização tem largura máxima, outros itens são min
               if (isLocation)
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 200),
@@ -362,6 +382,7 @@ class ProfileMetaRowWidget extends StatelessWidget {
     );
   }
 }
+
 class _MetaItem {
   final String emoji;
   final String label;
@@ -414,12 +435,18 @@ class ProfileStatusBannerWidget extends StatelessWidget {
 
 // ── Verification sheet ────────────────────────────────────────────────────────
 
+/// Sheet de verificação que mostra o status de cada etapa com indicadores
+/// visuais de concluído / pendente para: e-mail e perfil completo.
 class VerificationSheetWidget extends StatelessWidget {
   final UserModel user;
   const VerificationSheetWidget({Key? key, required this.user}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final emailVerified   = user.emailVerified == true;
+    final profileComplete = user.profileCompleted == true;
+    final fullyVerified   = ProfileService.isFullyVerified(user);
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -430,6 +457,7 @@ class VerificationSheetWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Handle
           Container(
             width: 36, height: 4,
             decoration: BoxDecoration(
@@ -437,66 +465,108 @@ class VerificationSheetWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4)),
           ),
           const SizedBox(height: 24),
+
+          // Ícone principal
           Container(
             width: 72, height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: user.isVerified == true
+                colors: fullyVerified
                     ? [_green, const Color(0xFF22C55E)]
                     : [_pink, _purple],
               ),
             ),
             child: Icon(
-              user.isVerified == true
+              fullyVerified
                   ? Icons.verified_rounded
                   : Icons.shield_outlined,
               color: Colors.white, size: 34,
             ),
           ),
           const SizedBox(height: 16),
+
           Text(
-            user.isVerified == true ? 'Perfil Verificado! 🎉' : 'Verificar Perfil',
+            fullyVerified ? 'Perfil Verificado! 🎉' : 'Verificar Perfil',
             style: const TextStyle(
                 fontSize: 20, fontWeight: FontWeight.w900, color: _navy),
           ),
           const SizedBox(height: 6),
           Text(
-            user.isVerified == true
-                ? 'Seu perfil já está verificado.'
-                : 'Complete as etapas para ganhar a confiança da comunidade.',
+            fullyVerified
+                ? 'Parabéns! Seu perfil tem a confiança da comunidade.'
+                : 'Complete as etapas abaixo para ganhar o selo de verificação.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 fontSize: 13, color: Colors.grey.shade500, height: 1.5),
           ),
           const SizedBox(height: 24),
-          if (user.isVerified != true) ...[
-            _buildStep(context,
-              icon: Icons.phone_rounded,
-              title: 'Verificar telefone',
-              subtitle: 'Confirme seu número via SMS',
-              onTap: () => Navigator.pop(context),
+
+          // ── Etapa 1: E-mail ──
+          _buildStep(
+            context,
+            icon: Icons.email_rounded,
+            title: 'Verificar e-mail',
+            subtitle: emailVerified
+                ? 'E-mail confirmado ✓'
+                : 'Confirme seu endereço de e-mail',
+            done: emailVerified,
+            onTap: emailVerified ? null : () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AccountSettingsPage())),
+          ),
+          const SizedBox(height: 10),
+
+          // ── Etapa 2: Perfil completo ──
+          _buildStep(
+            context,
+            icon: Icons.person_rounded,
+            title: 'Completar perfil',
+            subtitle: profileComplete
+                ? 'Todas as informações preenchidas ✓'
+                : 'Preencha nome, sexo, cidade e bairro',
+            done: profileComplete,
+            onTap: profileComplete
+                ? null
+                : () {
+                    Navigator.pop(context);
+                    Navigator.push(context,
+                        MaterialPageRoute(
+                            builder: (_) => EditProfilePage(currentUser: user)));
+                  },
+          ),
+
+          if (fullyVerified) ...[
+            const SizedBox(height: 20),
+            // Banner de parabéns
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_green.withOpacity(0.15), _amber.withOpacity(0.1)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _green.withOpacity(0.4), width: 1.5),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('⭐', style: TextStyle(fontSize: 20)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Você é um membro verificado!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF166534),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            _buildStep(context,
-              icon: Icons.cake_rounded,
-              title: 'Verificar idade',
-              subtitle: 'Confirme sua data de nascimento',
-              onTap: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 10),
-            _buildStep(context,
-              icon: Icons.person_rounded,
-              title: 'Completar perfil',
-              subtitle: 'Preencha todas as informações',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const EditProfilePage()));
-              },
-            ),
-            const SizedBox(height: 16),
           ],
+
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -507,26 +577,39 @@ class VerificationSheetWidget extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
+    required bool done,
+    required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: done ? _green.withOpacity(0.05) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
+          border: Border.all(
+            color: done ? _green.withOpacity(0.4) : const Color(0xFFEEEEEE),
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
+            // Ícone da etapa
             Container(
               width: 42, height: 42,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_pink, _purple]),
+                gradient: LinearGradient(
+                  colors: done
+                      ? [_green, const Color(0xFF22C55E)]
+                      : [_pink, _purple],
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(
+                done ? Icons.check_rounded : icon,
+                color: Colors.white, size: 20,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -534,18 +617,25 @@ class VerificationSheetWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: _navy)),
+                          color: done ? const Color(0xFF166534) : _navy)),
                   Text(subtitle,
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500)),
+                          fontSize: 12,
+                          color: done
+                              ? const Color(0xFF166534).withOpacity(0.7)
+                              : Colors.grey.shade500)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: Colors.grey.shade400, size: 22),
+            // Chevron apenas se a etapa ainda não foi concluída e tem ação
+            if (!done && onTap != null)
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400, size: 22),
+            if (done)
+              const Icon(Icons.verified_rounded, color: _green, size: 20),
           ],
         ),
       ),

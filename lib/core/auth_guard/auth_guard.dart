@@ -1,4 +1,4 @@
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/navigation/main_navigation.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';

@@ -1,5 +1,7 @@
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
-import 'package:empatia/features/auth/presentation/pages/sucess_auth_page.dart';
+import 'package:empatia/features/auth/presentation/pages/age_verification_page.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
@@ -12,14 +14,13 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage>
     with TickerProviderStateMixin {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController           = TextEditingController();
+  final _passwordController        = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _isPasswordVisible = false;
+  bool _isPasswordVisible        = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
-  bool _isLoading = false;
 
   String? _emailError;
   String? _passwordError;
@@ -42,29 +43,25 @@ class _RegisterPageState extends State<RegisterPage>
     super.initState();
 
     _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
+      vsync: this, duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
     _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
 
     _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
+      vsync: this, duration: const Duration(seconds: 20),
     )..repeat();
 
     _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      vsync: this, duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
     _bounceAnimation = Tween<double>(begin: 0, end: -15).animate(
       CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
     );
 
     _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      vsync: this, duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
@@ -83,13 +80,13 @@ class _RegisterPageState extends State<RegisterPage>
     super.dispose();
   }
 
-  void _handleRegister() async {
+  void _handleRegister() {
     setState(() {
-      _emailError = null;
-      _passwordError = null;
+      _emailError           = null;
+      _passwordError        = null;
       _confirmPasswordError = null;
-      _termsError = null;
-      _registerError = null;
+      _termsError           = null;
+      _registerError        = null;
     });
 
     bool hasError = false;
@@ -126,58 +123,30 @@ class _RegisterPageState extends State<RegisterPage>
 
     if (hasError) return;
 
-    setState(() => _isLoading = true);
-
-    final result = await controller.registerUser(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    final userData = await controller.getUserData();
-
-    if (result == 'success') {
-      // ESTA É A MUDANÇA PRINCIPAL! 🎉
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SuccessAnimationPage(
-            message: 'Cadastrado!',
-            user: userData!,
-          ),
+    // ── Nenhuma chamada ao Firebase aqui ──────────────────────────────────────
+    // Só navegamos para a verificação de idade passando as credenciais.
+    // O cadastro real acontece em AgeVerificationPage, quando tudo estiver ok.
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgeVerificationPage(
+          email:    _emailController.text.trim(),
+          password: _passwordController.text,
+          authController: controller,
         ),
-      );
-    } else {
-      setState(() => _registerError = result ?? 'Algo deu errado! 😅');
-    }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFC837), // Yellow
-              Color(0xFFFF6B9D), // Pink
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFF4ADE80), // Green
-            ],
-            stops: [0.0, 0.35, 0.65, 1.0],
-          ),
-        ),
+        decoration: AppDecorations.registerBackground,
         child: Stack(
           children: [
-            // Bolhas gigantes flutuantes
             ..._buildGiantBubbles(),
-
-            // Confetes e elementos divertidos
             ..._buildConfetti(),
-
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -200,34 +169,26 @@ class _RegisterPageState extends State<RegisterPage>
 
   List<Widget> _buildGiantBubbles() {
     return [
-      _buildBubble(top: 50, left: -40, size: 150, opacity: 0.15),
-      _buildBubble(top: 180, right: -50, size: 180, opacity: 0.12),
-      _buildBubble(bottom: 150, left: -60, size: 200, opacity: 0.1),
+      _buildBubble(top: 50,    left: -40,  size: 150, opacity: 0.15),
+      _buildBubble(top: 180,   right: -50, size: 180, opacity: 0.12),
+      _buildBubble(bottom: 150, left: -60, size: 200, opacity: 0.10),
       _buildBubble(bottom: 300, right: -30, size: 140, opacity: 0.13),
-      _buildBubble(top: 350, left: 40, size: 100, opacity: 0.12),
+      _buildBubble(top: 350,   left: 40,   size: 100, opacity: 0.12),
     ];
   }
 
   Widget _buildBubble({
-    double? top,
-    double? bottom,
-    double? left,
-    double? right,
-    required double size,
-    required double opacity,
+    double? top, double? bottom, double? left, double? right,
+    required double size, required double opacity,
   }) {
     return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
+      top: top, bottom: bottom, left: left, right: right,
       child: AnimatedBuilder(
         animation: _floatAnimation,
         builder: (_, __) => Transform.translate(
           offset: Offset(_floatAnimation.value * 0.5, _floatAnimation.value),
           child: Container(
-            width: size,
-            height: size,
+            width: size, height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
@@ -245,52 +206,42 @@ class _RegisterPageState extends State<RegisterPage>
 
   List<Widget> _buildConfetti() {
     final items = [
-      _Confetti(emoji: '🎉', top: 90, left: 20, size: 32),
-      _Confetti(emoji: '🎈', top: 160, right: 30, size: 28),
-      _Confetti(emoji: '⭐', top: 240, left: 15, size: 26),
-      _Confetti(emoji: '🌟', top: 320, right: 25, size: 30),
-      _Confetti(emoji: '✨', bottom: 280, left: 35, size: 24),
-      _Confetti(emoji: '🎊', bottom: 200, right: 20, size: 28),
-      _Confetti(emoji: '💫', bottom: 130, left: 25, size: 22),
-      _Confetti(emoji: '🦄', top: 200, left: 50, size: 34),
-      _Confetti(emoji: '🌈', top: 140, right: 60, size: 30),
-      _Confetti(emoji: '🎨', top: 280, right: 50, size: 26),
-      _Confetti(emoji: '🧸', bottom: 250, left: 50, size: 28),
-      _Confetti(emoji: '🎪', bottom: 170, right: 55, size: 26),
+      _Confetti(emoji: '🎉', top: 90,     left: 20,   size: 32),
+      _Confetti(emoji: '🎈', top: 160,    right: 30,  size: 28),
+      _Confetti(emoji: '⭐', top: 240,    left: 15,   size: 26),
+      _Confetti(emoji: '🌟', top: 320,    right: 25,  size: 30),
+      _Confetti(emoji: '✨', bottom: 280, left: 35,   size: 24),
+      _Confetti(emoji: '🎊', bottom: 200, right: 20,  size: 28),
+      _Confetti(emoji: '💫', bottom: 130, left: 25,   size: 22),
+      _Confetti(emoji: '🦄', top: 200,    left: 50,   size: 34),
+      _Confetti(emoji: '🌈', top: 140,    right: 60,  size: 30),
+      _Confetti(emoji: '🎨', top: 280,    right: 50,  size: 26),
+      _Confetti(emoji: '🧸', bottom: 250, left: 50,   size: 28),
+      _Confetti(emoji: '🎪', bottom: 170, right: 55,  size: 26),
     ];
 
-    return items
-        .map(
-          (c) => Positioned(
-            top: c.top,
-            bottom: c.bottom,
-            left: c.left,
-            right: c.right,
-            child: AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (_, __) => Transform.translate(
-                offset: Offset(0, _bounceAnimation.value),
-                child: AnimatedBuilder(
-                  animation: _rotateController,
-                  builder: (_, __) => Transform.rotate(
-                    angle: _rotateController.value * 2 * math.pi * 0.1,
-                    child: AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (_, __) => Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: Text(
-                          c.emoji,
-                          style: TextStyle(fontSize: c.size),
-                        ),
-                      ),
-                    ),
-                  ),
+    return items.map((c) => Positioned(
+      top: c.top, bottom: c.bottom, left: c.left, right: c.right,
+      child: AnimatedBuilder(
+        animation: _bounceAnimation,
+        builder: (_, __) => Transform.translate(
+          offset: Offset(0, _bounceAnimation.value),
+          child: AnimatedBuilder(
+            animation: _rotateController,
+            builder: (_, __) => Transform.rotate(
+              angle: _rotateController.value * 2 * math.pi * 0.1,
+              child: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (_, __) => Transform.scale(
+                  scale: _pulseAnimation.value,
+                  child: Text(c.emoji, style: TextStyle(fontSize: c.size)),
                 ),
               ),
             ),
           ),
-        )
-        .toList();
+        ),
+      ),
+    )).toList();
   }
 
   Widget _buildHeader() {
@@ -301,74 +252,33 @@ class _RegisterPageState extends State<RegisterPage>
         child: Row(
           children: [
             const Spacer(),
-            // Logo central animado
             AnimatedBuilder(
               animation: _pulseAnimation,
               builder: (_, __) => Transform.scale(
                 scale: _pulseAnimation.value,
                 child: Container(
-                  width: 85,
-                  height: 85,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFC837).withOpacity(0.5),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFFFF6B9D).withOpacity(0.4),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
+                  width: 85, height: 85,
+                  decoration: AppDecorations.registerLogo,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Anel colorido girando
                       AnimatedBuilder(
                         animation: _rotateController,
                         builder: (_, __) => Transform.rotate(
                           angle: _rotateController.value * 2 * math.pi,
                           child: Container(
-                            width: 78,
-                            height: 78,
-                            decoration: BoxDecoration(
+                            width: 78, height: 78,
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: const SweepGradient(
-                                colors: [
-                                  Color(0xFFFFC837),
-                                  Color(0xFFFF6B9D),
-                                  Color(0xFF8B5CF6),
-                                  Color(0xFF4ADE80),
-                                  Color(0xFF06B6D4),
-                                  Color(0xFFFFC837),
-                                ],
-                              ),
+                              gradient: AppTheme.registerLogoSweep,
                             ),
                           ),
                         ),
                       ),
-                      // Centro com coração
                       Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFFFFC837), Color(0xFFFFD700)],
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.favorite,
-                          size: 30,
-                          color: Colors.white,
-                        ),
+                        width: 60, height: 60,
+                        decoration: AppDecorations.registerLogoInner,
+                        child: const Icon(Icons.favorite, size: 30, color: Colors.white),
                       ),
                     ],
                   ),
@@ -376,7 +286,7 @@ class _RegisterPageState extends State<RegisterPage>
               ),
             ),
             const Spacer(),
-            const SizedBox(width: 50), // balance
+            const SizedBox(width: 50),
           ],
         ),
       ),
@@ -385,69 +295,17 @@ class _RegisterPageState extends State<RegisterPage>
 
   Widget _buildCard() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFC837).withOpacity(0.4),
-            blurRadius: 40,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: const Color(0xFFFF6B9D).withOpacity(0.3),
-            blurRadius: 50,
-            spreadRadius: 5,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.registerCard,
       child: Column(
         children: [
-          // Barra arco-íris super vibrante
-          Container(
-            height: 12,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFF6B9D),
-                  Color(0xFFFFC837),
-                  Color(0xFF4ADE80),
-                  Color(0xFF06B6D4),
-                  Color(0xFF8B5CF6),
-                  Color(0xFFFF6B9D),
-                ],
-              ),
-            ),
-          ),
+          Container(height: 12, decoration: AppDecorations.cardRainbowBar),
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
             child: Column(
               children: [
-                // Título super empolgante
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFFFFBE6),
-                        Color(0xFFFFE6F0),
-                        Color(0xFFF3E8FF),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFC837).withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
+                  decoration: AppDecorations.registerTitleBox,
                   child: Column(
                     children: [
                       Row(
@@ -457,19 +315,15 @@ class _RegisterPageState extends State<RegisterPage>
                             animation: _pulseAnimation,
                             builder: (_, __) => Transform.scale(
                               scale: _pulseAnimation.value,
-                              child: const Text(
-                                '🎉',
-                                style: TextStyle(fontSize: 36),
-                              ),
+                              child: const Text('🎉', style: TextStyle(fontSize: 36)),
                             ),
                           ),
                           const SizedBox(width: 12),
                           const Text(
                             'Vem com a gente!',
                             style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFFFF6B9D),
+                              fontSize: 30, fontWeight: FontWeight.w900,
+                              color: AppTheme.kidsPink,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -477,10 +331,7 @@ class _RegisterPageState extends State<RegisterPage>
                             animation: _pulseAnimation,
                             builder: (_, __) => Transform.scale(
                               scale: _pulseAnimation.value,
-                              child: const Text(
-                                '🚀',
-                                style: TextStyle(fontSize: 36),
-                              ),
+                              child: const Text('🚀', style: TextStyle(fontSize: 36)),
                             ),
                           ),
                         ],
@@ -489,9 +340,8 @@ class _RegisterPageState extends State<RegisterPage>
                       const Text(
                         'É super rápido e fácil! ✨',
                         style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF8B5CF6),
+                          fontSize: 17, fontWeight: FontWeight.w700,
+                          color: AppTheme.kidsPurple,
                         ),
                       ),
                     ],
@@ -499,7 +349,6 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
                 const SizedBox(height: 28),
 
-                // Email
                 _buildMagicField(
                   controller: _emailController,
                   label: 'Teu email 📧',
@@ -508,11 +357,10 @@ class _RegisterPageState extends State<RegisterPage>
                   errorText: _emailError,
                   keyboardType: TextInputType.emailAddress,
                   onChanged: (_) => setState(() => _emailError = null),
-                  gradientColors: const [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
+                  gradientColors: AppTheme.gradientEmail,
                 ),
                 const SizedBox(height: 18),
 
-                // Senha
                 _buildMagicField(
                   controller: _passwordController,
                   label: 'Senha secreta 🔐',
@@ -521,17 +369,14 @@ class _RegisterPageState extends State<RegisterPage>
                   errorText: _passwordError,
                   obscureText: !_isPasswordVisible,
                   onChanged: (_) => setState(() => _passwordError = null),
-                  gradientColors: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                  gradientColors: AppTheme.gradientPassword,
                   suffix: GestureDetector(
                     onTap: () => setState(
                       () => _isPasswordVisible = !_isPasswordVisible,
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      decoration: AppDecorations.passwordTogglePurple,
                       child: Text(
                         _isPasswordVisible ? '🙈' : '👁️',
                         style: const TextStyle(fontSize: 20),
@@ -541,7 +386,6 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
                 const SizedBox(height: 18),
 
-                // Confirmar senha
                 _buildMagicField(
                   controller: _confirmPasswordController,
                   label: 'Confirma a senha 🔑',
@@ -549,20 +393,15 @@ class _RegisterPageState extends State<RegisterPage>
                   icon: '🎯',
                   errorText: _confirmPasswordError,
                   obscureText: !_isConfirmPasswordVisible,
-                  onChanged: (_) =>
-                      setState(() => _confirmPasswordError = null),
-                  gradientColors: const [Color(0xFFFF6B9D), Color(0xFFFF1493)],
+                  onChanged: (_) => setState(() => _confirmPasswordError = null),
+                  gradientColors: AppTheme.gradientConfirm,
                   suffix: GestureDetector(
                     onTap: () => setState(
-                      () => _isConfirmPasswordVisible =
-                          !_isConfirmPasswordVisible,
+                      () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE6F0),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      decoration: AppDecorations.passwordTogglePink,
                       child: Text(
                         _isConfirmPasswordVisible ? '🙈' : '👁️',
                         style: const TextStyle(fontSize: 20),
@@ -572,7 +411,6 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
                 const SizedBox(height: 24),
 
-                // Checkbox de termos super fofo
                 _buildTermsCheckbox(),
                 if (_termsError != null) ...[
                   const SizedBox(height: 12),
@@ -580,25 +418,21 @@ class _RegisterPageState extends State<RegisterPage>
                 ],
                 const SizedBox(height: 24),
 
-                // Erro de registro
                 if (_registerError != null) ...[
                   _buildErrorBubble(_registerError!),
                   const SizedBox(height: 20),
                 ],
 
-                // Botão de cadastro MEGA chamativo
                 _buildRegisterButton(),
                 const SizedBox(height: 24),
 
-                // Link para login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
                       'Já tem conta? ',
                       style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF888888),
+                        fontSize: 15, color: AppTheme.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -606,22 +440,9 @@ class _RegisterPageState extends State<RegisterPage>
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 16, vertical: 8,
                         ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
-                          ),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF06B6D4).withOpacity(0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
+                        decoration: AppDecorations.loginLinkButton,
                         child: const Row(
                           children: [
                             Text('🎮', style: TextStyle(fontSize: 18)),
@@ -629,10 +450,8 @@ class _RegisterPageState extends State<RegisterPage>
                             Text(
                               'ENTRAR',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 1,
+                                fontSize: 15, fontWeight: FontWeight.w900,
+                                color: Colors.white, letterSpacing: 1,
                               ),
                             ),
                           ],
@@ -658,66 +477,15 @@ class _RegisterPageState extends State<RegisterPage>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: _acceptTerms
-                ? [const Color(0xFFE6FFF0), const Color(0xFFF0FFF4)]
-                : [const Color(0xFFFFFBE6), const Color(0xFFFFF9E6)],
-          ),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: _acceptTerms
-                ? const Color(0xFF4ADE80)
-                : const Color(0xFFFFC837),
-            width: 3,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  (_acceptTerms
-                          ? const Color(0xFF4ADE80)
-                          : const Color(0xFFFFC837))
-                      .withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
+        decoration: AppDecorations.termsCheckbox(accepted: _acceptTerms),
         child: Row(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: _acceptTerms
-                    ? const LinearGradient(
-                        colors: [Color(0xFF4ADE80), Color(0xFF22C55E)],
-                      )
-                    : null,
-                color: _acceptTerms ? null : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _acceptTerms
-                      ? const Color(0xFF4ADE80)
-                      : const Color(0xFFFFC837),
-                  width: 3,
-                ),
-                boxShadow: _acceptTerms
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF4ADE80).withOpacity(0.5),
-                          blurRadius: 10,
-                        ),
-                      ]
-                    : null,
-              ),
+              width: 32, height: 32,
+              decoration: AppDecorations.termsCheckboxTick(accepted: _acceptTerms),
               child: _acceptTerms
-                  ? const Icon(
-                      Icons.check_rounded,
-                      size: 20,
-                      color: Colors.white,
-                    )
+                  ? const Icon(Icons.check_rounded, size: 20, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 14),
@@ -725,17 +493,15 @@ class _RegisterPageState extends State<RegisterPage>
               child: RichText(
                 text: const TextSpan(
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF555555),
+                    fontSize: 14, fontWeight: FontWeight.w600,
+                    color: AppTheme.textSubtle,
                   ),
                   children: [
                     TextSpan(text: 'Eu aceito os '),
                     TextSpan(
                       text: 'Termos',
                       style: TextStyle(
-                        color: Color(0xFF8B5CF6),
-                        fontWeight: FontWeight.w800,
+                        color: AppTheme.kidsPurple, fontWeight: FontWeight.w800,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -743,8 +509,7 @@ class _RegisterPageState extends State<RegisterPage>
                     TextSpan(
                       text: 'Privacidade',
                       style: TextStyle(
-                        color: Color(0xFFFF6B9D),
-                        fontWeight: FontWeight.w800,
+                        color: AppTheme.kidsPink, fontWeight: FontWeight.w800,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -761,76 +526,37 @@ class _RegisterPageState extends State<RegisterPage>
 
   Widget _buildRegisterButton() {
     return GestureDetector(
-      onTap: _isLoading ? null : _handleRegister,
+      onTap: _handleRegister,
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (_, __) => Transform.scale(
-          scale: _isLoading ? 1.0 : _pulseAnimation.value,
+          scale: _pulseAnimation.value,
           child: Container(
-            width: double.infinity,
-            height: 68,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFFC837),
-                  Color(0xFFFFD700),
-                  Color(0xFFFFAA00),
-                  Color(0xFFFFC837),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(34),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFFC837).withOpacity(0.7),
-                  blurRadius: 30,
-                  spreadRadius: 3,
-                  offset: const Offset(0, 10),
-                ),
-                BoxShadow(
-                  color: const Color(0xFFFFD700).withOpacity(0.5),
-                  blurRadius: 40,
-                  spreadRadius: 8,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: Center(
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 4,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('🎊', style: TextStyle(fontSize: 32)),
-                        SizedBox(width: 14),
-                        Text(
-                          'VAMOS LÁ!',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                            shadows: [
-                              Shadow(
-                                color: Color(0x88000000),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
+            width: double.infinity, height: 68,
+            decoration: AppDecorations.registerButton,
+            child: const Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🎊', style: TextStyle(fontSize: 32)),
+                  SizedBox(width: 14),
+                  Text(
+                    'VAMOS LÁ!',
+                    style: TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w900,
+                      color: Colors.white, letterSpacing: 2,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x88000000),
+                          blurRadius: 8, offset: Offset(0, 2),
                         ),
-                        SizedBox(width: 14),
-                        Text('✨', style: TextStyle(fontSize: 32)),
                       ],
                     ),
+                  ),
+                  SizedBox(width: 14),
+                  Text('✨', style: TextStyle(fontSize: 32)),
+                ],
+              ),
             ),
           ),
         ),
@@ -863,12 +589,8 @@ class _RegisterPageState extends State<RegisterPage>
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  foreground: Paint()
-                    ..shader = LinearGradient(
-                      colors: gradientColors,
-                    ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
+                  fontSize: 17, fontWeight: FontWeight.w900,
+                  foreground: AppDecorations.textShader(gradientColors),
                 ),
               ),
             ],
@@ -876,52 +598,17 @@ class _RegisterPageState extends State<RegisterPage>
         ),
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: hasError
-                  ? [const Color(0xFFFFE6E6), const Color(0xFFFFF0F0)]
-                  : [Colors.white, Colors.white],
-            ),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              width: 3,
-              color: hasError ? const Color(0xFFFF6B6B) : Colors.transparent,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: hasError
-                    ? const Color(0xFFFF6B6B).withOpacity(0.4)
-                    : gradientColors[0].withOpacity(0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-            ],
+          decoration: AppDecorations.fieldOuter(
+            gradientColors: gradientColors, hasError: hasError,
           ),
           child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: LinearGradient(
-                colors: [
-                  gradientColors[0].withOpacity(0.15),
-                  gradientColors[1].withOpacity(0.08),
-                ],
-              ),
-            ),
+            decoration: AppDecorations.fieldInner(gradientColors),
             child: Row(
               children: [
                 const SizedBox(width: 18),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradientColors),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: gradientColors[0].withOpacity(0.5),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
+                  decoration: AppDecorations.fieldIcon(gradientColors),
                   child: Text(icon, style: const TextStyle(fontSize: 24)),
                 ),
                 const SizedBox(width: 14),
@@ -932,15 +619,13 @@ class _RegisterPageState extends State<RegisterPage>
                     keyboardType: keyboardType,
                     onChanged: onChanged,
                     style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF1a1a2e),
+                      fontSize: 16, color: AppTheme.textDark,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 15,
+                        color: Colors.grey.shade400, fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,
@@ -965,32 +650,19 @@ class _RegisterPageState extends State<RegisterPage>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFE6E6), Color(0xFFFFF0F0)],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFFF6B6B), width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6B6B).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.errorBubble,
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B6B), Color(0xFFFF4444)],
+                colors: [AppTheme.errorRed, AppTheme.errorRedDeep],
               ),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF6B6B).withOpacity(0.5),
+                  color: AppTheme.errorRed.withOpacity(0.5),
                   blurRadius: 10,
                 ),
               ],
@@ -1002,8 +674,7 @@ class _RegisterPageState extends State<RegisterPage>
             child: Text(
               message,
               style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFFFF6B6B),
+                fontSize: 14, color: AppTheme.errorRed,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1020,10 +691,7 @@ class _Confetti {
   final double size;
   const _Confetti({
     required this.emoji,
-    this.top,
-    this.bottom,
-    this.left,
-    this.right,
+    this.top, this.bottom, this.left, this.right,
     required this.size,
   });
 }

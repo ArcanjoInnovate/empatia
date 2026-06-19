@@ -1,4 +1,4 @@
-import 'package:empatia/core/models/child_model.dart';
+import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
 

@@ -1,19 +1,13 @@
-import 'dart:io';
-import 'package:empatia/core/models/child_model.dart';
-import 'package:empatia/core/models/user_model.dart';
+import 'package:empatia/core/data/models/child_model.dart';
+import 'package:empatia/core/data/models/user_model.dart';
+import 'package:image_picker/image_picker.dart'; // XFile
 import '../repository/profile_repository.dart';
 import 'cloudinary_service.dart';
 
 /// 👤 PROFILE SERVICE
-/// 
-/// É o GERENTE do perfil.
-/// Ele valida tudo antes de salvar no banco.
-/// 
-/// RESPONSABILIDADES:
-/// - Validar nome, idade, etc
-/// - Garantir que dados estão corretos
-/// - Chamar o Repository para salvar
-/// - Gerenciar upload de fotos (e deletar antigas)
+///
+/// Valida dados e orquestra chamadas ao Repository.
+/// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
 class ProfileService {
   final ProfileRepository _repository;
   final CloudinaryService _cloudinaryService;
@@ -22,7 +16,48 @@ class ProfileService {
 
   Stream<UserModel?> watchUser() => _repository.watchUser();
 
-  /// Salva perfil COM VALIDAÇÃO
+  // ── Campos obrigatórios para o perfil ser considerado completo ──────────────
+  //
+  // Para [isProfileComplete] retornar true, o usuário precisa ter:
+  //   • name        — nome preenchido
+  //   • age         — idade válida
+  //   • sexo        — sexo selecionado
+  //   • city        — cidade preenchida
+  //   • state       — estado preenchido
+  //   • neighborhood — bairro preenchido
+  //   • profileEmoji ou profileImage — avatar definido
+  //
+  static bool isProfileComplete(UserModel user) {
+    final hasName  = (user.name?.trim().isNotEmpty ?? false);
+    final hasAge   = user.age != null;
+    final hasSexo  = (user.sexo?.trim().isNotEmpty ?? false);
+    final hasCity  = (user.city?.trim().isNotEmpty ?? false);
+    final hasState = (user.state?.trim().isNotEmpty ?? false);
+    final hasNeighborhood = (user.neighborhood?.trim().isNotEmpty ?? false);
+    final hasAvatar = (user.profileEmoji?.trim().isNotEmpty ?? false) ||
+        (user.profileImage?.trim().isNotEmpty ?? false);
+
+    return hasName &&
+        hasAge &&
+        hasSexo &&
+        hasCity &&
+        hasState &&
+        hasNeighborhood &&
+        hasAvatar;
+  }
+
+  /// Retorna true quando as duas verificações estão concluídas:
+  ///   1. E-mail verificado     (emailVerified == true)
+  ///   2. Perfil completo       (profileCompleted == true)
+  static bool isFullyVerified(UserModel user) {
+    return (user.emailVerified == true) &&
+        (user.profileCompleted == true);
+  }
+
+  /// Salva perfil COM VALIDAÇÃO.
+  ///
+  /// Após salvar, verifica automaticamente se o perfil foi completado
+  /// e, em caso positivo, escreve [profileCompleted = true] no banco.
   Future<void> saveProfile({
     required String? name,
     required String? age,
@@ -35,9 +70,8 @@ class ProfileService {
     required UserModel currentUser,
     double? latitude,
     double? longitude,
-    File? profilePhoto, // ← arquivo de foto nova
+    XFile? profilePhoto,
   }) async {
-    // VALIDAÇÃO: Nome não pode estar vazio
     final trimmedName = name?.trim() ?? '';
     if (trimmedName.isEmpty) {
       throw Exception('❌ O nome não pode ficar em branco.');
@@ -46,7 +80,6 @@ class ProfileService {
       throw Exception('❌ O nome precisa ter pelo menos 2 letras.');
     }
 
-    // VALIDAÇÃO: Idade
     int? parsedAge;
     if (age != null && age.trim().isNotEmpty) {
       parsedAge = int.tryParse(age.trim());
@@ -58,41 +91,45 @@ class ProfileService {
       }
     }
 
-    // UPLOAD DE FOTO (se fornecida)
     String? profileImageUrl = currentUser.profileImage;
-    
+
     if (profilePhoto != null) {
-      try {
-        // 🔥 PASSA A URL ANTIGA para deletar antes do upload
-        profileImageUrl = await _cloudinaryService.uploadProfileImage(
-          profilePhoto,
-          oldImageUrl: currentUser.profileImage, // ← URL antiga
-        );
-      } catch (e) {
-        // Repassa o erro do upload
-        rethrow;
-      }
+      profileImageUrl = await _cloudinaryService.uploadProfileImage(
+        profilePhoto,
+        oldImageUrl: currentUser.profileImage,
+      );
     }
 
-    // Cria novo objeto com dados atualizados
     final updatedUser = currentUser.copyWith(
       name: trimmedName,
       age: parsedAge,
       status: status?.trim().isEmpty == true ? null : status?.trim(),
       city: city?.trim().isEmpty == true ? null : city?.trim(),
       state: state?.trim().isEmpty == true ? null : state?.trim(),
-      neighborhood: neighborhood?.trim().isEmpty == true 
-          ? null 
-          : neighborhood?.trim(),
+      neighborhood:
+          neighborhood?.trim().isEmpty == true ? null : neighborhood?.trim(),
       profileEmoji: profileEmoji,
       sexo: sexo,
       latitude: latitude,
       longitude: longitude,
-      profileImage: profileImageUrl, // ← URL da foto nova
+      profileImage: profileImageUrl,
     );
 
-    // Salva no banco
     await _repository.updateProfile(updatedUser);
+
+    // ── Verifica automaticamente se o perfil foi completado ─────────────────
+    // Só marca se ainda não estava marcado (evita writes desnecessários).
+    if (updatedUser.profileCompleted != true && isProfileComplete(updatedUser)) {
+      await _repository.markProfileCompleted();
+    }
+  }
+
+  /// 🔄 ALTERNA MODO do usuário: "donor" ↔ "receiver"
+  Future<void> toggleMode(String newMode) async {
+    if (newMode != 'donor' && newMode != 'receiver') {
+      throw Exception('❌ Modo inválido: $newMode');
+    }
+    await _repository.toggleMode(newMode);
   }
 
   /// Adiciona filho COM VALIDAÇÃO
@@ -114,12 +151,7 @@ class ProfileService {
       }
     }
 
-    final child = ChildModel(
-      name: trimmedName,
-      age: parsedAge,
-      emoji: emoji,
-    );
-
+    final child = ChildModel(name: trimmedName, age: parsedAge, emoji: emoji);
     await _repository.addChild(child);
   }
 
@@ -134,19 +166,16 @@ class ProfileService {
     if (trimmedName.isEmpty) {
       throw Exception('❌ O nome do filho não pode ficar em branco.');
     }
-
     int? parsedAge;
     if (age != null && age.trim().isNotEmpty) {
       parsedAge = int.tryParse(age.trim());
     }
-
     final child = ChildModel(
       id: childId,
       name: trimmedName,
       age: parsedAge,
       emoji: emoji,
     );
-
     await _repository.updateChild(child);
   }
 
