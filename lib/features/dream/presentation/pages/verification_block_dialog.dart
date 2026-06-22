@@ -196,7 +196,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
             ],
           ),
         ),
-      );
+      ));
   }
 }
 
