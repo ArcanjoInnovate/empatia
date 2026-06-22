@@ -3,8 +3,81 @@ import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
 import 'package:empatia/features/auth/presentation/pages/age_verification_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// _Responsive — espelha exatamente a arquitetura do LoginPage:
+//   • recebe (width, height) de LayoutBuilder + MediaQuery
+//   • scale = (width / 390).clamp(0.86, 1.0) * (isCompact ? 0.92 : 1.0)
+//   • nomenclatura idêntica: gapXL/L/M/S, fontTitle/Subtitle/Label/Body/Button,
+//     fieldHeight, buttonHeight
+// ─────────────────────────────────────────────────────────────────────────────
+class _Responsive {
+  final double width;
+  final double height;
+
+  const _Responsive(this.width, this.height);
+
+  // ── Flags ─────────────────────────────────────────────────────────────────
+  bool get isTablet   => width  >= 600;
+  bool get isCompact  => height <  680;   // tela curta (mesmo critério do login)
+
+  // ── Fator base — idêntico ao login ───────────────────────────────────────
+  double get scale => (width / 390).clamp(0.86, 1.0) * (isCompact ? 0.92 : 1.0);
+
+  // ── Largura do card ───────────────────────────────────────────────────────
+  double get contentWidth => isTablet ? 480.0 : width - 32;
+
+  // ── Tipografia (mesmos nomes do login) ────────────────────────────────────
+  double get fontTitle    => 22 * scale;
+  double get fontSubtitle => 13 * scale;
+  double get fontLabel    => 13 * scale;
+  double get fontBody     => 15 * scale;   // texto dentro dos campos
+  double get fontButton   => 17 * scale;
+  double get fontCaption  => 12 * scale;
+  double get fontHint     => 14 * scale;
+  double get fontTerms    => 13 * scale;
+  double get fontProgress => 10 * scale;
+
+  // ── Espaçamentos (mesmos nomes do login) ──────────────────────────────────
+  double get gapXL => (isCompact ? 16.0 : 22.0) * scale;  // entre seções grandes
+  double get gapL  => (isCompact ? 12.0 : 18.0) * scale;  // entre seções normais
+  double get gapM  => (isCompact ? 10.0 : 14.0) * scale;  // entre campos
+  double get gapS  => (isCompact ?  4.0 :  6.0) * scale;  // micro-gaps
+
+  // ── Alturas fixas (mesmos nomes do login) ─────────────────────────────────
+  double get fieldHeight  => 54 * scale;
+  double get buttonHeight => 56 * scale;
+
+  // ── Padding horizontal ────────────────────────────────────────────────────
+  double get pagePadH  => isTablet ? 40.0 : 16.0;
+  double get cardPadH  => 20 * scale;
+
+  // ── Logo ──────────────────────────────────────────────────────────────────
+  double get logoSize      => 96 * scale;
+  double get logoInnerSize => logoSize * 0.72;
+  double get logoIconSize  => logoSize * 0.36;
+
+  // ── Campo: prefixo e ícone ────────────────────────────────────────────────
+  double get fieldPrefixW   => 52 * scale;
+  double get fieldIconPad   => 10 * scale;
+  double get fieldIconEmoji => 20 * scale;
+
+  // ── Botão: emoji ──────────────────────────────────────────────────────────
+  double get btnEmoji => 24 * scale;
+
+  // ── Indicador de progresso ────────────────────────────────────────────────
+  double get dotSize   => 10 * scale;
+  double get lineHeight => 2.5;          // não escala — espessura visual é fixa
+
+  // ── Blobs decorativos ─────────────────────────────────────────────────────
+  double get blob1 => width * 0.55;
+  double get blob2 => width * 0.65;
+  double get blob3 => width * 0.45;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -14,684 +87,764 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage>
     with TickerProviderStateMixin {
-  final _emailController           = TextEditingController();
-  final _passwordController        = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
-  bool _isPasswordVisible        = false;
-  bool _isConfirmPasswordVisible = false;
-  bool _acceptTerms = false;
+  final _emailTc   = TextEditingController();
+  final _passTc    = TextEditingController();
+  final _confirmTc = TextEditingController();
 
-  String? _emailError;
-  String? _passwordError;
-  String? _confirmPasswordError;
-  String? _termsError;
-  String? _registerError;
+  final _emailFn   = FocusNode();
+  final _passFn    = FocusNode();
+  final _confirmFn = FocusNode();
 
-  final AuthController controller = AuthController();
+  bool _showPass       = false;
+  bool _showConfirm    = false;
+  bool _acceptTerms    = false;
+  bool _btnPressed     = false;
 
-  late AnimationController _floatController;
-  late AnimationController _rotateController;
-  late AnimationController _bounceController;
-  late AnimationController _pulseController;
-  late Animation<double> _floatAnimation;
-  late Animation<double> _bounceAnimation;
-  late Animation<double> _pulseAnimation;
+  bool _emailValid     = false;
+  bool _passValid      = false;
+  bool _confirmValid   = false;
+
+  bool _emailFocused   = false;
+  bool _passFocused    = false;
+  bool _confirmFocused = false;
+
+  String? _emailErr;
+  String? _passErr;
+  String? _confirmErr;
+  String? _termsErr;
+  String? _globalErr;
+
+  final _auth = AuthController();
+
+  late AnimationController _entryCtrl;
+  late AnimationController _ambientCtrl;
+  late Animation<double>   _fadeAnim;
+  late Animation<Offset>   _slideAnim;
+  late Animation<double>   _floatAnim;
 
   @override
   void initState() {
     super.initState();
 
-    _floatController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
+    _entryCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
+    _fadeAnim  = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut));
 
-    _rotateController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 20),
-    )..repeat();
+    _ambientCtrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 6))
+      ..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: -8, end: 8).animate(
+        CurvedAnimation(parent: _ambientCtrl, curve: Curves.easeInOut));
 
-    _bounceController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-    _bounceAnimation = Tween<double>(begin: 0, end: -15).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
+    _entryCtrl.forward();
 
-    _pulseController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
+    for (final pair in [
+      (_emailFn,   (bool v) => setState(() => _emailFocused   = v)),
+      (_passFn,    (bool v) => setState(() => _passFocused    = v)),
+      (_confirmFn, (bool v) => setState(() => _confirmFocused = v)),
+    ]) {
+      final fn = pair.$1 as FocusNode;
+      final cb = pair.$2 as void Function(bool);
+      fn.addListener(() => cb(fn.hasFocus));
+    }
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _floatController.dispose();
-    _rotateController.dispose();
-    _bounceController.dispose();
-    _pulseController.dispose();
+    for (final c in [_emailTc, _passTc, _confirmTc]) c.dispose();
+    for (final f in [_emailFn, _passFn, _confirmFn]) f.dispose();
+    _entryCtrl.dispose();
+    _ambientCtrl.dispose();
     super.dispose();
   }
 
-  void _handleRegister() {
+  // ── Validação em tempo real ───────────────────────────────────────────────
+  void _onEmailChanged(String v) => setState(() {
+    _emailErr   = null;
+    _emailValid = v.trim().isNotEmpty && v.contains('@') && v.contains('.');
+  });
+
+  void _onPassChanged(String v) => setState(() {
+    _passErr      = null;
+    _passValid    = v.length >= 6;
+    _confirmValid = _confirmTc.text.isNotEmpty && _confirmTc.text == v;
+  });
+
+  void _onConfirmChanged(String v) => setState(() {
+    _confirmErr   = null;
+    _confirmValid = v.isNotEmpty && v == _passTc.text;
+  });
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  void _submit() {
+    HapticFeedback.mediumImpact();
     setState(() {
-      _emailError           = null;
-      _passwordError        = null;
-      _confirmPasswordError = null;
-      _termsError           = null;
-      _registerError        = null;
+      _emailErr = _passErr = _confirmErr = _termsErr = _globalErr = null;
     });
 
-    bool hasError = false;
+    bool err = false;
 
-    if (_emailController.text.trim().isEmpty) {
-      setState(() => _emailError = 'Ops! Email tá faltando 📧✨');
-      hasError = true;
-    } else if (!_emailController.text.contains('@') ||
-        !_emailController.text.contains('.')) {
-      setState(() => _emailError = 'Email tá estranho, confere? 🤔💫');
-      hasError = true;
+    if (_emailTc.text.trim().isEmpty ||
+        !_emailTc.text.contains('@') ||
+        !_emailTc.text.contains('.')) {
+      setState(() => _emailErr = 'E-mail inválido. Confere o formato 📧');
+      err = true;
     }
-
-    if (_passwordController.text.isEmpty) {
-      setState(() => _passwordError = 'Cria uma senha legal! 🔐✨');
-      hasError = true;
-    } else if (_passwordController.text.length < 6) {
-      setState(() => _passwordError = 'Senha muito curtinha! Mínimo 6 💪🌟');
-      hasError = true;
+    if (_passTc.text.isEmpty || _passTc.text.length < 6) {
+      setState(() => _passErr = 'Mínimo 6 caracteres na senha 🔐');
+      err = true;
     }
-
-    if (_confirmPasswordController.text.isEmpty) {
-      setState(() => _confirmPasswordError = 'Confirma aí! 🔑✨');
-      hasError = true;
-    } else if (_confirmPasswordController.text != _passwordController.text) {
-      setState(() => _confirmPasswordError = 'Senhas diferentes! 😅💫');
-      hasError = true;
+    if (_confirmTc.text != _passTc.text || _confirmTc.text.isEmpty) {
+      setState(() => _confirmErr = 'As senhas não conferem 🔑');
+      err = true;
     }
-
     if (!_acceptTerms) {
-      setState(() => _termsError = 'Precisa aceitar pra continuar! 🤝✨');
-      hasError = true;
+      setState(() => _termsErr = 'Aceite os termos para continuar');
+      err = true;
+    }
+    if (err) {
+      HapticFeedback.heavyImpact();
+      return;
     }
 
-    if (hasError) return;
-
-    // ── Nenhuma chamada ao Firebase aqui ──────────────────────────────────────
-    // Só navegamos para a verificação de idade passando as credenciais.
-    // O cadastro real acontece em AgeVerificationPage, quando tudo estiver ok.
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AgeVerificationPage(
-          email:    _emailController.text.trim(),
-          password: _passwordController.text,
-          authController: controller,
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => AgeVerificationPage(
+          email: _emailTc.text.trim(),
+          password: _passTc.text,
+          authController: _auth,
         ),
+        transitionsBuilder: (_, a, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a, curve: Curves.easeOut),
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
 
+  int get _progress =>
+      [_emailValid, _passValid, _confirmValid].where((v) => v).length;
+
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: AppDecorations.registerBackground,
-        child: Stack(
-          children: [
-            ..._buildGiantBubbles(),
-            ..._buildConfetti(),
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildCard(),
-                    const SizedBox(height: 20),
-                  ],
+    // LayoutBuilder fornece width; MediaQuery fornece height — idêntico ao login
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final r = _Responsive(
+          constraints.maxWidth,
+          MediaQuery.of(context).size.height,
+        );
+
+        return Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: Container(
+            decoration: AppDecorations.registerBackground,
+            child: Stack(children: [
+              _blobs(r),
+              SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: r.contentWidth + r.pagePadH * 2),
+                    child: FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: r.pagePadH),
+                          child: Column(children: [
+                            SizedBox(height: r.gapL),
+                            _logo(r),
+                            SizedBox(height: r.gapL),
+                            _card(r),
+                            SizedBox(height: r.gapL),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ]),
+          ),
+        );
+      },
     );
   }
 
-  List<Widget> _buildGiantBubbles() {
-    return [
-      _buildBubble(top: 50,    left: -40,  size: 150, opacity: 0.15),
-      _buildBubble(top: 180,   right: -50, size: 180, opacity: 0.12),
-      _buildBubble(bottom: 150, left: -60, size: 200, opacity: 0.10),
-      _buildBubble(bottom: 300, right: -30, size: 140, opacity: 0.13),
-      _buildBubble(top: 350,   left: 40,   size: 100, opacity: 0.12),
-    ];
-  }
-
-  Widget _buildBubble({
-    double? top, double? bottom, double? left, double? right,
-    required double size, required double opacity,
-  }) {
-    return Positioned(
-      top: top, bottom: bottom, left: left, right: right,
-      child: AnimatedBuilder(
-        animation: _floatAnimation,
-        builder: (_, __) => Transform.translate(
-          offset: Offset(_floatAnimation.value * 0.5, _floatAnimation.value),
-          child: Container(
-            width: size, height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Colors.white.withOpacity(opacity),
-                  Colors.white.withOpacity(opacity * 0.3),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildConfetti() {
-    final items = [
-      _Confetti(emoji: '🎉', top: 90,     left: 20,   size: 32),
-      _Confetti(emoji: '🎈', top: 160,    right: 30,  size: 28),
-      _Confetti(emoji: '⭐', top: 240,    left: 15,   size: 26),
-      _Confetti(emoji: '🌟', top: 320,    right: 25,  size: 30),
-      _Confetti(emoji: '✨', bottom: 280, left: 35,   size: 24),
-      _Confetti(emoji: '🎊', bottom: 200, right: 20,  size: 28),
-      _Confetti(emoji: '💫', bottom: 130, left: 25,   size: 22),
-      _Confetti(emoji: '🦄', top: 200,    left: 50,   size: 34),
-      _Confetti(emoji: '🌈', top: 140,    right: 60,  size: 30),
-      _Confetti(emoji: '🎨', top: 280,    right: 50,  size: 26),
-      _Confetti(emoji: '🧸', bottom: 250, left: 50,   size: 28),
-      _Confetti(emoji: '🎪', bottom: 170, right: 55,  size: 26),
-    ];
-
-    return items.map((c) => Positioned(
-      top: c.top, bottom: c.bottom, left: c.left, right: c.right,
-      child: AnimatedBuilder(
-        animation: _bounceAnimation,
-        builder: (_, __) => Transform.translate(
-          offset: Offset(0, _bounceAnimation.value),
-          child: AnimatedBuilder(
-            animation: _rotateController,
-            builder: (_, __) => Transform.rotate(
-              angle: _rotateController.value * 2 * math.pi * 0.1,
-              child: AnimatedBuilder(
-                animation: _pulseAnimation,
-                builder: (_, __) => Transform.scale(
-                  scale: _pulseAnimation.value,
-                  child: Text(c.emoji, style: TextStyle(fontSize: c.size)),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    )).toList();
-  }
-
-  Widget _buildHeader() {
+  // ── Blobs de fundo ────────────────────────────────────────────────────────
+  Widget _blobs(_Responsive r) {
     return AnimatedBuilder(
-      animation: _bounceAnimation,
+      animation: _floatAnim,
+      builder: (_, __) {
+        final h = MediaQuery.of(context).size.height;
+        return Stack(children: [
+          Positioned(
+            top:  h * 0.03 + _floatAnim.value,
+            left: -r.blob1 * 0.38,
+            child: _blob(r.blob1, 0.12),
+          ),
+          Positioned(
+            top:   h * 0.30 - _floatAnim.value,
+            right: -r.blob2 * 0.42,
+            child: _blob(r.blob2, 0.09),
+          ),
+          Positioned(
+            bottom: h * 0.08 + _floatAnim.value * 0.6,
+            left:  -r.blob3 * 0.28,
+            child: _blob(r.blob3, 0.11),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Widget _blob(double size, double opacity) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [
+            Colors.white.withOpacity(opacity),
+            Colors.white.withOpacity(opacity * 0.15),
+          ]),
+        ),
+      );
+
+  // ── Logo com anel giratório ───────────────────────────────────────────────
+  Widget _logo(_Responsive r) {
+    return AnimatedBuilder(
+      animation: _floatAnim,
       builder: (_, __) => Transform.translate(
-        offset: Offset(0, _bounceAnimation.value * 0.3),
-        child: Row(
-          children: [
-            const Spacer(),
+        offset: Offset(0, _floatAnim.value * 0.35),
+        child: SizedBox(
+          width: r.logoSize,
+          height: r.logoSize,
+          child: Stack(alignment: Alignment.center, children: [
             AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (_, __) => Transform.scale(
-                scale: _pulseAnimation.value,
+              animation: _ambientCtrl,
+              builder: (_, __) => Transform.rotate(
+                angle: _ambientCtrl.value * 2 * math.pi,
                 child: Container(
-                  width: 85, height: 85,
-                  decoration: AppDecorations.registerLogo,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _rotateController,
-                        builder: (_, __) => Transform.rotate(
-                          angle: _rotateController.value * 2 * math.pi,
-                          child: Container(
-                            width: 78, height: 78,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: AppTheme.registerLogoSweep,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 60, height: 60,
-                        decoration: AppDecorations.registerLogoInner,
-                        child: const Icon(Icons.favorite, size: 30, color: Colors.white),
-                      ),
-                    ],
+                  width: r.logoSize,
+                  height: r.logoSize,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.registerLogoSweep,
                   ),
                 ),
               ),
             ),
-            const Spacer(),
-            const SizedBox(width: 50),
-          ],
+            Container(
+              width: r.logoSize * 0.78,
+              height: r.logoSize * 0.78,
+              decoration: AppDecorations.registerLogo,
+            ),
+            Container(
+              width: r.logoInnerSize,
+              height: r.logoInnerSize,
+              decoration: AppDecorations.registerLogoInner,
+              child: Icon(Icons.favorite,
+                  size: r.logoIconSize, color: Colors.white),
+            ),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _buildCard() {
+  // ── Card ──────────────────────────────────────────────────────────────────
+  Widget _card(_Responsive r) {
     return Container(
+      width: double.infinity,
       decoration: AppDecorations.registerCard,
-      child: Column(
-        children: [
-          Container(height: 12, decoration: AppDecorations.cardRainbowBar),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: AppDecorations.registerTitleBox,
-                  child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(40),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(height: 8, decoration: AppDecorations.cardRainbowBar),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                    r.cardPadH, r.gapXL, r.cardPadH, r.gapXL),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedBuilder(
-                            animation: _pulseAnimation,
-                            builder: (_, __) => Transform.scale(
-                              scale: _pulseAnimation.value,
-                              child: const Text('🎉', style: TextStyle(fontSize: 36)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Vem com a gente!',
-                            style: TextStyle(
-                              fontSize: 30, fontWeight: FontWeight.w900,
-                              color: AppTheme.kidsPink,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          AnimatedBuilder(
-                            animation: _pulseAnimation,
-                            builder: (_, __) => Transform.scale(
-                              scale: _pulseAnimation.value,
-                              child: const Text('🚀', style: TextStyle(fontSize: 36)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'É super rápido e fácil! ✨',
-                        style: TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w700,
-                          color: AppTheme.kidsPurple,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 28),
+                      _titleBox(r),
+                      SizedBox(height: r.gapL),
+                      _progressRow(r),
+                      SizedBox(height: r.gapL),
 
-                _buildMagicField(
-                  controller: _emailController,
-                  label: 'Teu email 📧',
-                  hint: 'meuemail@exemplo.com',
-                  icon: '📬',
-                  errorText: _emailError,
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) => setState(() => _emailError = null),
-                  gradientColors: AppTheme.gradientEmail,
-                ),
-                const SizedBox(height: 18),
+                      // E-mail
+                      _field(r,
+                          tc: _emailTc,
+                          fn: _emailFn,
+                          label: 'E-mail',
+                          hint: 'seuemail@exemplo.com',
+                          icon: '📬',
+                          colors: AppTheme.gradientEmail,
+                          focused: _emailFocused,
+                          valid: _emailValid,
+                          error: _emailErr,
+                          keyboardType: TextInputType.emailAddress,
+                          onChanged: _onEmailChanged),
+                      SizedBox(height: r.gapM),
 
-                _buildMagicField(
-                  controller: _passwordController,
-                  label: 'Senha secreta 🔐',
-                  hint: 'Cria uma senha legal',
-                  icon: '🗝️',
-                  errorText: _passwordError,
-                  obscureText: !_isPasswordVisible,
-                  onChanged: (_) => setState(() => _passwordError = null),
-                  gradientColors: AppTheme.gradientPassword,
-                  suffix: GestureDetector(
-                    onTap: () => setState(
-                      () => _isPasswordVisible = !_isPasswordVisible,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: AppDecorations.passwordTogglePurple,
-                      child: Text(
-                        _isPasswordVisible ? '🙈' : '👁️',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
+                      // Senha
+                      _field(r,
+                          tc: _passTc,
+                          fn: _passFn,
+                          label: 'Senha',
+                          hint: 'Mínimo 6 caracteres',
+                          icon: '🗝️',
+                          colors: AppTheme.gradientPassword,
+                          focused: _passFocused,
+                          valid: _passValid,
+                          error: _passErr,
+                          obscure: !_showPass,
+                          onChanged: _onPassChanged,
+                          suffix: _eyeBtn(
+                              '🙈', '👁️', _showPass,
+                              () {
+                                HapticFeedback.lightImpact();
+                                setState(() => _showPass = !_showPass);
+                              },
+                              AppDecorations.passwordTogglePurple)),
+                      SizedBox(height: r.gapM),
 
-                _buildMagicField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirma a senha 🔑',
-                  hint: 'Mesma senha de novo',
-                  icon: '🎯',
-                  errorText: _confirmPasswordError,
-                  obscureText: !_isConfirmPasswordVisible,
-                  onChanged: (_) => setState(() => _confirmPasswordError = null),
-                  gradientColors: AppTheme.gradientConfirm,
-                  suffix: GestureDetector(
-                    onTap: () => setState(
-                      () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: AppDecorations.passwordTogglePink,
-                      child: Text(
-                        _isConfirmPasswordVisible ? '🙈' : '👁️',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                      // Confirmar senha
+                      _field(r,
+                          tc: _confirmTc,
+                          fn: _confirmFn,
+                          label: 'Confirmar senha',
+                          hint: 'Repete a mesma senha',
+                          icon: '🎯',
+                          colors: AppTheme.gradientConfirm,
+                          focused: _confirmFocused,
+                          valid: _confirmValid,
+                          error: _confirmErr,
+                          obscure: !_showConfirm,
+                          onChanged: _onConfirmChanged,
+                          suffix: _eyeBtn(
+                              '🙈', '👁️', _showConfirm,
+                              () {
+                                HapticFeedback.lightImpact();
+                                setState(() => _showConfirm = !_showConfirm);
+                              },
+                              AppDecorations.passwordTogglePink)),
+                      SizedBox(height: r.gapL),
 
-                _buildTermsCheckbox(),
-                if (_termsError != null) ...[
-                  const SizedBox(height: 12),
-                  _buildErrorBubble(_termsError!),
-                ],
-                const SizedBox(height: 24),
+                      _terms(r),
+                      if (_termsErr != null) ...[
+                        SizedBox(height: r.gapS + 4),
+                        _errBubble(_termsErr!, r),
+                      ],
+                      if (_globalErr != null) ...[
+                        SizedBox(height: r.gapS + 4),
+                        _errBubble(_globalErr!, r),
+                      ],
+                      SizedBox(height: r.gapL),
 
-                if (_registerError != null) ...[
-                  _buildErrorBubble(_registerError!),
-                  const SizedBox(height: 20),
-                ],
+                      _registerBtn(r),
+                      SizedBox(height: r.gapL),
 
-                _buildRegisterButton(),
-                const SizedBox(height: 24),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Já tem conta? ',
-                      style: TextStyle(
-                        fontSize: 15, color: AppTheme.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8,
-                        ),
-                        decoration: AppDecorations.loginLinkButton,
-                        child: const Row(
-                          children: [
-                            Text('🎮', style: TextStyle(fontSize: 18)),
-                            SizedBox(width: 6),
-                            Text(
-                              'ENTRAR',
-                              style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w900,
-                                color: Colors.white, letterSpacing: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+                      _loginLink(r),
+                    ]),
+              ),
+            ]),
       ),
     );
   }
 
-  Widget _buildTermsCheckbox() {
-    return GestureDetector(
-      onTap: () => setState(() {
-        _acceptTerms = !_acceptTerms;
-        if (_acceptTerms) _termsError = null;
-      }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: AppDecorations.termsCheckbox(accepted: _acceptTerms),
-        child: Row(
+  // ── Título ────────────────────────────────────────────────────────────────
+  Widget _titleBox(_Responsive r) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+          horizontal: r.cardPadH * 0.6, vertical: r.gapL * 0.7),
+      decoration: AppDecorations.registerTitleBox,
+      child: Column(children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 32, height: 32,
-              decoration: AppDecorations.termsCheckboxTick(accepted: _acceptTerms),
-              child: _acceptTerms
-                  ? const Icon(Icons.check_rounded, size: 20, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: RichText(
-                text: const TextSpan(
-                  style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600,
-                    color: AppTheme.textSubtle,
-                  ),
-                  children: [
-                    TextSpan(text: 'Eu aceito os '),
-                    TextSpan(
-                      text: 'Termos',
-                      style: TextStyle(
-                        color: AppTheme.kidsPurple, fontWeight: FontWeight.w800,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                    TextSpan(text: ' e a '),
-                    TextSpan(
-                      text: 'Privacidade',
-                      style: TextStyle(
-                        color: AppTheme.kidsPink, fontWeight: FontWeight.w800,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                    TextSpan(text: ' 🤝✨'),
-                  ],
+            Text('🎉', style: TextStyle(fontSize: r.fontTitle * 1.1)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Vem com a gente!',
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: r.fontTitle,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.kidsPink,
+                  height: 1.1,
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            Text('🚀', style: TextStyle(fontSize: r.fontTitle * 1.1)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRegisterButton() {
-    return GestureDetector(
-      onTap: _handleRegister,
-      child: AnimatedBuilder(
-        animation: _pulseAnimation,
-        builder: (_, __) => Transform.scale(
-          scale: _pulseAnimation.value,
-          child: Container(
-            width: double.infinity, height: 68,
-            decoration: AppDecorations.registerButton,
-            child: const Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('🎊', style: TextStyle(fontSize: 32)),
-                  SizedBox(width: 14),
-                  Text(
-                    'VAMOS LÁ!',
-                    style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.w900,
-                      color: Colors.white, letterSpacing: 2,
-                      shadows: [
-                        Shadow(
-                          color: Color(0x88000000),
-                          blurRadius: 8, offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 14),
-                  Text('✨', style: TextStyle(fontSize: 32)),
-                ],
-              ),
-            ),
+        SizedBox(height: r.gapS),
+        Text(
+          'Rápido, fácil e seguro ✨',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: r.fontSubtitle,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.kidsPurple,
           ),
         ),
-      ),
+      ]),
     );
   }
 
-  Widget _buildMagicField({
-    required TextEditingController controller,
+  // ── Indicador de progresso ────────────────────────────────────────────────
+  Widget _progressRow(_Responsive r) {
+    const labels = ['E-mail', 'Senha', 'Confirmação'];
+    return Row(
+      children: List.generate(labels.length * 2 - 1, (i) {
+        if (i.isOdd) {
+          final done = (i ~/ 2) < _progress;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: r.lineHeight,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: done
+                    ? AppTheme.kidsGreenDeep
+                    : AppTheme.kidsPurple.withOpacity(0.15),
+              ),
+            ),
+          );
+        }
+        final step = i ~/ 2;
+        final done = step < _progress;
+        return Column(children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width:  done ? r.dotSize * 1.35 : r.dotSize,
+            height: done ? r.dotSize * 1.35 : r.dotSize,
+            decoration: AppDecorations.progressDot(done: done),
+          ),
+          SizedBox(height: r.gapS),
+          Text(
+            labels[step],
+            style: TextStyle(
+              fontSize: r.fontProgress,
+              fontWeight: FontWeight.w700,
+              color: done ? AppTheme.kidsGreenDeep : AppTheme.textMuted,
+            ),
+          ),
+        ]);
+      }),
+    );
+  }
+
+  // ── Campo de texto ────────────────────────────────────────────────────────
+  Widget _field(
+    _Responsive r, {
+    required TextEditingController tc,
+    required FocusNode fn,
     required String label,
     required String hint,
     required String icon,
-    required List<Color> gradientColors,
-    String? errorText,
-    bool obscureText = false,
+    required List<Color> colors,
+    required bool focused,
+    required bool valid,
+    String? error,
+    bool obscure = false,
     TextInputType? keyboardType,
     Widget? suffix,
-    void Function(String)? onChanged,
+    required void Function(String) onChanged,
   }) {
-    final hasError = errorText != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Label + check
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 10),
-          child: Row(
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w900,
-                  foreground: AppDecorations.textShader(gradientColors),
-                ),
+          padding: EdgeInsets.only(left: 4, bottom: r.gapS),
+          child: Row(children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: r.fontLabel,
+                fontWeight: FontWeight.w700,
+                foreground: AppDecorations.textShader(colors),
               ),
-            ],
-          ),
+            ),
+            const Spacer(),
+            AnimatedOpacity(
+              opacity: valid ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: Row(children: [
+                Icon(Icons.check_circle_rounded,
+                    size: r.fontLabel + 1, color: AppTheme.kidsGreenDeep),
+                SizedBox(width: r.gapS - 2),
+                Text('OK',
+                    style: TextStyle(
+                      fontSize: r.fontLabel - 1,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.kidsGreenDeep,
+                    )),
+              ]),
+            ),
+          ]),
         ),
+
+        // Campo — altura fixa via fieldHeight (mesmo nome do login)
         AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
+          height: r.fieldHeight,
           decoration: AppDecorations.fieldOuter(
-            gradientColors: gradientColors, hasError: hasError,
+            gradientColors: colors,
+            hasError: error != null,
+            isFocused: focused,
           ),
           child: Container(
-            decoration: AppDecorations.fieldInner(gradientColors),
-            child: Row(
-              children: [
-                const SizedBox(width: 18),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: AppDecorations.fieldIcon(gradientColors),
-                  child: Text(icon, style: const TextStyle(fontSize: 24)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    obscureText: obscureText,
-                    keyboardType: keyboardType,
-                    onChanged: onChanged,
-                    style: const TextStyle(
-                      fontSize: 16, color: AppTheme.textDark,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade400, fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 20),
-                    ),
+            decoration: AppDecorations.fieldInner(colors),
+            child: Row(children: [
+              SizedBox(
+                width: r.fieldPrefixW,
+                child: Center(
+                  child: Container(
+                    padding: EdgeInsets.all(r.fieldIconPad),
+                    decoration: AppDecorations.fieldIcon(colors),
+                    child: Text(icon,
+                        style: TextStyle(fontSize: r.fieldIconEmoji)),
                   ),
                 ),
-                if (suffix != null) ...[suffix, const SizedBox(width: 18)],
-              ],
-            ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: tc,
+                  focusNode: fn,
+                  obscureText: obscure,
+                  keyboardType: keyboardType,
+                  onChanged: onChanged,
+                  style: TextStyle(
+                    fontSize: r.fontBody,
+                    color: AppTheme.textDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: r.fontHint,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              if (suffix != null) ...[suffix, SizedBox(width: 10)],
+            ]),
           ),
         ),
-        if (hasError) ...[
-          const SizedBox(height: 10),
-          _buildErrorBubble(errorText),
+
+        if (error != null) ...[
+          SizedBox(height: r.gapS + 2),
+          _errBubble(error, r),
         ],
       ],
     );
   }
 
-  Widget _buildErrorBubble(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: AppDecorations.errorBubble,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.errorRed, AppTheme.errorRedDeep],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.errorRed.withOpacity(0.5),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: const Text('😅', style: TextStyle(fontSize: 22)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                fontSize: 14, color: AppTheme.errorRed,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
+  Widget _eyeBtn(String hide, String show, bool visible, VoidCallback onTap,
+      BoxDecoration deco) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(7),
+        decoration: deco,
+        child: Text(visible ? hide : show,
+            style: const TextStyle(fontSize: 18)),
       ),
     );
   }
-}
 
-class _Confetti {
-  final String emoji;
-  final double? top, bottom, left, right;
-  final double size;
-  const _Confetti({
-    required this.emoji,
-    this.top, this.bottom, this.left, this.right,
-    required this.size,
-  });
+  // ── Termos ────────────────────────────────────────────────────────────────
+  Widget _terms(_Responsive r) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _acceptTerms = !_acceptTerms;
+          if (_acceptTerms) _termsErr = null;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: EdgeInsets.all(r.gapM),
+        decoration: AppDecorations.termsCheckbox(accepted: _acceptTerms),
+        child: Row(children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: 28,
+            height: 28,
+            decoration: AppDecorations.termsCheckboxTick(accepted: _acceptTerms),
+            child: _acceptTerms
+                ? const Icon(Icons.check_rounded,
+                    size: 17, color: Colors.white)
+                : null,
+          ),
+          SizedBox(width: r.gapM),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: r.fontTerms,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSubtle,
+                  height: 1.4,
+                ),
+                children: const [
+                  TextSpan(text: 'Li e aceito os '),
+                  TextSpan(
+                    text: 'Termos de Uso',
+                    style: TextStyle(
+                      color: AppTheme.kidsPurple,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  TextSpan(text: ' e a '),
+                  TextSpan(
+                    text: 'Política de Privacidade',
+                    style: TextStyle(
+                      color: AppTheme.kidsPink,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  TextSpan(text: ' 🤝'),
+                ],
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  // ── Botão registrar ───────────────────────────────────────────────────────
+  Widget _registerBtn(_Responsive r) {
+    return GestureDetector(
+      onTapDown:  (_) { setState(() => _btnPressed = true);  HapticFeedback.lightImpact(); },
+      onTapUp:    (_) => setState(() => _btnPressed = false),
+      onTapCancel: () => setState(() => _btnPressed = false),
+      onTap: _submit,
+      child: AnimatedScale(
+        scale: _btnPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 140),
+        child: Container(
+          width: double.infinity,
+          height: r.buttonHeight,           // ← mesmo nome do login
+          decoration: AppDecorations.registerButton,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text('🎊', style: TextStyle(fontSize: r.btnEmoji)),
+            const SizedBox(width: 10),
+            Text(
+              'CRIAR CONTA',
+              style: TextStyle(
+                fontSize: r.fontButton,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 1.4,
+                shadows: const [
+                  Shadow(
+                      color: Color(0x55000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2))
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text('✨', style: TextStyle(fontSize: r.btnEmoji)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── Link "já tenho conta" ─────────────────────────────────────────────────
+  Widget _loginLink(_Responsive r) {
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Text(
+        'Já tem conta? ',
+        style: TextStyle(
+          fontSize: r.fontCaption + 1,
+          color: AppTheme.textMuted,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.pop(context);
+        },
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: AppDecorations.loginLinkButton,
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('🎮', style: TextStyle(fontSize: r.fontCaption + 4)),
+            const SizedBox(width: 5),
+            Text(
+              'ENTRAR',
+              style: TextStyle(
+                fontSize: r.fontCaption + 1,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ]);
+  }
+
+  // ── Erro bubble ───────────────────────────────────────────────────────────
+  Widget _errBubble(String msg, _Responsive r) {
+    return Container(
+      width: double.infinity,
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: AppDecorations.errorBubble,
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: AppDecorations.errorIcon,
+          child: const Text('😅', style: TextStyle(fontSize: 18)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            msg,
+            style: TextStyle(
+              fontSize: r.fontCaption + 1,
+              color: AppTheme.errorRed,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
 }

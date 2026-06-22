@@ -40,6 +40,29 @@ class AppTheme {
   static const Color textMuted       = Color(0xFF888888);
   static const Color textSubtle      = Color(0xFF555555);
 
+  // ─── Cores de perfil ─────────────────────────────────────────────────────────
+  /// Fundo da ProfilePage (Scaffold + _ProfileBody)
+  static const Color profileBackground = Color(0xFFF7F8FC);
+  /// Linha divisória entre seções do perfil
+  static const Color dividerColor      = Color(0xFFEEEEEE);
+
+  // ─── Cores da DreamPage ───────────────────────────────────────────────────────
+  /// Fundo do Scaffold da DreamPage
+  static const Color dreamBackground = Color(0xFFF0F8FF);
+
+  // ─── Gradientes da DreamPage ──────────────────────────────────────────────────
+
+  /// Gradiente do header da DreamPage (SliverAppBar background)
+  static const LinearGradient dreamHeaderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryBlue, accentTeal, accentPurple],
+    stops: [0.0, 0.55, 1.0],
+  );
+
+  /// Gradiente do divisor decorativo entre seções (_FunDivider)
+  static const List<Color> dreamDividerColors = [accentTeal, accentGreen];
+
   // ─── Pares de gradiente (campo email, senha, etc.) ───────────────────────────
   static const List<Color> gradientEmail    = [kidsCyan,    kidsCyanLight];
   static const List<Color> gradientPassword = [kidsPurple,  kidsPurpleLight];

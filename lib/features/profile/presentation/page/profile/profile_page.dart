@@ -6,12 +6,10 @@ import 'package:empatia/features/profile/presentation/widgets/profile/profile_ch
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_dreams_widget.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_header_widget.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink = Color(0xFFFF6B9D);
-const _bg   = Color(0xFFF7F8FC);
 
 /// 👤 PROFILE PAGE
 ///
@@ -39,13 +37,13 @@ class ProfilePage extends StatelessWidget {
 
         if (user == null) {
           return const Scaffold(
-            backgroundColor: _bg,
-            body: Center(child: CircularProgressIndicator(color: _pink)),
+            backgroundColor: AppTheme.profileBackground,
+            body: Center(child: CircularProgressIndicator(color: AppTheme.kidsPink)),
           );
         }
 
         return Scaffold(
-          backgroundColor: _bg,
+          backgroundColor: AppTheme.profileBackground,
           body: CustomScrollView(
             slivers: [
               // ── Header com avatar, nome, meta e status ──
@@ -72,10 +70,7 @@ class _ProfileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: _bg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+      decoration: AppDecorations.profileBody,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -83,7 +78,6 @@ class _ProfileBody extends StatelessWidget {
 
           // ── Contadores de atividade ──
           _ActivitySummary(user: user),
-
 
           _divider(),
           const SizedBox(height: 8),
@@ -116,13 +110,13 @@ class _ProfileBody extends StatelessWidget {
 
   Widget _divider() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(height: 1, color: const Color(0xFFEEEEEE)),
+        child: Container(height: 1, color: AppTheme.dividerColor),
       );
 }
 
 // ── Resumo de atividade ───────────────────────────────────────────────────────
 
-/// Três cards com contadores: ofertas ativas, pedidos abertos, atendidos.
+/// Três cards com contadores: ofertas ativas, pedidos abertos, filhos.
 class _ActivitySummary extends StatelessWidget {
   final UserModel user;
   const _ActivitySummary({required this.user});
@@ -148,7 +142,7 @@ class _ActivitySummary extends StatelessWidget {
                   emoji: '🎁',
                   count: count,
                   label: 'Ofertas\nativas',
-                  color: _pink,
+                  color: AppTheme.kidsPink,
                 );
               },
             ),
@@ -167,7 +161,7 @@ class _ActivitySummary extends StatelessWidget {
                   emoji: '🙏',
                   count: count,
                   label: 'Pedidos\nabertos',
-                  color: const Color(0xFF1E3A8A),
+                  color: AppTheme.primaryBlue,
                 );
               },
             ),
@@ -180,7 +174,7 @@ class _ActivitySummary extends StatelessWidget {
               emoji: '👶',
               count: user.children?.length ?? 0,
               label: 'Filhos\ncadastrados',
-              color: const Color(0xFF8B5CF6),
+              color: AppTheme.kidsPurple,
             ),
           ),
         ],
@@ -206,11 +200,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
-      ),
+      decoration: AppDecorations.profileSummaryCard,
       child: Column(
         children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
@@ -230,7 +220,7 @@ class _SummaryCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
+              color: AppTheme.textMuted,
               height: 1.3,
             ),
           ),

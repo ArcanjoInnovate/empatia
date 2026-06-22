@@ -21,6 +21,21 @@ class AppDecorations {
     gradient: AppTheme.successBackground,
   );
 
+  // ─── Perfil ──────────────────────────────────────────────────────────────────
+
+  /// Container body da ProfilePage (arredondamento superior + cor de fundo)
+  static const BoxDecoration profileBody = BoxDecoration(
+    color: AppTheme.profileBackground,
+    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+  );
+
+  /// Card de contador de atividade (_SummaryCard) — branco com borda sutil
+  static BoxDecoration profileSummaryCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: AppTheme.dividerColor, width: 1.5),
+  );
+
   // ─── Cards ───────────────────────────────────────────────────────────────────
 
   /// Card branco com sombra rosa + roxa (Login)
@@ -62,9 +77,9 @@ class AppDecorations {
   );
 
   // ─── Barra arco-íris no topo do card ────────────────────────────────────────
-
+  // IMPORTANTE: sempre use dentro de ClipRRect(borderRadius: 40) para que
+  // as pontas da barra respeitem o arredondamento do card pai.
   static const BoxDecoration cardRainbowBar = BoxDecoration(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
     gradient: AppTheme.kidsRainbow,
   );
 
@@ -77,12 +92,12 @@ class AppDecorations {
 
   static BoxDecoration registerTitleBox = BoxDecoration(
     gradient: AppTheme.registerTitleBackground,
-    borderRadius: BorderRadius.circular(30),
+    borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.3),
-        blurRadius: 20,
-        offset: const Offset(0, 5),
+        color: AppTheme.kidsYellow.withOpacity(0.2),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
       ),
     ],
   );
@@ -107,7 +122,7 @@ class AppDecorations {
     ],
   );
 
-  /// Círculo branco externo do logo (RegisterPage — tamanho 85)
+  /// Círculo branco externo do logo (RegisterPage)
   static BoxDecoration registerLogo = BoxDecoration(
     color: Colors.white,
     shape: BoxShape.circle,
@@ -147,7 +162,6 @@ class AppDecorations {
 
   // ─── Sucesso / ícone de check ────────────────────────────────────────────────
 
-  /// Círculo branco externo do ícone de sucesso (SuccessPage — 180)
   static BoxDecoration successIcon = BoxDecoration(
     color: Colors.white,
     shape: BoxShape.circle,
@@ -165,7 +179,6 @@ class AppDecorations {
     ],
   );
 
-  /// Círculo interno do ícone de sucesso (check verde)
   static const BoxDecoration successIconInner = BoxDecoration(
     shape: BoxShape.circle,
     gradient: LinearGradient(
@@ -218,11 +231,15 @@ class AppDecorations {
 
   // ─── Campos (MagicField) ─────────────────────────────────────────────────────
 
-  /// Borda externa do campo (normal)
   static BoxDecoration fieldOuter({
     required List<Color> gradientColors,
     bool hasError = false,
+    bool isFocused = false,
   }) {
+    final Color glowColor = hasError
+        ? AppTheme.errorRed
+        : (isFocused ? AppTheme.kidsPurple : gradientColors[0]);
+
     return BoxDecoration(
       gradient: LinearGradient(
         colors: hasError
@@ -232,20 +249,20 @@ class AppDecorations {
       borderRadius: BorderRadius.circular(25),
       border: hasError
           ? Border.all(width: 3, color: AppTheme.errorRed)
-          : Border.all(width: 3, color: Colors.transparent),
+          : Border.all(
+              width: 3,
+              color: isFocused ? AppTheme.kidsPurple : Colors.transparent,
+            ),
       boxShadow: [
         BoxShadow(
-          color: hasError
-              ? AppTheme.errorRed.withOpacity(0.3)
-              : gradientColors[0].withOpacity(0.2),
-          blurRadius: 15,
+          color: glowColor.withOpacity(hasError || isFocused ? 0.30 : 0.2),
+          blurRadius: (isFocused && !hasError) ? 18 : 15,
           offset: const Offset(0, 5),
         ),
       ],
     );
   }
 
-  /// Fundo interno do campo (tint da cor do gradiente)
   static BoxDecoration fieldInner(List<Color> gradientColors) {
     return BoxDecoration(
       borderRadius: BorderRadius.circular(22),
@@ -258,7 +275,6 @@ class AppDecorations {
     );
   }
 
-  /// Ícone do campo
   static BoxDecoration fieldIcon(List<Color> gradientColors) {
     return BoxDecoration(
       gradient: LinearGradient(colors: gradientColors),
@@ -313,21 +329,23 @@ class AppDecorations {
     ],
   );
 
+  /// Botão CRIAR CONTA — sombra calibrada: visível mas não exagerada.
+  /// blurRadius 18 (era 30/40), spreadRadius 0 (era 3/8), opacidade 0.45/0.25.
   static BoxDecoration registerButton = BoxDecoration(
     gradient: AppTheme.registerButtonGradient,
     borderRadius: BorderRadius.circular(34),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.7),
-        blurRadius: 30,
-        spreadRadius: 3,
-        offset: const Offset(0, 10),
+        color: AppTheme.kidsYellow.withOpacity(0.45),
+        blurRadius: 18,
+        spreadRadius: 0,
+        offset: const Offset(0, 6),
       ),
       BoxShadow(
-        color: AppTheme.kidsYellowGold.withOpacity(0.5),
-        blurRadius: 40,
-        spreadRadius: 8,
-        offset: const Offset(0, 15),
+        color: AppTheme.kidsYellowGold.withOpacity(0.25),
+        blurRadius: 28,
+        spreadRadius: 2,
+        offset: const Offset(0, 10),
       ),
     ],
   );
@@ -434,12 +452,10 @@ class AppDecorations {
 
   // ─── AgeVerificationPage ─────────────────────────────────────────────────────
 
-  /// Header da AgeVerificationPage
   static const BoxDecoration ageVerificationHeader = BoxDecoration(
     gradient: AppTheme.ageVerificationHeaderGradient,
   );
 
-  /// Badge informativo (antes de selecionar data)
   static BoxDecoration ageVerificationInfoBadge = BoxDecoration(
     gradient: AppTheme.ageVerificationInfoBadgeGradient,
     borderRadius: BorderRadius.circular(28),
@@ -452,7 +468,6 @@ class AppDecorations {
     ],
   );
 
-  /// Badge de sucesso (após validar a data)
   static BoxDecoration ageVerificationSuccessBadge = BoxDecoration(
     gradient: AppTheme.ageVerificationSuccessBadgeGradient,
     borderRadius: BorderRadius.circular(28),
@@ -465,7 +480,6 @@ class AppDecorations {
     ],
   );
 
-  /// Card branco principal da AgeVerificationPage
   static BoxDecoration ageVerificationCard = BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(24),
@@ -478,41 +492,35 @@ class AppDecorations {
     ],
   );
 
-  /// Ícone de calendário dentro do card
   static BoxDecoration ageVerificationCalendarIcon = BoxDecoration(
     color: AppTheme.kidsPink.withOpacity(0.10),
     borderRadius: BorderRadius.circular(10),
   );
 
-  /// Botão de calendário (escolher pelo calendário)
   static BoxDecoration ageVerificationCalendarButton = BoxDecoration(
     color: AppTheme.kidsPink.withOpacity(0.06),
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppTheme.kidsPink.withOpacity(0.25)),
   );
 
-  /// Feedback de validação — data válida (verde)
   static BoxDecoration ageVerificationFeedbackValid = BoxDecoration(
     color: AppTheme.kidsGreen.withOpacity(0.08),
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.35)),
   );
 
-  /// Feedback de validação — data inválida (vermelho)
   static BoxDecoration ageVerificationFeedbackError = BoxDecoration(
     color: AppTheme.errorRed.withOpacity(0.08),
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppTheme.errorRed.withOpacity(0.35)),
   );
 
-  /// Banner de erro de submit
   static BoxDecoration ageVerificationErrorBanner = BoxDecoration(
     color: AppTheme.errorRed.withOpacity(0.08),
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppTheme.errorRed.withOpacity(0.35)),
   );
 
-  /// Botão de submit ativo
   static BoxDecoration ageVerificationSubmitActive = BoxDecoration(
     gradient: AppTheme.ageVerificationSubmitButtonGradient,
     borderRadius: BorderRadius.circular(18),
@@ -525,13 +533,11 @@ class AppDecorations {
     ],
   );
 
-  /// Botão de submit inativo (disabled)
   static BoxDecoration ageVerificationSubmitDisabled = BoxDecoration(
     color: const Color(0xFFE0E0E0),
     borderRadius: BorderRadius.circular(18),
   );
 
-  /// Nota de privacidade no rodapé
   static BoxDecoration ageVerificationPrivacyNote = BoxDecoration(
     color: AppTheme.kidsPink.withOpacity(0.06),
     borderRadius: BorderRadius.circular(14),
@@ -540,7 +546,6 @@ class AppDecorations {
 
   // ─── ForgotPasswordPage ───────────────────────────────────────────────────────
 
-  /// Ícone circular do ForgotPasswordPage (branco externo)
   static BoxDecoration forgotPasswordIcon = BoxDecoration(
     color: Colors.white,
     shape: BoxShape.circle,
@@ -553,7 +558,6 @@ class AppDecorations {
     ],
   );
 
-  /// Círculo interno do ícone (gradiente rosa→roxo)
   static const BoxDecoration forgotPasswordIconInner = BoxDecoration(
     shape: BoxShape.circle,
     gradient: LinearGradient(
@@ -563,7 +567,6 @@ class AppDecorations {
     ),
   );
 
-  /// Caixa de dica/explicação dentro do card (fundo lilás)
   static BoxDecoration forgotPasswordHintBox = BoxDecoration(
     color: const Color(0xFFF3E8FF),
     borderRadius: BorderRadius.circular(18),
@@ -573,7 +576,6 @@ class AppDecorations {
     ),
   );
 
-  /// Botão "Enviar email"
   static BoxDecoration forgotSendButton = BoxDecoration(
     gradient: AppTheme.forgotSendButtonGradient,
     borderRadius: BorderRadius.circular(32),
@@ -589,12 +591,10 @@ class AppDecorations {
 
   // ─── ForgotPasswordInstructionsPage ──────────────────────────────────────────
 
-  /// Fundo da tela de instruções
   static const BoxDecoration forgotInstructionsBackground = BoxDecoration(
     gradient: AppTheme.forgotInstructionsBackground,
   );
 
-  /// Ícone de email enviado (branco externo — 140)
   static BoxDecoration forgotEmailIcon = BoxDecoration(
     color: Colors.white,
     shape: BoxShape.circle,
@@ -612,13 +612,11 @@ class AppDecorations {
     ],
   );
 
-  /// Círculo interno do ícone de email enviado
   static const BoxDecoration forgotEmailIconInner = BoxDecoration(
     shape: BoxShape.circle,
     gradient: AppTheme.forgotEmailIconGradient,
   );
 
-  /// Card branco de instruções
   static BoxDecoration forgotInstructionsCard = BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(40),
@@ -637,7 +635,6 @@ class AppDecorations {
     ],
   );
 
-  /// Cabeçalho verde do card de instruções ("Email Enviado!")
   static const BoxDecoration forgotInstructionsCardHeader = BoxDecoration(
     gradient: LinearGradient(
       colors: [Color(0xFFE6FFF0), Color(0xFFE6F7FF)],
@@ -650,13 +647,11 @@ class AppDecorations {
     ),
   );
 
-  /// Badge com o email do usuário (gradiente cyan→green)
   static BoxDecoration forgotEmailBadge = BoxDecoration(
     gradient: AppTheme.forgotEmailBadgeGradient,
     borderRadius: BorderRadius.circular(20),
   );
 
-  /// Caixa de aviso de expiração do link (amarela)
   static BoxDecoration forgotExpiryWarning = BoxDecoration(
     color: const Color(0xFFFFFBE6),
     borderRadius: BorderRadius.circular(20),
@@ -666,14 +661,12 @@ class AppDecorations {
     ),
   );
 
-  /// Caixa de confirmação "email reenviado"
   static BoxDecoration forgotResentSuccess = BoxDecoration(
     color: const Color(0xFFE6FFF0),
     borderRadius: BorderRadius.circular(16),
     border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.5)),
   );
 
-  /// Botão "Reenviar email" (borda apenas)
   static BoxDecoration forgotResendButton = BoxDecoration(
     border: Border.all(
       color: AppTheme.kidsCyan.withOpacity(0.5),
@@ -682,7 +675,6 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
   );
 
-  /// Botão "Voltar para o login"
   static BoxDecoration forgotBackButton = BoxDecoration(
     gradient: AppTheme.forgotBackButtonGradient,
     borderRadius: BorderRadius.circular(32),
@@ -696,21 +688,18 @@ class AppDecorations {
     ],
   );
 
-  // ─── Toggle de visibilidade de senha (login / register) ───────────────────────
+  // ─── Toggle de visibilidade de senha ───────────────────────────────────────────
 
-  /// Fundo do botão olho de senha na LoginPage (lilás claro)
   static BoxDecoration passwordTogglePurple = BoxDecoration(
     color: const Color(0xFFF3E8FF),
     borderRadius: BorderRadius.circular(12),
   );
 
-  /// Fundo do botão olho de senha no campo "Confirmar senha" (rosa claro)
   static BoxDecoration passwordTogglePink = BoxDecoration(
     color: const Color(0xFFFFE6F0),
     borderRadius: BorderRadius.circular(12),
   );
 
-  /// Fundo do link "Esqueci a senha" (lilás claro)
   static BoxDecoration forgotPasswordLink = BoxDecoration(
     color: const Color(0xFFF3E8FF),
     borderRadius: BorderRadius.circular(20),
@@ -722,9 +711,99 @@ class AppDecorations {
     return BoxDecoration(shape: BoxShape.circle, color: color);
   }
 
+  // ─── Indicador de progresso ──────────────────────────────────────────────────
+
+  static BoxDecoration progressDot({required bool done}) {
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      color: done ? AppTheme.kidsGreenDeep : AppTheme.textMuted.withOpacity(0.25),
+    );
+  }
+
+  // ─── DreamPage ────────────────────────────────────────────────────────────────
+
+  /// Fundo do SliverAppBar da DreamPage
+  static const BoxDecoration dreamHeaderBackground = BoxDecoration(
+    gradient: AppTheme.dreamHeaderGradient,
+  );
+
+  /// Ícone de seção (emoji dentro do círculo colorido em _SectionWrapper)
+  static BoxDecoration dreamSectionIcon(Color color) => BoxDecoration(
+    gradient: LinearGradient(
+      colors: [color.withOpacity(0.22), color.withOpacity(0.08)],
+    ),
+    shape: BoxShape.circle,
+  );
+
+  /// Bolha de estatística no header — estado normal
+  static BoxDecoration dreamStatBubble = BoxDecoration(
+    color: Colors.white.withOpacity(0.15),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+  );
+
+  /// Bolha de estatística no header — estado ativo (glow colorido)
+  static BoxDecoration dreamStatBubbleActive(Color color) => BoxDecoration(
+    color: color.withOpacity(0.25),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+    boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 10)],
+  );
+
+  /// Card de doação recebida
+  static BoxDecoration dreamReceivedCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3), width: 2),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.accentGreen.withOpacity(0.08),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Ícone (emoji) dentro do card de doação recebida
+  static BoxDecoration dreamReceivedCardIcon = BoxDecoration(
+    gradient: LinearGradient(colors: [
+      AppTheme.accentGreen.withOpacity(0.18),
+      AppTheme.accentTeal.withOpacity(0.18),
+    ]),
+    borderRadius: BorderRadius.circular(16),
+  );
+
+  /// Badge "Atendido!" dentro do card de doação recebida
+  static BoxDecoration dreamFulfilledBadge = BoxDecoration(
+    color: AppTheme.accentGreen.withOpacity(0.12),
+    borderRadius: BorderRadius.circular(20),
+  );
+
+  /// Botão "+ Adicionar" dentro do cabeçalho de seção
+  static BoxDecoration dreamAddButton(Color color) => BoxDecoration(
+    gradient: LinearGradient(colors: [color, color.withOpacity(0.75)]),
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
+    ],
+  );
+
+  /// Container do estado vazio de seção (_EmptyState)
+  static BoxDecoration dreamEmptyState(Color borderColor) => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(24),
+    border: Border.all(color: borderColor.withOpacity(0.4), width: 2),
+    boxShadow: [
+      BoxShadow(
+        color: borderColor.withOpacity(0.1),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
   // ─── Estilos de texto reutilizáveis ──────────────────────────────────────────
 
-  /// Shader de gradiente para texto (ex: título "EMPATIA")
   static Paint textShader(List<Color> colors, {double width = 300}) {
     return Paint()
       ..shader = LinearGradient(colors: colors)

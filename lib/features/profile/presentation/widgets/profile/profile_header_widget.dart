@@ -159,7 +159,6 @@ class ProfileAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mostra anel dourado no avatar quando perfil totalmente verificado
     final fullyVerified = ProfileService.isFullyVerified(user);
 
     return Container(
@@ -201,13 +200,6 @@ class ProfileAvatarWidget extends StatelessWidget {
 
 // ── Verification chip ────────────────────────────────────────────────────────
 
-/// Exibe o chip de verificação com três estados:
-///
-///   • **Perfil Verificado** (verde com ⭐) — as três etapas concluídas:
-///     telefone, e-mail e perfil completo. Clicável para ver detalhes.
-///
-///   • **Verificar** (âmbar/cinza) — uma ou mais etapas pendentes.
-///     Clicável para abrir o sheet com as etapas.
 class VerificationChipWidget extends StatelessWidget {
   final UserModel user;
   const VerificationChipWidget({Key? key, required this.user}) : super(key: key);
@@ -287,15 +279,21 @@ class VerificationChipWidget extends StatelessWidget {
 
 // ── Meta row ─────────────────────────────────────────────────────────────────
 
+/// Layout em duas linhas:
+///   Linha 1 — idade + gênero (itens curtos, nunca estouram)
+///   Linha 2 — localização (largura total, com ellipsis se necessário)
 class ProfileMetaRowWidget extends StatelessWidget {
   final UserModel user;
   const ProfileMetaRowWidget({Key? key, required this.user}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final items = <_MetaItem>[];
+    // ── Itens da linha 1: idade e gênero ──
+    final topItems = <_MetaItem>[];
 
-    if (user.age != null) items.add(_MetaItem('🎂', '${user.age} anos'));
+    if (user.age != null) {
+      topItems.add(_MetaItem('🎂', '${user.age} anos'));
+    }
 
     if (user.sexo != null) {
       final label = user.sexo == 'masculino'
@@ -308,43 +306,79 @@ class ProfileMetaRowWidget extends StatelessWidget {
           : user.sexo == 'outro'
               ? '⚧️'
               : '♀️';
-      items.add(_MetaItem(icon, label));
+      topItems.add(_MetaItem(icon, label));
     }
 
+    // ── Item da linha 2: localização ──
+    String? locationLabel;
     if (user.neighborhood != null || user.city != null || user.state != null) {
       final partes = <String>[];
       if (user.neighborhood != null) partes.add(user.neighborhood!);
       if (user.city != null) partes.add(user.city!);
       if (user.state != null) partes.add(user.state!);
-      items.add(_MetaItem('📍', partes.join(', ')));
+      locationLabel = partes.join(', ');
     }
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (topItems.isEmpty && locationLabel == null) return const SizedBox.shrink();
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
       ),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width - 80,
-      ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: items.asMap().entries.map((e) {
-          final isLast = e.key == items.length - 1;
-          final isLocation = e.value.emoji == '📍';
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(e.value.emoji, style: const TextStyle(fontSize: 13)),
-              const SizedBox(width: 4),
-              if (isLocation)
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 200),
+        children: [
+          // ── Linha 1: idade · gênero ──
+          if (topItems.isNotEmpty)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: topItems.asMap().entries.map((e) {
+                final isLast = e.key == topItems.length - 1;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(e.value.emoji, style: const TextStyle(fontSize: 13)),
+                    const SizedBox(width: 4),
+                    Text(
+                      e.value.label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (!isLast)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Container(
+                          width: 3,
+                          height: 3,
+                          decoration: const BoxDecoration(
+                            color: Colors.white38,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
+
+          // ── Linha 2: localização ──
+          if (locationLabel != null) ...[
+            if (topItems.isNotEmpty) const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('📍', style: TextStyle(fontSize: 13)),
+                const SizedBox(width: 4),
+                Flexible(
                   child: Text(
-                    e.value.label,
+                    locationLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -353,31 +387,11 @@ class ProfileMetaRowWidget extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                )
-              else
-                Text(
-                  e.value.label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
                 ),
-              if (!isLast)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Container(
-                    width: 3,
-                    height: 3,
-                    decoration: const BoxDecoration(
-                      color: Colors.white38,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          );
-        }).toList(),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -435,8 +449,6 @@ class ProfileStatusBannerWidget extends StatelessWidget {
 
 // ── Verification sheet ────────────────────────────────────────────────────────
 
-/// Sheet de verificação que mostra o status de cada etapa com indicadores
-/// visuais de concluído / pendente para: e-mail e perfil completo.
 class VerificationSheetWidget extends StatelessWidget {
   final UserModel user;
   const VerificationSheetWidget({Key? key, required this.user}) : super(key: key);
@@ -537,7 +549,6 @@ class VerificationSheetWidget extends StatelessWidget {
 
           if (fullyVerified) ...[
             const SizedBox(height: 20),
-            // Banner de parabéns
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
@@ -595,7 +606,6 @@ class VerificationSheetWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Ícone da etapa
             Container(
               width: 42, height: 42,
               decoration: BoxDecoration(
@@ -630,7 +640,6 @@ class VerificationSheetWidget extends StatelessWidget {
                 ],
               ),
             ),
-            // Chevron apenas se a etapa ainda não foi concluída e tem ação
             if (!done && onTap != null)
               Icon(Icons.chevron_right_rounded,
                   color: Colors.grey.shade400, size: 22),
