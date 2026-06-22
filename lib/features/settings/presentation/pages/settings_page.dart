@@ -46,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       _buildToggleItem(
                         icon: Icons.notifications_rounded,
-                        iconColor: const Color(0xFFFF6B9D),
+                        iconColor: AppTheme.kidsPink,
                         title: 'Notificações push',
                         subtitle: 'Receba alertas no celular',
                         value: _notificationsEnabled,
@@ -78,7 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     
                       _buildArrowItem(
                         icon: Icons.bug_report_rounded,
-                        iconColor: const Color(0xFFFF6B9D),
+                        iconColor: AppTheme.kidsPink,
                         title: 'Reportar problema',
                         subtitle: 'Nos conte o que aconteceu',
                         onTap: () {},
@@ -145,7 +145,7 @@ class _SettingsPageState extends State<SettingsPage> {
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
+                  AppIcons.back,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -228,7 +228,7 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           _buildArrowItem(
             icon: Icons.person_rounded,
-            iconColor: const Color(0xFF2563EB),
+            iconColor: AppTheme.primaryBlueMid,
             title: 'Informações pessoais',
             subtitle: 'E-mail',
             onTap: () {
@@ -344,7 +344,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
             if (showArrow)
               Icon(
-                Icons.arrow_forward_ios_rounded,
+                AppIcons.forward,
                 size: 14,
                 color: Colors.grey.shade400,
               ),

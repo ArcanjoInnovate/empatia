@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 /// Tela exibida após o envio do link de troca de e-mail.

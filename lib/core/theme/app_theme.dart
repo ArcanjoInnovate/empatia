@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // ─── Cores principais ────────────────────────────────────────────────────────
   static const Color primaryBlue = Color(0xFF1E3A8A);
+  static const Color primaryBlueMid = Color(0xFF2563EB);   // <<NOVO>> azul médio (headers, gradientes)
+  static const Color primaryBlueLight = Color(0xFF3B82F6); // <<NOVO>> azul claro (gradientes)
   static const Color accentTeal = Color(0xFF4DB8C4);
   static const Color accentYellow = Color(0xFFFBD346);
   static const Color accentPink = Color(0xFFE91E63);
@@ -13,14 +15,19 @@ class AppTheme {
   // ─── Paleta "kids" (usada nas telas de auth e success) ───────────────────────
   static const Color kidsPink = Color(0xFFFF6B9D);
   static const Color kidsPinkDeep = Color(0xFFFF1493);
-  static const Color kidsYellow = Color(0xFFFFC837);
+  static const Color kidsPinkMagenta = Color(0xFFE040A0); // <<NOVO>> magenta usado em profileHeaderGradient
+  static const Color kidsYellow = Color(0xFFFFC837);      // <<NOVO>> amarelo padrão kids (era FFC837)
   static const Color kidsYellowGold = Color(0xFFFFD700);
   static const Color kidsPurple = Color(0xFF8B5CF6);
   static const Color kidsPurpleLight = Color(0xFFA78BFA);
+  static const Color kidsPurpleMid = Color(0xFFA855F7);   // <<NOVO>> roxo médio (email_verification, change_password)
+  static const Color kidsPurpleViolet = Color(0xFF7C3AED); // <<NOVO>> violeta profundo (account_information, email_changed)
+  static const Color kidsPurpleIndigo = Color(0xFF6366F1); // <<NOVO>> índigo (email_verification sweep)
   static const Color kidsCyan = Color(0xFF06B6D4);
   static const Color kidsCyanLight = Color(0xFF0EA5E9);
   static const Color kidsGreen = Color(0xFF4ADE80);
   static const Color kidsGreenDeep = Color(0xFF22C55E);
+  static const Color kidsGreenDark = Color(0xFF16A34A);    // <<NOVO>> verde escuro de sucesso (change_password snackbar)
 
   /// Usado em avisos/warnings (texto + ícone de "link expira")
   static const Color kidsAmber = Color(0xFFB45309);
@@ -31,6 +38,9 @@ class AppTheme {
   // ─── Cores de erro ───────────────────────────────────────────────────────────
   static const Color errorRed = Color(0xFFFF6B6B);
   static const Color errorRedDeep = Color(0xFFFF4444);
+  static const Color errorRedStrong = Color(0xFFDC2626);   // <<NOVO>> vermelho forte (sheet_components, change_password)
+  static const Color errorRedBg = Color(0xFFFEE2E2);       // <<NOVO>> fundo de erro (sheet_components)
+  static const Color errorRedBorder = Color(0xFFFECACA);   // <<NOVO>> borda de erro (sheet_components)
 
   // ─── Cores de status/medalha ─────────────────────────────────────────────────
   static const Color bronzeMedal = Color(0xFFCD7F32);
@@ -43,6 +53,12 @@ class AppTheme {
   static const Color textPrimary = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
   static const Color textDark = Color(0xFF1A1A2E);
+  static const Color textNavy = Color(0xFF1E293B);          // <<NOVO>> navy escuro (email_changed, change_password)
+  static const Color textSlate = Color(0xFF334155);          // <<NOVO>> slate (email_changed secundário)
+  static const Color textCharcoal = Color(0xFF374151);       // <<NOVO>> carvão (verification_block_dialog, email_verif)
+  static const Color textGrayMid = Color(0xFF6B7280);        // <<NOVO>> cinza médio (email_verification)
+  static const Color textDarkGray = Color(0xFF1F2937);       // <<NOVO>> quase-preto (sheet_components, change_phone)
+  static const Color textAmberWarn = Color(0xFFD97706);      // <<NOVO>> texto âmbar de aviso (email_changed)
   static const Color textMuted = Color(0xFF888888);
   static const Color textSubtle = Color(0xFF555555);
 
@@ -52,27 +68,98 @@ class AppTheme {
   /// Branco puro para superfícies e containers
   static const Color surfaceWhite = Color(0xFFFFFFFF);
 
+  /// Fundo levemente azulado de inputs e pickers
+  static const Color surfaceBlueTint = Color(0xFFF8F8FF);
+
+  /// Fundo neutro cinza-claro de chips/botões não selecionados
+  static const Color surfaceNeutral = Color(0xFFF5F5F5);
+
+  /// Placeholder de avatar sem foto
+  static const Color placeholderIcon = Color(0xFFD1D5DB);
+
   // ─── Sombras ─────────────────────────────────────────────────────────────────
 
-  /// Sombra genérica semitransparente (ex.: Shadow no botão CRIAR CONTA)
+  /// Sombra genérica semitransparente
   static const Color shadowDark = Color(0x55000000);
 
-  /// Sombra suave (ex.: cards e containers)
+  /// Sombra suave (cards e containers)
   static const Color shadowColor = Color(0x1A000000);
 
   // ─── Cores de perfil ─────────────────────────────────────────────────────────
-  /// Fundo da ProfilePage (Scaffold + _ProfileBody)
+  /// Fundo da ProfilePage
   static const Color profileBackground = Color(0xFFF7F8FC);
 
   /// Linha divisória entre seções do perfil
   static const Color dividerColor = Color(0xFFEEEEEE);
 
+  /// Verde escuro usado em textos de "etapa concluída" / "membro verificado"
+  static const Color verifiedTextDark = Color(0xFF166534);
+
+  // ─── Cores de localização / filhos ───────────────────────────────────────────
+  /// Azul usado nos cards de filhos e ícones de localização confirmada
+  static const Color childCardAccent = Color(0xFF2563EB);
+
+  /// Fundo azul claro do avatar/emoji de filho
+  static const Color childCardBg = Color(0xFFE0F2FE);
+
   // ─── Cores da DreamPage ───────────────────────────────────────────────────────
   /// Fundo do Scaffold da DreamPage
   static const Color dreamBackground = Color(0xFFF0F8FF);
 
-  // ─── Gradientes da DreamPage ──────────────────────────────────────────────────
+  // ─── Cores de status de doação ────────────────────────────────────────────────
+  /// Cor do badge "reservado" em DonationCardWidget
+  static const Color donationReservedColor = Color(0xFFF59E0B);
 
+  /// Fundo do placeholder/picker de imagem de doação e sonho
+  static const Color dreamImagePickerBg = Color(0xFFF5F0FF);
+
+  /// Borda sutil rosa usada no card de doação
+  static const Color donationCardBorder = Color(0xFFFCE7F3);
+
+  /// Fundo do card de doação no placeholder
+  static const Color donationPlaceholderBg = Color(0xFFFCE7F3);
+
+  // ─── Cores de verificação / account_settings ─────────────────────────────────
+  /// Fundo do card de e-mail verificado (verde bem claro)
+  static const Color verifiedEmailBg = Color(0xFFD1FAE5);   // <<NOVO>>
+
+  /// Borda do card de e-mail verificado (verde água)
+  static const Color verifiedEmailBorder = Color(0xFF6EE7B7); // <<NOVO>>
+
+  /// Texto de sucesso da verificação de e-mail
+  static const Color verifiedEmailText = Color(0xFF059669);  // <<NOVO>>
+
+  /// Texto escuro de instruções de verificação
+  static const Color verifiedEmailTextDark = Color(0xFF065F46); // <<NOVO>>
+
+  // ─── Cores de email_verification / fundo pastel ──────────────────────────────
+  /// Fundo lilás/roxo muito claro (email_verification background)
+  static const Color bgPastelPurple = Color(0xFFFDF2FF);    // <<NOVO>>
+
+  /// Fundo rosa muito claro
+  static const Color bgPastelPink = Color(0xFFFFF0F7);      // <<NOVO>>
+
+  /// Fundo azul muito claro
+  static const Color bgPastelBlue = Color(0xFFF0F4FF);      // <<NOVO>>
+
+  /// Fundo lilás leve (card de dica/hint em email_verification)
+  static const Color bgPastelLavender = Color(0xFFFDF4FF);  // <<NOVO>>
+
+  /// Borda lilás clara de dicas
+  static const Color borderLavender = Color(0xFFE9D5FF);    // <<NOVO>>
+
+  // ─── Cores de âmbar / alerta ─────────────────────────────────────────────────
+  /// Fundo âmbar claro para alertas suaves
+  static const Color alertAmberBg = Color(0xFFFFFBEB);      // <<NOVO>>
+
+  /// Borda âmbar de alertas
+  static const Color alertAmberBorder = Color(0xFFFCD34D);  // <<NOVO>>
+
+  // ─── Cores da Home ────────────────────────────────────────────────────────────
+  /// Borda azul sutil do card de sonho na HomePage
+  static const Color homeDreamCardBorderBg = Color(0xFFE0F2FE); // <<NOVO>> (já existe como childCardBg — alias semântico)
+
+  // ─── Gradientes da DreamPage ──────────────────────────────────────────────────
   /// Gradiente do header da DreamPage (SliverAppBar background)
   static const LinearGradient dreamHeaderGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -192,8 +279,6 @@ class AppTheme {
   );
 
   // ─── Gradientes da ForgotPasswordPage ───────────────────────────────────────
-
-  /// Fundo da ForgotPasswordInstructionsPage (tela de instruções pós-envio)
   static const LinearGradient forgotInstructionsBackground = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -201,206 +286,165 @@ class AppTheme {
     stops: [0.0, 0.3, 0.65, 1.0],
   );
 
-  /// Gradiente do botão "Enviar email" da ForgotPasswordPage
   static const LinearGradient forgotSendButtonGradient = LinearGradient(
     colors: [kidsPink, kidsPurple],
   );
 
-  /// Gradiente do botão "Voltar para o login"
   static const LinearGradient forgotBackButtonGradient = LinearGradient(
     colors: [kidsGreen, kidsCyan],
   );
 
-  /// Gradiente do chip de email (cyan → green) nas instruções de recuperação
   static const LinearGradient forgotEmailChipGradient = LinearGradient(
     colors: [kidsCyan, kidsGreen],
   );
 
   // ─── Gradientes da AgeVerificationPage ───────────────────────────────────────
-
-  /// Fundo do cabeçalho (header) da AgeVerificationPage
   static const LinearGradient ageVerificationHeaderGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [kidsPink, kidsYellow],
   );
 
-  /// Gradiente do badge informativo da AgeVerificationPage
   static const LinearGradient ageVerificationInfoBadgeGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [kidsPink, kidsYellow],
   );
 
-  /// Gradiente do badge de sucesso da AgeVerificationPage
   static const LinearGradient ageVerificationSuccessBadgeGradient =
       LinearGradient(colors: [kidsGreen, kidsGreenDeep]);
 
-  /// Gradiente do botão de submit da AgeVerificationPage (quando ativo)
   static const LinearGradient ageVerificationSubmitButtonGradient =
       LinearGradient(colors: [kidsPink, kidsYellow]);
 
-  /// SweepGradient do anel giratório da ForgotPasswordInstructionsPage
   static const SweepGradient forgotInstructionsSweep = SweepGradient(
     colors: [kidsCyan, kidsGreen, kidsPurple, kidsPink, kidsCyan],
   );
 
-  /// Gradiente interno do ícone de email da ForgotPasswordInstructionsPage
   static const LinearGradient forgotEmailIconGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [kidsCyan, kidsGreen],
   );
 
-  /// Gradiente do badge de email enviado (dentro do card de instruções)
   static const LinearGradient forgotEmailBadgeGradient = LinearGradient(
     colors: [kidsCyan, kidsGreen],
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // ADIÇÕES AO app_theme.dart
-  // Cole estes membros dentro da classe AppTheme, nos grupos indicados.
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ─── Gradientes da HomePage ───────────────────────────────────────────────────
+  /// Header azul da HomePage (EMPATIA + saudação)
+  static const LinearGradient homeHeaderGradient = LinearGradient(      // <<NOVO>>
+    colors: [primaryBlue, primaryBlueMid],
+  );
 
-  // ─── Cores de status de doação ────────────────────────────────────────────────
-  // (Cole junto ao grupo "Cores de status/medalha")
+  /// Gradiente para ad card azul (carrossel)
+  static const List<Color> homeAdBlue = [primaryBlue, primaryBlueLight]; // <<NOVO>>
 
-  /// Cor do badge "reservado" em DonationCardWidget
-  static const Color donationReservedColor = Color(0xFFF59E0B);
+  /// Gradiente para ad card rosa/pink (carrossel)
+  static const List<Color> homeAdPink = [kidsPink, kidsPinkDeep];        // <<NOVO>>
 
-  /// Fundo do placeholder/picker de imagem de doação e sonho (lilás muito claro)
-  static const Color dreamImagePickerBg = Color(0xFFF5F0FF);
+  /// Gradiente para ad card roxo (carrossel)
+  static const List<Color> homeAdPurple = [kidsPurple, kidsPurpleLight]; // <<NOVO>>
 
-  /// Borda sutil rosa usada no card de doação (FCE7F3)
-  static const Color donationCardBorder = Color(0xFFFCE7F3);
+  /// Gradiente do avatar do sonho na HomePage
+  static const LinearGradient homeDreamAvatarGradient = LinearGradient(  // <<NOVO>>
+    colors: [kidsPink, kidsPinkDeep],
+  );
 
-  /// Fundo do card de doação no placeholder (mesma cor da borda)
-  static const Color donationPlaceholderBg = Color(0xFFFCE7F3);
+  /// Gradiente do botão "Salvar" na HomePage
+  static const LinearGradient homeSaveButtonGradient = LinearGradient(   // <<NOVO>>
+    colors: [kidsYellow, kidsYellowGold],
+  );
 
-  // ─── Gradientes da DonationCardWidget / DreamFormSheet ────────────────────────
-  // (Cole junto ao grupo "Gradientes reutilizáveis")
+  /// Cores de progresso (alta / média / baixa)
+  static const List<Color> progressHigh = [kidsGreen, kidsGreenDeep];   // <<NOVO>>
+  static const List<Color> progressMid = [kidsYellow, kidsYellowGold];  // <<NOVO>>
+  static const List<Color> progressLow = [kidsPink, kidsPinkDeep];      // <<NOVO>>
 
-  /// Gradiente do botão "Editar" no fullscreen de doação (pink → pink claro)
+  // ─── Gradientes de Settings ────────────────────────────────────────────────
+  /// Header da SettingsPage (pink → yellow → purple)
+  static const LinearGradient settingsHeaderGradient = LinearGradient(   // <<NOVO>>
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsPink, kidsYellow, kidsPurple],
+  );
+
+  // ─── Gradientes de AccountInformation / EmailChanged ──────────────────────
+  /// Header azul-violeta (AccountInformationPage, ChangeEmailSheet)
+  static const LinearGradient infoHeaderGradient = LinearGradient(       // <<NOVO>>
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryBlueMid, kidsPurpleViolet],
+  );
+
+  /// Gradiente de botão/ícone de conta (azul → violeta)
+  static const LinearGradient accountButtonGradient = LinearGradient(    // <<NOVO>>
+    colors: [primaryBlueMid, kidsPurpleViolet],
+  );
+
+  // ─── Gradientes de EmailVerification / AccountSettings ────────────────────
+  /// Gradiente pink → roxo médio (usado em email_verification e account_settings)
+  static const LinearGradient pinkPurpleMidGradient = LinearGradient(    // <<NOVO>>
+    colors: [kidsPink, kidsPurpleMid],
+  );
+
+  /// Sweep de verificação de e-mail (pink → purple → indigo)
+  static const SweepGradient emailVerifSweep = SweepGradient(            // <<NOVO>>
+    colors: [kidsPink, kidsPurpleMid, kidsPurpleIndigo, kidsPink],
+  );
+
+  // ─── Gradientes de ChangePassword ─────────────────────────────────────────
+  /// Sweep de troca de senha (purple → pink → yellow → cyan)
+  static const SweepGradient changePasswordSweep = SweepGradient(        // <<NOVO>>
+    colors: [kidsPurple, kidsPink, kidsYellow, kidsCyan, kidsPurple],
+  );
+
+  /// Gradiente do header de troca de senha (roxo → pink)
+  static const LinearGradient changePasswordHeaderGradient = LinearGradient( // <<NOVO>>
+    colors: [kidsPurple, kidsPink],
+  );
+
+  // ─── Gradientes de doação ─────────────────────────────────────────────────
   static const LinearGradient donationEditButtonGradient = LinearGradient(
     colors: [kidsPink, Color(0xFFFF8FB3)],
   );
 
-  /// Gradiente do botão salvar/publicar no DreamFormSheet (purple → lilás)
   static const LinearGradient dreamSaveButtonGradient = LinearGradient(
     colors: [kidsPurple, Color(0xFFBB86FC)],
   );
 
-  // ─── Emojis da DreamPage / DreamFormSheet ────────────────────────────────────
-  // (Cole como lista estática — pode ficar em AppTheme ou em um arquivo de
-  //  constantes próprio. Aqui fica centralizado para facilitar a manutenção.)
-
-  /// Lista de emojis disponíveis no picker de sonhos (DreamFormSheet)
-  static const List<String> dreamEmojiOptions = [
-    '💭',
-    '🌟',
-    '🏠',
-    '🚗',
-    '✈️',
-    '📚',
-    '💪',
-    '🎓',
-    '❤️',
-    '🌱',
-    '🎯',
-    '💼',
-    '🎨',
-    '🏋️',
-    '🧘',
-    '🌈',
-  ];
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // ADIÇÕES AO app_theme.dart — bloco "Perfil / Edit Profile / Children / Location"
-  // Cole estes membros dentro da classe AppTheme, antes do fechamento.
-  // Fonte: edit_profile.dart, children_section.dart, location_section.dart,
-  //        profile_photo_section.dart, profile_header_widget.dart, profile_page.dart,
-  //        profile_children_widget.dart, profile_donor_widget.dart,
-  //        profile_dreams_widget.dart, profile_shared_widgets.dart
-  // ═══════════════════════════════════════════════════════════════════════════════
-
-  // ─── Cores neutras / superfícies adicionais ──────────────────────────────────
-  // (Cole junto ao grupo "Cores neutras")
-
-  /// Fundo levemente azulado de inputs e pickers (era 0xFFF8F8FF, espalhado em
-  /// edit_profile, children_section, profile_photo_section)
-  static const Color surfaceBlueTint = Color(0xFFF8F8FF);
-
-  /// Fundo neutro cinza-claro de chips/botões não selecionados (era 0xFFF5F5F5,
-  /// espalhado em edit_profile, children_section, profile_photo_section)
-  static const Color surfaceNeutral = Color(0xFFF5F5F5);
-
-  /// Placeholder de avatar sem foto (era 0xFFD1D5DB em profile_photo_section)
-  static const Color placeholderIcon = Color(0xFFD1D5DB);
-
-  // ─── Cores de status/verificação ─────────────────────────────────────────────
-  // (Cole junto ao grupo "Cores de status/medalha")
-
-  /// Verde escuro usado em textos de "etapa concluída" / "membro verificado"
-  /// (era 0xFF166534 em profile_header_widget)
-  static const Color verifiedTextDark = Color(0xFF166534);
-
-  /// Verde "deep" usado em gradientes de sucesso/verificação (era 0xFF22C55E,
-  /// duplicava kidsGreenDeep em profile_header_widget — usar kidsGreenDeep)
-
-  // ─── Cores de localização / mapa ─────────────────────────────────────────────
-  // (Cole junto ao grupo "Cores de perfil")
-
-  /// Azul usado nos cards de filhos e ícones de localização confirmada
-  /// (era 0xFF2563EB em children_section / profile_children_widget)
-  static const Color childCardAccent = Color(0xFF2563EB);
-
-  /// Fundo azul claro do avatar/emoji de filho (era 0xFFE0F2FE em
-  /// children_section / profile_children_widget)
-  static const Color childCardBg = Color(0xFFE0F2FE);
-
-  // ─── Gradientes de perfil ─────────────────────────────────────────────────────
-  // (Cole junto ao grupo "Gradientes reutilizáveis")
-
-  /// Gradiente do header da ProfilePage / EditProfilePage (era inline:
-  /// [kidsPink, Color(0xFFE040A0), kidsPurple] em profile_header_widget, e
-  /// [kidsPink, kidsYellow, kidsPurple] em edit_profile._buildHeader)
+  // ─── Gradientes de perfil ─────────────────────────────────────────────────
   static const LinearGradient profileHeaderGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [kidsPink, Color(0xFFE040A0), kidsPurple],
+    colors: [kidsPink, kidsPinkMagenta, kidsPurple],
     stops: [0.0, 0.55, 1.0],
   );
 
-  /// Gradiente do header da tela de edição de perfil (rosa → amarelo → roxo)
   static const LinearGradient editProfileHeaderGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [kidsPink, kidsYellow, kidsPurple],
   );
 
-  /// Gradiente pink → purple usado em chips selecionados, botões de ação e
-  /// ícones de seção (repetido em edit_profile, children_section,
-  /// profile_photo_section, profile_header_widget)
   static const LinearGradient pinkPurpleGradient = LinearGradient(
     colors: [kidsPink, kidsPurple],
   );
 
-  /// Gradiente do card de filho (azul claro → amarelo claro translúcido)
-  /// (era inline em children_section._ChildCard)
   static const LinearGradient childCardGradient = LinearGradient(
-    colors: [childCardBg, Color(0x80FFF9E6)], // FFF9E6 com opacity 0.5
+    colors: [childCardBg, Color(0x80FFF9E6)],
   );
 
-  /// Gradiente verde de "etapa concluída" (era [_green, Color(0xFF22C55E)] em
-  /// profile_header_widget — equivalente a [kidsGreen, kidsGreenDeep])
   static const LinearGradient verifiedStepGradient = LinearGradient(
     colors: [kidsGreen, kidsGreenDeep],
   );
 
-  // ─── Ícones reutilizáveis ─────────────────────────────────────────────────────
-  // Centraliza os IconData usados nas telas de perfil para evitar repetição de
-  // `Icons.xxx` direto nos widgets. Use AppIcons.xxx no lugar de Icons.xxx.
+  // ─── Emojis da DreamPage / DreamFormSheet ────────────────────────────────────
+  static const List<String> dreamEmojiOptions = [
+    '💭', '🌟', '🏠', '🚗', '✈️', '📚', '💪', '🎓',
+    '❤️', '🌱', '🎯', '💼', '🎨', '🏋️', '🧘', '🌈',
+  ];
 
-  // (criar classe auxiliar abaixo, fora de AppTheme — ver bloco 2)
   // ─── ThemeData ───────────────────────────────────────────────────────────────
   static ThemeData get lightTheme {
     return ThemeData(

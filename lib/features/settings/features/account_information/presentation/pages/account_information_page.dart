@@ -1,6 +1,9 @@
 import 'package:empatia/features/settings/features/account_information/controller/account_info_controller.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/widgets/change_email_sheet.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/widgets/info_card.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class AccountInformationPage extends StatefulWidget {

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:empatia/features/settings/features/account_verification/controller/email_controller.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 /// Página de verificação de e-mail exclusiva do fluxo de configurações.

@@ -1,4 +1,7 @@
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -71,7 +74,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
           // Header azul com EMPATIA e saudação personalizada
@@ -176,7 +179,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.notifications_outlined,
+                  AppIcons.notificationsOutline,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -321,7 +324,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFF1E3A8A),
+                color: AppTheme.primaryBlue,
               ),
             ),
             const SizedBox(height: 16),
@@ -378,7 +381,7 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF1E3A8A),
+                  color: AppTheme.primaryBlue,
                 ),
               ),
               Text(
@@ -462,7 +465,7 @@ class _HomePageState extends State<HomePage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E3A8A),
+                        color: AppTheme.primaryBlue,
                       ),
                     ),
                     if (subtitle.isNotEmpty) ...[
@@ -522,7 +525,7 @@ class _HomePageState extends State<HomePage> {
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF2563EB).withOpacity(0.2),
+                color: AppTheme.primaryBlueMid.withOpacity(0.2),
                 width: 2,
               ),
             ),
@@ -557,15 +560,15 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               _buildInteractionButton(
-                icon: Icons.favorite,
+                icon: AppIcons.favorite,
                 count: likes,
-                color: const Color(0xFFFF6B9D),
+                color: AppTheme.kidsPink,
               ),
               const SizedBox(width: 16),
               _buildInteractionButton(
-                icon: Icons.chat_bubble_outline,
+                icon: AppIcons.chat,
                 count: comments,
-                color: const Color(0xFF2563EB),
+                color: AppTheme.primaryBlueMid,
               ),
               const Spacer(),
               Container(

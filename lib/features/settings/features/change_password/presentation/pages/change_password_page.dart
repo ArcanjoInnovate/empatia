@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:empatia/features/settings/features/change_password/controller/change_password_controller.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class ChangePasswordPage extends StatefulWidget {

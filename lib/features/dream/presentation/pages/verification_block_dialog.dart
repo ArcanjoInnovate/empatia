@@ -1,9 +1,8 @@
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:flutter/material.dart';
 
 // ── Design tokens (mesmos do app) ──────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
 
 /// 🔒 VERIFICATION REQUIRED DIALOG
 ///
@@ -38,22 +37,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: _pink.withOpacity(0.18),
-              blurRadius: 40,
-              offset: const Offset(0, 12),
-            ),
-            BoxShadow(
-              color: _purple.withOpacity(0.10),
-              blurRadius: 60,
-              offset: const Offset(0, 24),
-            ),
-          ],
-        ),
+        decoration: AppDecorations.verificationBlockDialog,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: Column(
@@ -65,7 +49,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 28),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [_pink, _purple],
+                    colors: [AppTheme.kidsPink, AppTheme.kidsPurple],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -113,7 +97,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14,
                           height: 1.55,
-                          color: Color(0xFF374151),
+                          color: AppTheme.textCharcoal,
                         ),
                         children: [
                           const TextSpan(text: 'Para '),
@@ -121,7 +105,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                             text: feature,
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
-                              color: _navy,
+                              color: AppTheme.primaryBlue,
                             ),
                           ),
                           const TextSpan(
@@ -169,7 +153,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [_pink, _purple],
+                            colors: [AppTheme.kidsPink, AppTheme.kidsPurple],
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -212,8 +196,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -239,10 +222,7 @@ class _InfoRow extends StatelessWidget {
         Container(
           width: 36,
           height: 36,
-          decoration: BoxDecoration(
-            color: _pink.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: AppDecorations.verificationBlockInfoBadge,
           child: Center(
             child: Text(emoji, style: const TextStyle(fontSize: 16)),
           ),
@@ -259,7 +239,7 @@ class _InfoRow extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: _navy,
+                  color: AppTheme.primaryBlue,
                 ),
               ),
               const SizedBox(height: 2),

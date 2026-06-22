@@ -1416,4 +1416,384 @@ class AppDecorations {
         colors: colors,
       ).createShader(Rect.fromLTWH(0, 0, width, 70));
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ADIÇÕES — HomePage, SettingsPage, AccountInformation, EmailVerification,
+  //           VerificationBlockDialog, ChangePassword
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // ─── HomePage ─────────────────────────────────────────────────────────────────
+
+  /// Header azul da HomePage (EMPATIA + saudação)
+  static const BoxDecoration homeHeader = BoxDecoration(
+    gradient: AppTheme.homeHeaderGradient,
+  );
+
+  /// Container do indicador de notificação no header da HomePage
+  static BoxDecoration homeNotificationBadge = BoxDecoration(
+    color: Colors.white.withOpacity(0.2),
+    borderRadius: BorderRadius.circular(12),
+  );
+
+  /// Card de ad do carrossel da HomePage (cor dinâmica via parâmetro)
+  static BoxDecoration homeAdCard(List<Color> colors) => BoxDecoration(
+    gradient: LinearGradient(
+      colors: colors,
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: colors[0].withOpacity(0.3),
+        blurRadius: 15,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// Indicador de página ativo do carrossel
+  static BoxDecoration homePageIndicatorActive = BoxDecoration(
+    color: AppTheme.primaryBlueMid,
+    borderRadius: BorderRadius.circular(4),
+  );
+
+  /// Card de sonho na HomePage (branco com sombra suave)
+  static BoxDecoration homeDreamCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.05),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Avatar do sonho na HomePage (gradiente pink → deep pink)
+  static const BoxDecoration homeDreamAvatar = BoxDecoration(
+    gradient: AppTheme.homeDreamAvatarGradient,
+    borderRadius: BorderRadius.all(Radius.circular(15)),
+  );
+
+  /// Área de imagem/emoji do sonho na HomePage
+  static BoxDecoration homeDreamImageArea = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [AppTheme.childCardBg, const Color(0xFFFFF9E6)],
+    ),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: AppTheme.primaryBlueMid.withOpacity(0.2),
+      width: 2,
+    ),
+  );
+
+  /// Badge de progresso do sonho (cor dinâmica por nível)
+  static BoxDecoration homeDreamProgressBadge(List<Color> colors) =>
+      BoxDecoration(
+        gradient: LinearGradient(colors: colors),
+        borderRadius: BorderRadius.circular(15),
+      );
+
+  /// Botão "Salvar" na HomePage
+  static BoxDecoration homeSaveButton = BoxDecoration(
+    gradient: AppTheme.homeSaveButtonGradient,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsYellow.withOpacity(0.3),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  // ─── SettingsPage ─────────────────────────────────────────────────────────────
+
+  /// Header da SettingsPage (pink → yellow → purple)
+  static const BoxDecoration settingsHeader = BoxDecoration(
+    gradient: AppTheme.settingsHeaderGradient,
+  );
+
+  /// Card genérico de seção na SettingsPage (branco com sombra)
+  static BoxDecoration settingsSectionCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.04),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Botão de logout (outline vermelho)
+  static BoxDecoration settingsLogoutButton = BoxDecoration(
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: Colors.red.shade200, width: 1.5),
+  );
+
+  /// Card de conta estilo Instagram (gradiente kids rainbow)
+  static const BoxDecoration settingsAccountCard = BoxDecoration(
+    gradient: AppTheme.settingsHeaderGradient,
+  );
+
+  // ─── AccountInformationPage / ChangeEmailSheet ────────────────────────────────
+
+  /// Header azul-violeta das telas de informações de conta
+  static const BoxDecoration accountInfoHeader = BoxDecoration(
+    gradient: AppTheme.infoHeaderGradient,
+  );
+
+  /// Indicador de loading (circular) nas telas de informações de conta
+  static BoxDecoration accountInfoSkeleton = BoxDecoration(
+    color: Colors.grey.shade200,
+    borderRadius: BorderRadius.circular(24),
+  );
+
+  // ─── EmailChangedPage ─────────────────────────────────────────────────────────
+
+  /// Card do banner "Email enviado!" — branco com sombra cyan
+  static BoxDecoration emailChangedCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(40),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsCyan.withOpacity(0.3),
+        blurRadius: 40,
+        offset: const Offset(0, 10),
+      ),
+      BoxShadow(
+        color: AppTheme.kidsGreen.withOpacity(0.2),
+        blurRadius: 50,
+        spreadRadius: 5,
+        offset: const Offset(0, 15),
+      ),
+    ],
+  );
+
+  /// Header do card "Email enviado!" (gradiente verde-água suave)
+  static const BoxDecoration emailChangedCardHeader = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [Color(0xFFE6FFF0), Color(0xFFE6F7FF)],
+    ),
+    borderRadius: BorderRadius.all(Radius.circular(24)),
+  );
+
+  /// Chip de e-mail de destino (gradiente blue → violet)
+  static BoxDecoration emailChangedChip = BoxDecoration(
+    gradient: AppTheme.accountButtonGradient,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.primaryBlueMid.withOpacity(0.3),
+        blurRadius: 10,
+        offset: const Offset(0, 3),
+      ),
+    ],
+  );
+
+  /// Container de cada step de instrução (borda azul suave)
+  static BoxDecoration emailChangedStepBox = BoxDecoration(
+    color: AppTheme.primaryBlueMid.withOpacity(0.15),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(
+      color: AppTheme.primaryBlueMid.withOpacity(0.3),
+      width: 2,
+    ),
+  );
+
+  /// Caixa de alerta âmbar (email_changed — "link expira")
+  static BoxDecoration emailChangedAmberAlert = BoxDecoration(
+    color: AppTheme.alertAmberBg,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppTheme.alertAmberBorder, width: 2),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsYellow.withOpacity(0.25),
+        blurRadius: 16,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Banner "Email reenviado com sucesso!" (verde claro)
+  static BoxDecoration emailChangedResentBanner = BoxDecoration(
+    color: AppTheme.verifiedEmailBg,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppTheme.verifiedEmailBorder, width: 1.5),
+  );
+
+  // ─── EmailVerificationPage ────────────────────────────────────────────────────
+
+  /// Fundo da EmailVerificationPage (pastel triplo)
+  static const BoxDecoration emailVerifBackground = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [AppTheme.bgPastelPurple, AppTheme.bgPastelPink, AppTheme.bgPastelBlue],
+    ),
+  );
+
+  /// Card de dica/hint lavanda
+  static BoxDecoration emailVerifHintCard = BoxDecoration(
+    color: AppTheme.bgPastelLavender,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppTheme.borderLavender, width: 1.5),
+  );
+
+  /// Botão principal da EmailVerificationPage (pink → roxo médio)
+  static BoxDecoration emailVerifButton = BoxDecoration(
+    gradient: AppTheme.pinkPurpleMidGradient,
+    borderRadius: BorderRadius.circular(32),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.45),
+        blurRadius: 25,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// Badge de sucesso de verificação (verde claro circular)
+  static BoxDecoration emailVerifSuccessBadge = BoxDecoration(
+    color: AppTheme.kidsGreen.withOpacity(0.1),
+    shape: BoxShape.circle,
+    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.4)),
+  );
+
+  // ─── AccountSettingsPage (verificação de conta) ───────────────────────────────
+
+  /// Header da AccountSettingsPage (pink → yellow → purple — mesmo do settings)
+  static const BoxDecoration accountSettingsHeader = BoxDecoration(
+    gradient: AppTheme.settingsHeaderGradient,
+  );
+
+  /// Card "hero" de verificação (gradiente settings)
+  static const BoxDecoration accountSettingsHeroCard = BoxDecoration(
+    gradient: AppTheme.settingsHeaderGradient,
+  );
+
+  /// Badge de status de verificação de e-mail (activo/inativo)
+  static BoxDecoration accountSettingsStatusBadge({required bool verified}) {
+    return BoxDecoration(
+      color: verified
+          ? AppTheme.kidsGreenDeep.withOpacity(0.1)
+          : AppTheme.kidsPink.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(20),
+    );
+  }
+
+  // ─── ChangePasswordPage ───────────────────────────────────────────────────────
+
+  /// Fundo do ícone principal de troca de senha (branco + brilho roxo/pink)
+  static BoxDecoration changePasswordIcon = BoxDecoration(
+    color: Colors.white,
+    shape: BoxShape.circle,
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPurple.withOpacity(0.5),
+        blurRadius: 40,
+        spreadRadius: 8,
+      ),
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.35),
+        blurRadius: 50,
+        spreadRadius: 12,
+      ),
+    ],
+  );
+
+  /// Ícone interno de cadeado (gradiente roxo → pink)
+  static const BoxDecoration changePasswordIconInner = BoxDecoration(
+    shape: BoxShape.circle,
+    gradient: AppTheme.changePasswordHeaderGradient,
+  );
+
+  /// Card branco de conteúdo (troca de senha)
+  static BoxDecoration changePasswordCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(40),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPurple.withOpacity(0.3),
+        blurRadius: 40,
+        offset: const Offset(0, 10),
+      ),
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.2),
+        blurRadius: 50,
+        spreadRadius: 5,
+        offset: const Offset(0, 15),
+      ),
+    ],
+  );
+
+  /// Campo de senha (troca) com acent dinâmico
+  static BoxDecoration changePasswordField({required Color accentColor}) {
+    return BoxDecoration(
+      color: accentColor.withOpacity(0.06),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: accentColor.withOpacity(0.3), width: 1.5),
+    );
+  }
+
+  /// Botão "Alterar senha" ativo (roxo → pink)
+  static BoxDecoration changePasswordButton = BoxDecoration(
+    gradient: AppTheme.changePasswordHeaderGradient,
+    borderRadius: BorderRadius.circular(32),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPurple.withOpacity(0.5),
+        blurRadius: 25,
+        spreadRadius: 2,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// Caixa de erro (sheet_components / change_password)
+  static BoxDecoration sheetErrorBox = BoxDecoration(
+    color: AppTheme.errorRedBg,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: AppTheme.errorRedBorder, width: 1),
+  );
+
+  // ─── VerificationBlockDialog ──────────────────────────────────────────────────
+
+  /// Dialog de verificação obrigatória (branco + sombra pink/purple)
+  static BoxDecoration verificationBlockDialog = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(28),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.18),
+        blurRadius: 40,
+        offset: const Offset(0, 12),
+      ),
+      BoxShadow(
+        color: AppTheme.kidsPurple.withOpacity(0.10),
+        blurRadius: 60,
+        offset: const Offset(0, 24),
+      ),
+    ],
+  );
+
+  /// Banner gradiente do topo do VerificationBlockDialog
+  static const BoxDecoration verificationBlockBanner = BoxDecoration(
+    gradient: AppTheme.pinkPurpleGradient,
+  );
+
+  /// Ícone emoji em badge no VerificationBlockDialog (_InfoRow)
+  static BoxDecoration verificationBlockInfoBadge = BoxDecoration(
+    color: AppTheme.kidsPink.withOpacity(0.08),
+    borderRadius: BorderRadius.circular(10),
+  );
+
+  /// Botão principal do VerificationBlockDialog
+  static const BoxDecoration verificationBlockButton = BoxDecoration(
+    gradient: AppTheme.pinkPurpleGradient,
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+  );
 }
+  

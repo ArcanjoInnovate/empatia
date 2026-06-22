@@ -1,6 +1,9 @@
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/email_verification_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class AccountSettingsPage extends StatefulWidget {

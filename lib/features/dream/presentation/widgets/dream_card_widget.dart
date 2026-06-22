@@ -1,5 +1,6 @@
 import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
@@ -214,7 +215,7 @@ class _EditMenu extends StatelessWidget {
         const PopupMenuItem(
           value: 'edit',
           child: Row(children: [
-            Icon(Icons.edit_rounded, size: 16, color: AppTheme.kidsPurple),
+            Icon(AppIcons.edit, size: 16, color: AppTheme.kidsPurple),
             SizedBox(width: 10),
             Text('Editar'),
           ]),
@@ -223,7 +224,7 @@ class _EditMenu extends StatelessWidget {
         const PopupMenuItem(
           value: 'delete',
           child: Row(children: [
-            Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+            Icon(AppIcons.delete, size: 16, color: Colors.red),
             SizedBox(width: 10),
             Text('Remover', style: TextStyle(color: Colors.red)),
           ]),
