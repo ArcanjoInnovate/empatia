@@ -38,7 +38,7 @@ class AppDecorations {
 
   // ─── Cards ───────────────────────────────────────────────────────────────────
 
-  /// Card branco com sombra rosa + roxa (Login)
+  /// Card branco com sombra rosa + roxa (Login / ForgotPassword instruções)
   static BoxDecoration loginCard = BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(40),
@@ -280,10 +280,7 @@ class AppDecorations {
       gradient: LinearGradient(colors: gradientColors),
       borderRadius: BorderRadius.circular(15),
       boxShadow: [
-        BoxShadow(
-          color: gradientColors[0].withOpacity(0.4),
-          blurRadius: 8,
-        ),
+        BoxShadow(color: gradientColors[0].withOpacity(0.4), blurRadius: 8),
       ],
     );
   }
@@ -426,9 +423,7 @@ class AppDecorations {
   // ─── Tag do app name (LoginPage) ─────────────────────────────────────────────
 
   static BoxDecoration appNameTag = BoxDecoration(
-    gradient: const LinearGradient(
-      colors: [Colors.white, Color(0xFFFFF9E6)],
-    ),
+    gradient: const LinearGradient(colors: [Colors.white, Color(0xFFFFF9E6)]),
     borderRadius: BorderRadius.circular(30),
     boxShadow: [
       BoxShadow(
@@ -443,10 +438,7 @@ class AppDecorations {
     color: Colors.white,
     borderRadius: BorderRadius.circular(25),
     boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.1),
-        blurRadius: 10,
-      ),
+      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
     ],
   );
 
@@ -538,11 +530,29 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(18),
   );
 
+  /// Nota de privacidade no rodapé da AgeVerificationPage (_buildPrivacyNote)
   static BoxDecoration ageVerificationPrivacyNote = BoxDecoration(
     color: AppTheme.kidsPink.withOpacity(0.06),
     borderRadius: BorderRadius.circular(14),
     border: Border.all(color: AppTheme.kidsPink.withOpacity(0.20)),
   );
+
+  // ─── Blobs decorativos de fundo ──────────────────────────────────────────────
+
+  /// Blob circular com RadialGradient branco — usado como elemento decorativo
+  /// de fundo na RegisterPage (e outras telas com blobs). [opacity] controla
+  /// a opacidade do branco central.
+  static BoxDecoration blobDecoration(double opacity) {
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(
+        colors: [
+          Colors.white.withOpacity(opacity),
+          Colors.white.withOpacity(0),
+        ],
+      ),
+    );
+  }
 
   // ─── ForgotPasswordPage ───────────────────────────────────────────────────────
 
@@ -567,14 +577,15 @@ class AppDecorations {
     ),
   );
 
-  static BoxDecoration forgotPasswordHintBox = BoxDecoration(
+  /// Caixa explicativa/informativa roxa (ex.: "como funciona a recuperação")
+  static BoxDecoration forgotInfoBox = BoxDecoration(
     color: const Color(0xFFF3E8FF),
     borderRadius: BorderRadius.circular(18),
-    border: Border.all(
-      color: AppTheme.kidsPurple.withOpacity(0.3),
-      width: 2,
-    ),
+    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 2),
   );
+
+  /// Alias mantido para retrocompatibilidade — prefira [forgotInfoBox].
+  static BoxDecoration get forgotPasswordHintBox => forgotInfoBox;
 
   static BoxDecoration forgotSendButton = BoxDecoration(
     gradient: AppTheme.forgotSendButtonGradient,
@@ -582,6 +593,20 @@ class AppDecorations {
     boxShadow: [
       BoxShadow(
         color: AppTheme.kidsPink.withOpacity(0.6),
+        blurRadius: 25,
+        spreadRadius: 2,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// Botão "Voltar para o login" — gradiente green→cyan com glow verde
+  static BoxDecoration forgotBackButton = BoxDecoration(
+    gradient: AppTheme.forgotBackButtonGradient,
+    borderRadius: BorderRadius.circular(32),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsGreen.withOpacity(0.6),
         blurRadius: 25,
         spreadRadius: 2,
         offset: const Offset(0, 8),
@@ -635,16 +660,27 @@ class AppDecorations {
     ],
   );
 
-  static const BoxDecoration forgotInstructionsCardHeader = BoxDecoration(
-    gradient: LinearGradient(
-      colors: [Color(0xFFE6FFF0), Color(0xFFE6F7FF)],
-    ),
-    borderRadius: BorderRadius.only(
-      topLeft: Radius.circular(24),
-      topRight: Radius.circular(24),
-      bottomLeft: Radius.circular(24),
-      bottomRight: Radius.circular(24),
-    ),
+  /// Cabeçalho do card "Email Enviado!" — gradiente verde-água suave
+  static const BoxDecoration forgotSuccessHeader = BoxDecoration(
+    gradient: LinearGradient(colors: [Color(0xFFE6FFF0), Color(0xFFE6F7FF)]),
+    borderRadius: BorderRadius.all(Radius.circular(24)),
+  );
+
+  /// Alias mantido para retrocompatibilidade — prefira [forgotSuccessHeader].
+  static BoxDecoration get forgotInstructionsCardHeader =>
+      forgotSuccessHeader as BoxDecoration;
+
+  /// Chip com o endereço de email do destinatário — gradiente cyan→green
+  static BoxDecoration forgotEmailChip = BoxDecoration(
+    gradient: AppTheme.forgotEmailChipGradient,
+    borderRadius: BorderRadius.circular(20),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsCyan.withOpacity(0.3),
+        blurRadius: 10,
+        offset: const Offset(0, 3),
+      ),
+    ],
   );
 
   static BoxDecoration forgotEmailBadge = BoxDecoration(
@@ -652,40 +688,32 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
   );
 
-  static BoxDecoration forgotExpiryWarning = BoxDecoration(
+  /// Caixa de aviso "link expira em X minutos" — fundo âmbar claro
+  /// Use [AppTheme.kidsAmberDark] para o título e [AppTheme.kidsAmber]
+  /// para o texto secundário desta caixa.
+  static BoxDecoration forgotWarningBox = BoxDecoration(
     color: const Color(0xFFFFFBE6),
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(
-      color: AppTheme.kidsYellow.withOpacity(0.6),
-      width: 2,
-    ),
+    border: Border.all(color: AppTheme.kidsYellow.withOpacity(0.6), width: 2),
   );
 
-  static BoxDecoration forgotResentSuccess = BoxDecoration(
+  /// Alias mantido para retrocompatibilidade — prefira [forgotWarningBox].
+  static BoxDecoration get forgotExpiryWarning => forgotWarningBox;
+
+  /// Banner de confirmação de reenvio de email ("Email reenviado com sucesso!")
+  static BoxDecoration forgotResentBanner = BoxDecoration(
     color: const Color(0xFFE6FFF0),
     borderRadius: BorderRadius.circular(16),
     border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.5)),
   );
 
-  static BoxDecoration forgotResendButton = BoxDecoration(
-    border: Border.all(
-      color: AppTheme.kidsCyan.withOpacity(0.5),
-      width: 2,
-    ),
-    borderRadius: BorderRadius.circular(20),
-  );
+  /// Alias mantido para retrocompatibilidade — prefira [forgotResentBanner].
+  static BoxDecoration get forgotResentSuccess => forgotResentBanner;
 
-  static BoxDecoration forgotBackButton = BoxDecoration(
-    gradient: AppTheme.forgotBackButtonGradient,
-    borderRadius: BorderRadius.circular(32),
-    boxShadow: [
-      BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.6),
-        blurRadius: 25,
-        spreadRadius: 2,
-        offset: const Offset(0, 8),
-      ),
-    ],
+  /// Botão de reenviar email — apenas borda cyan, sem preenchimento
+  static BoxDecoration forgotResendButton = BoxDecoration(
+    border: Border.all(color: AppTheme.kidsCyan.withOpacity(0.5), width: 2),
+    borderRadius: BorderRadius.circular(20),
   );
 
   // ─── Toggle de visibilidade de senha ───────────────────────────────────────────
@@ -711,12 +739,59 @@ class AppDecorations {
     return BoxDecoration(shape: BoxShape.circle, color: color);
   }
 
+  // ─── DonationItemFormSheet ────────────────────────────────────────────────────
+  // Cole este bloco dentro de AppDecorations, antes do fechamento da classe.
+
+  /// Handle bar do bottom sheet (drag indicator)
+  static BoxDecoration donationFormHandle = BoxDecoration(
+    color: AppTheme.dividerColor,
+    borderRadius: BorderRadius.circular(4),
+  );
+
+  /// Botão "Publicar na vitrine" / "Salvar alterações" — estado ativo
+  static BoxDecoration donationSubmitActive = BoxDecoration(
+    gradient: const LinearGradient(
+      colors: [AppTheme.kidsPink, AppTheme.kidsPurple],
+    ),
+    borderRadius: BorderRadius.circular(18),
+  );
+
+  /// Botão submit — estado de loading (spinner visível, gradiente removido)
+  static BoxDecoration donationSubmitLoading = BoxDecoration(
+    color: AppTheme.dividerColor,
+    borderRadius: BorderRadius.circular(18),
+  );
+
+  /// Container do PhotoPicker — varia conforme estado de erro e presença de foto
+  static BoxDecoration donationPhotoPicker({
+    required bool hasError,
+    required bool hasPhoto,
+  }) {
+    return BoxDecoration(
+      color: hasError
+          ? AppTheme.errorRed.withOpacity(0.06)
+          : const Color(
+              0xFFF8F8FF,
+            ), // surfaceLight levemente azulado, padrão do sheet
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: hasError
+            ? AppTheme.errorRed
+            : hasPhoto
+            ? AppTheme.kidsPink.withOpacity(0.4)
+            : AppTheme.dividerColor,
+        width: hasError ? 2 : 1.5,
+      ),
+    );
+  }
   // ─── Indicador de progresso ──────────────────────────────────────────────────
 
   static BoxDecoration progressDot({required bool done}) {
     return BoxDecoration(
       shape: BoxShape.circle,
-      color: done ? AppTheme.kidsGreenDeep : AppTheme.textMuted.withOpacity(0.25),
+      color: done
+          ? AppTheme.kidsGreenDeep
+          : AppTheme.textMuted.withOpacity(0.25),
     );
   }
 
@@ -766,10 +841,12 @@ class AppDecorations {
 
   /// Ícone (emoji) dentro do card de doação recebida
   static BoxDecoration dreamReceivedCardIcon = BoxDecoration(
-    gradient: LinearGradient(colors: [
-      AppTheme.accentGreen.withOpacity(0.18),
-      AppTheme.accentTeal.withOpacity(0.18),
-    ]),
+    gradient: LinearGradient(
+      colors: [
+        AppTheme.accentGreen.withOpacity(0.18),
+        AppTheme.accentTeal.withOpacity(0.18),
+      ],
+    ),
     borderRadius: BorderRadius.circular(16),
   );
 
@@ -784,7 +861,11 @@ class AppDecorations {
     gradient: LinearGradient(colors: [color, color.withOpacity(0.75)]),
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
-      BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
+      BoxShadow(
+        color: color.withOpacity(0.3),
+        blurRadius: 8,
+        offset: const Offset(0, 3),
+      ),
     ],
   );
 
@@ -802,11 +883,537 @@ class AppDecorations {
     ],
   );
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ADIÇÕES AO app_decorations.dart
+  // Cole estes membros dentro da classe AppDecorations, antes do fechamento.
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // ─── DonationCardWidget ───────────────────────────────────────────────────────
+
+  /// Card de doação no grid (borda rosa sutil + sombra pink)
+  static BoxDecoration donationCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppTheme.donationCardBorder, width: 1.5),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.06),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Badge de status da doação (fundo sólido com cor dinâmica)
+  static BoxDecoration donationStatusBadge = BoxDecoration(
+    borderRadius: BorderRadius.circular(8),
+    // cor aplicada via `color:` no Container em runtime
+  );
+
+  /// Menu de edição flutuante sobre a imagem da doação (branco + sombra suave)
+  static BoxDecoration donationEditMenuContainer = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
+
+  /// Painel inferior do fullscreen de doação (fundo escuro semitransparente)
+  static const BoxDecoration donationFullscreenPanel = BoxDecoration(
+    color: Color(0x99000000), // Colors.black.withOpacity(0.6) — const
+    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  );
+
+  /// Botão "Editar" dentro do fullscreen de doação
+  static BoxDecoration donationFullscreenEditButton = BoxDecoration(
+    gradient: AppTheme.donationEditButtonGradient,
+    borderRadius: BorderRadius.circular(14),
+  );
+
+  /// Placeholder (sem imagem) do card de doação
+  static BoxDecoration donationPlaceholder = BoxDecoration(
+    color: AppTheme.donationPlaceholderBg,
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+  );
+
+  // ─── DreamFormSheet ───────────────────────────────────────────────────────────
+
+  /// Handle bar do DreamFormSheet (igual ao donationFormHandle, criado para
+  /// clareza semântica — ambos podem ser unificados se preferir)
+  static BoxDecoration dreamFormHandle = BoxDecoration(
+    color: AppTheme.dividerColor,
+    borderRadius: BorderRadius.circular(4),
+  );
+
+  /// Container do ImagePicker do DreamFormSheet — estado sem imagem
+  static BoxDecoration dreamImagePickerEmpty = BoxDecoration(
+    color: AppTheme.dreamImagePickerBg,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 1.5),
+  );
+
+  /// Container do ImagePicker do DreamFormSheet — estado com imagem
+  /// (mantém mesmas bordas, sem fill colorido para não cobrir a foto)
+  static BoxDecoration dreamImagePickerFilled = BoxDecoration(
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 1.5),
+  );
+
+  /// Badge de edição sobre a imagem do picker (lápis escuro semitransparente)
+  static BoxDecoration dreamImageEditBadge = BoxDecoration(
+    color: Color(0x8C000000), // Colors.black.withOpacity(0.55) — const-friendly
+    borderRadius: BorderRadius.circular(10),
+  );
+
+  /// Placeholder quando a imagem de URL falha no picker
+  static BoxDecoration dreamImagePickerPlaceholder = BoxDecoration(
+    color: AppTheme.dreamImagePickerBg,
+    borderRadius: BorderRadius.circular(17),
+  );
+
+  /// Emoji selecionado no picker de emojis do DreamFormSheet
+  static BoxDecoration dreamEmojiSelected = BoxDecoration(
+    color: AppTheme.kidsPurple.withOpacity(0.12),
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: AppTheme.kidsPurple, width: 2),
+  );
+
+  /// Emoji não-selecionado no picker de emojis do DreamFormSheet
+  static const BoxDecoration dreamEmojiUnselected = BoxDecoration(
+    color: Color(0xFFF5F5F5),
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+  );
+
+  /// Campo de texto do DreamFormSheet — borda habilitada (usando kidsPurple)
+  static BoxDecoration dreamFieldEnabled = BoxDecoration(
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: AppTheme.kidsPurple, width: 1),
+  );
+
+  /// Botão salvar/publicar do DreamFormSheet — estado ativo
+  static BoxDecoration dreamSaveButtonActive = BoxDecoration(
+    gradient: AppTheme.dreamSaveButtonGradient,
+    borderRadius: BorderRadius.circular(18),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ADIÇÕES AO app_decorations.dart — bloco "Perfil / Edit Profile / Children / Location"
+  // Cole estes membros dentro da classe AppDecorations, antes do fechamento.
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // ─── EditProfilePage ──────────────────────────────────────────────────────────
+
+  /// Header com gradiente rosa→amarelo→roxo (EditProfilePage._buildHeader)
+  static const BoxDecoration editProfileHeader = BoxDecoration(
+    gradient: AppTheme.editProfileHeaderGradient,
+  );
+
+  /// Botão "voltar" circular semitransparente sobre o header
+  static BoxDecoration editProfileBackButton = BoxDecoration(
+    color: Colors.white.withOpacity(0.25),
+    borderRadius: BorderRadius.circular(12),
+  );
+
+  /// Card branco de cada seção da tela de edição (Perfil / Filhos)
+  static BoxDecoration editProfileSectionCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(28),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.06),
+        blurRadius: 20,
+        offset: const Offset(0, 6),
+      ),
+    ],
+  );
+
+  /// Ícone (emoji) do cabeçalho de cada seção — gradiente pink→purple
+  static BoxDecoration editProfileSectionIcon = BoxDecoration(
+    gradient: AppTheme.pinkPurpleGradient,
+    borderRadius: BorderRadius.circular(14),
+  );
+
+  /// Chip de seleção de sexo — estado selecionado/não selecionado
+  static BoxDecoration editProfileSexoChip({required bool selected}) {
+    return BoxDecoration(
+      gradient: selected ? AppTheme.pinkPurpleGradient : null,
+      color: selected ? null : AppTheme.surfaceNeutral,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: selected
+            ? Colors.transparent
+            : AppTheme.kidsPink.withOpacity(0.2),
+        width: 1.5,
+      ),
+    );
+  }
+
+  /// TextFormField de campo simples (nome, status) — borda habilitada/focada
+  /// aplicada via InputDecoration; ver helper [editProfileFieldBorder].
+  static OutlineInputBorder editProfileFieldBorder({required bool focused}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: focused
+          ? const BorderSide(color: AppTheme.kidsPink, width: 2)
+          : BorderSide(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+    );
+  }
+
+  /// Botão "SALVAR ALTERAÇÕES" — estado ativo/loading
+  static BoxDecoration editProfileSaveButton({required bool loading}) {
+    return BoxDecoration(
+      gradient: loading
+          ? null
+          : const LinearGradient(
+              colors: [
+                AppTheme.kidsPink,
+                AppTheme.kidsYellow,
+                AppTheme.kidsPurple,
+              ],
+            ),
+      color: loading ? Colors.grey.shade400 : null,
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: loading
+          ? []
+          : [
+              BoxShadow(
+                color: AppTheme.kidsPink.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+    );
+  }
+
+  // ─── ChildrenSection (edit) ───────────────────────────────────────────────────
+
+  /// Card de filho na lista de edição — gradiente azul claro → amarelo claro
+  static BoxDecoration childEditCard = BoxDecoration(
+    gradient: AppTheme.childCardGradient,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(
+      color: AppTheme.childCardAccent.withOpacity(0.15),
+      width: 2,
+    ),
+  );
+
+  /// Avatar/emoji do filho dentro do card de edição
+  static BoxDecoration childEditAvatar = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: AppTheme.childCardAccent.withOpacity(0.2),
+      width: 2,
+    ),
+  );
+
+  /// Botão "Adicionar filho"
+  static BoxDecoration addChildButton = BoxDecoration(
+    color: AppTheme.surfaceNeutral,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.3), width: 2),
+  );
+
+  /// Emoji picker do formulário de filho — estado selecionado/não selecionado
+  static BoxDecoration childEmojiOption({required bool selected}) {
+    return BoxDecoration(
+      color: selected
+          ? AppTheme.kidsPink.withOpacity(0.15)
+          : AppTheme.surfaceNeutral,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: selected ? AppTheme.kidsPink : Colors.transparent,
+        width: 2,
+      ),
+    );
+  }
+
+  /// Input de nome/idade no formulário de filho — com/sem erro
+  static BoxDecoration childFormInput({required bool hasError}) {
+    return BoxDecoration(
+      color: hasError ? Colors.red.shade50 : AppTheme.surfaceBlueTint,
+      borderRadius: BorderRadius.circular(14),
+    );
+  }
+
+  /// Botão confirmar (Adicionar/Salvar) do formulário de filho
+  static BoxDecoration childFormSubmitButton({required bool loading}) {
+    return BoxDecoration(
+      gradient: loading ? null : AppTheme.pinkPurpleGradient,
+      color: loading ? Colors.grey.shade200 : null,
+      borderRadius: BorderRadius.circular(18),
+    );
+  }
+
+  /// Banner de erro de faixa etária inválida ("deve ter entre 0 e 17 anos")
+  static BoxDecoration childAgeErrorBanner = BoxDecoration(
+    color: Colors.red.shade50,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: Colors.red.shade200, width: 1.5),
+  );
+
+  static BoxDecoration childAgeErrorIcon = BoxDecoration(
+    color: Colors.red.shade100,
+    borderRadius: BorderRadius.circular(10),
+  );
+
+  // ─── LocationSection ──────────────────────────────────────────────────────────
+
+  /// Container dos 3 dropdowns (Estado / Cidade / Bairro)
+  static BoxDecoration locationFieldsBox = BoxDecoration(
+    color: AppTheme.surfaceBlueTint,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+  );
+
+  /// Aviso âmbar "selecione o bairro na lista"
+  static BoxDecoration locationNeighborhoodWarning = BoxDecoration(
+    color: AppTheme.kidsYellow.withOpacity(0.12),
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: AppTheme.kidsYellow.withOpacity(0.5), width: 1.5),
+  );
+
+  /// Lista de sugestões de bairro (dropdown flutuante)
+  static BoxDecoration locationSuggestionsBox = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.08),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  /// Preview do endereço confirmado (bairro, cidade, estado)
+  static BoxDecoration locationAddressPreview = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [
+        AppTheme.kidsPink.withOpacity(0.08),
+        AppTheme.kidsPurple.withOpacity(0.08),
+      ],
+    ),
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2)),
+  );
+
+  // ─── ProfilePhotoSection ──────────────────────────────────────────────────────
+
+  /// Chip "Foto" / "Emoji" — estado selecionado/não selecionado
+  static BoxDecoration photoModeChip({required bool selected}) {
+    return BoxDecoration(
+      gradient: selected ? AppTheme.pinkPurpleGradient : null,
+      color: selected ? null : AppTheme.surfaceNeutral,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: selected
+            ? Colors.transparent
+            : AppTheme.kidsPink.withOpacity(0.2),
+        width: 1.5,
+      ),
+    );
+  }
+
+  /// Círculo de preview de foto/emoji de perfil (avatar grande no editor)
+  static BoxDecoration photoPreviewCircle = BoxDecoration(
+    shape: BoxShape.circle,
+    color: Colors.white,
+    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.3), width: 3),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withOpacity(0.2),
+        blurRadius: 20,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// Badge da câmera sobre o avatar (canto inferior direito)
+  static BoxDecoration photoCameraBadge = BoxDecoration(
+    gradient: AppTheme.pinkPurpleGradient,
+    shape: BoxShape.circle,
+    border: Border.all(color: Colors.white, width: 3),
+  );
+
+  /// Placeholder de avatar sem foto (ícone de pessoa cinza)
+  static BoxDecoration photoEmptyPlaceholder = BoxDecoration(
+    color: AppTheme.surfaceBlueTint,
+  );
+
+  /// Opção dentro do bottom sheet "Escolher foto" (câmera / galeria / remover)
+  static BoxDecoration photoSourceOption({Color? accentColor}) {
+    final color = accentColor ?? AppTheme.kidsPink;
+    return BoxDecoration(
+      color: AppTheme.surfaceNeutral,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: color.withOpacity(0.3), width: 2),
+    );
+  }
+
+  // ─── ProfileHeaderWidget ──────────────────────────────────────────────────────
+
+  /// Fundo do header da ProfilePage (gradiente pink → magenta → purple)
+  static const BoxDecoration profileHeaderBackground = BoxDecoration(
+    gradient: AppTheme.profileHeaderGradient,
+  );
+
+  /// Botão de ícone (editar / configurações) no topo do header
+  static BoxDecoration profileHeaderIconButton = BoxDecoration(
+    color: Colors.white.withOpacity(0.2),
+  );
+
+  /// Avatar do header — borda dourada se totalmente verificado
+  static BoxDecoration profileAvatarRing({required bool verified}) {
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white,
+      border: Border.all(
+        color: verified ? AppTheme.kidsYellow : Colors.white,
+        width: verified ? 3.5 : 3,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: verified
+              ? AppTheme.kidsYellow.withOpacity(0.5)
+              : Colors.black.withOpacity(0.2),
+          blurRadius: verified ? 20 : 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+  }
+
+  /// Chip de verificação (verde se verificado, translúcido se não)
+  static BoxDecoration verificationChip({required bool verified}) {
+    return BoxDecoration(
+      color: verified
+          ? AppTheme.kidsGreen.withOpacity(0.2)
+          : Colors.white.withOpacity(0.15),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: verified ? AppTheme.kidsGreen : Colors.white38,
+        width: 1.5,
+      ),
+    );
+  }
+
+  /// Badge "Verificar" dentro do chip de verificação
+  static BoxDecoration verificationBadge = BoxDecoration(
+    color: AppTheme.kidsYellow,
+    borderRadius: BorderRadius.circular(6),
+  );
+
+  /// Container da linha de meta-informações (idade, gênero, localização)
+  static BoxDecoration profileMetaRow = BoxDecoration(
+    color: Colors.white.withOpacity(0.12),
+    borderRadius: BorderRadius.circular(16),
+  );
+
+  /// Banner de status (frase pessoal do usuário) no header
+  static BoxDecoration profileStatusBanner = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.08),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  // ─── VerificationSheetWidget ──────────────────────────────────────────────────
+
+  /// Ícone circular principal do sheet de verificação
+  static BoxDecoration verificationSheetIcon({required bool verified}) {
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: verified
+          ? AppTheme.verifiedStepGradient
+          : AppTheme.pinkPurpleGradient,
+    );
+  }
+
+  /// Card de cada etapa (e-mail / perfil completo) — concluída ou pendente
+  static BoxDecoration verificationStepCard({required bool done}) {
+    return BoxDecoration(
+      color: done ? AppTheme.kidsGreen.withOpacity(0.05) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: done
+            ? AppTheme.kidsGreen.withOpacity(0.4)
+            : AppTheme.dividerColor,
+        width: 1.5,
+      ),
+    );
+  }
+
+  /// Ícone de cada etapa dentro do card (gradiente verde se concluída)
+  static BoxDecoration verificationStepIcon({required bool done}) {
+    return BoxDecoration(
+      gradient: done
+          ? AppTheme.verifiedStepGradient
+          : AppTheme.pinkPurpleGradient,
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
+
+  /// Banner "Você é um membro verificado!" no final do sheet
+  static BoxDecoration verifiedMemberBanner = BoxDecoration(
+    gradient: LinearGradient(
+      colors: [
+        AppTheme.kidsGreen.withOpacity(0.15),
+        AppTheme.kidsYellow.withOpacity(0.1),
+      ],
+    ),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.4), width: 1.5),
+  );
+
+  // ─── Handles de bottom sheet (genérico) ──────────────────────────────────────
+  // Reaproveita o padrão já usado em donationFormHandle/dreamFormHandle/
+  // imageSourceHandle — ver alias abaixo para os novos usos.
+
+  /// Alias semântico para o handle do sheet de filho e do sheet de foto.
+  /// Reaproveita a mesma decoração de [donationFormHandle].
+  static BoxDecoration get sheetHandle => donationFormHandle;
+  // ─── DreamFormSheet / verificação ────────────────────────────────────────────
+
+  /// Decoração do handle do mini bottom sheet de seleção de fonte de imagem
+  static BoxDecoration imageSourceHandle = BoxDecoration(
+    color: AppTheme.dividerColor,
+    borderRadius: BorderRadius.circular(4),
+  );
+
+  // ─── DreamPage — _DreamHeader ─────────────────────────────────────────────────
+
+  /// Container do ícone de título do header (fundo branco semitransparente)
+  static BoxDecoration dreamHeaderIconBox = BoxDecoration(
+    color: Color(0x33FFFFFF), // Colors.white.withOpacity(0.2) — const-friendly
+    borderRadius: BorderRadius.all(Radius.circular(14)),
+  );
+
+  // ─── DreamPage — _SectionWrapper ─────────────────────────────────────────────
+
+  /// Chip de contagem de itens em _SectionWrapper (cor dinâmica)
+  /// Use assim:  dreamSectionCountChip(color)
+  static BoxDecoration dreamSectionCountChip(Color color) => BoxDecoration(
+    color: color.withOpacity(0.15),
+    borderRadius: BorderRadius.circular(20),
+  );
   // ─── Estilos de texto reutilizáveis ──────────────────────────────────────────
 
   static Paint textShader(List<Color> colors, {double width = 300}) {
     return Paint()
-      ..shader = LinearGradient(colors: colors)
-          .createShader(Rect.fromLTWH(0, 0, width, 70));
+      ..shader = LinearGradient(
+        colors: colors,
+      ).createShader(Rect.fromLTWH(0, 0, width, 70));
   }
 }

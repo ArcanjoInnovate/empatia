@@ -1,8 +1,5 @@
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink = Color(0xFFFF6B9D);
-const _navy = Color(0xFF1E3A8A);
 
 /// Widgets compartilhados entre as seções do perfil.
 
@@ -38,7 +35,7 @@ class ProfileSectionWidget extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: _navy,
+                  color: AppTheme.primaryBlue,
                 ),
               ),
               if (count != null && count! > 0) ...[
@@ -47,7 +44,7 @@ class ProfileSectionWidget extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _pink.withOpacity(0.12),
+                    color: AppTheme.kidsPink.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -55,7 +52,7 @@ class ProfileSectionWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: _pink,
+                      color: AppTheme.kidsPink,
                     ),
                   ),
                 ),
@@ -94,7 +91,7 @@ class ProfileEmptyStateWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
+          border: Border.all(color: AppTheme.dividerColor, width: 1.5),
         ),
         child: Column(
           children: [

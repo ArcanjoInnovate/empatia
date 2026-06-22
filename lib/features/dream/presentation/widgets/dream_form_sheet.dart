@@ -2,21 +2,20 @@ import 'dart:io';
 
 import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-// ─── Design tokens ─────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
-
-const _dreamEmojis = [
-  '💭', '🌟', '🏠', '🚗', '✈️', '📚', '💪', '🎓',
-  '❤️', '🌱', '🎯', '💼', '🎨', '🏋️', '🧘', '🌈',
-];
+// ── Cores locais removidas — use AppTheme ─────────────────────────────────────
+// _pink   → AppTheme.kidsPink
+// _navy   → AppTheme.primaryBlue
+// _purple → AppTheme.kidsPurple
+//
+// Lista de emojis movida para AppTheme.dreamEmojiOptions
 
 /// 📝 DREAM FORM SHEET
 ///
@@ -103,16 +102,17 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(
-              width: 36, height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(4),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: AppDecorations.imageSourceHandle, // era: BoxDecoration inline
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.photo_camera_rounded, color: _purple),
+              leading: const Icon(Icons.photo_camera_rounded,
+                  color: AppTheme.kidsPurple), // era: _purple
               title: const Text('Câmera'),
               onTap: () {
                 Navigator.pop(context);
@@ -120,7 +120,8 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: _purple),
+              leading: const Icon(Icons.photo_library_rounded,
+                  color: AppTheme.kidsPurple), // era: _purple
               title: const Text('Galeria'),
               onTap: () {
                 Navigator.pop(context);
@@ -167,11 +168,9 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             // Handle
             Center(
               child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+                width: 36,
+                height: 4,
+                decoration: AppDecorations.dreamFormHandle, // era: BoxDecoration inline
               ),
             ),
             const SizedBox(height: 18),
@@ -181,7 +180,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: _navy,
+                color: AppTheme.primaryBlue, // era: _navy
               ),
             ),
             const SizedBox(height: 20),
@@ -207,23 +206,18 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _dreamEmojis.map((emoji) {
+              // era: lista local _dreamEmojis → agora AppTheme.dreamEmojiOptions
+              children: AppTheme.dreamEmojiOptions.map((emoji) {
                 final sel = emoji == _selectedEmoji;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedEmoji = emoji),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 160),
                     width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: sel
-                          ? _purple.withOpacity(0.12)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: sel ? _purple : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
+                    // era: BoxDecoration inline com _purple
+                    decoration: sel
+                        ? AppDecorations.dreamEmojiSelected
+                        : AppDecorations.dreamEmojiUnselected,
                     child: Center(
                       child: Text(emoji,
                           style: const TextStyle(fontSize: 22)),
@@ -248,11 +242,8 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_purple, Color(0xFFBB86FC)]),
-                  borderRadius: BorderRadius.circular(18),
-                ),
+                // era: BoxDecoration inline com _purple + Color(0xFFBB86FC)
+                decoration: AppDecorations.dreamSaveButtonActive,
                 child: Center(
                   child: _loading
                       ? const SizedBox(
@@ -285,14 +276,16 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF8F8FF),
+        fillColor: AppTheme.surfaceLight, // era: const Color(0xFFF8F8FF)
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: _purple.withOpacity(0.3)),
+          borderSide: BorderSide(
+              color: AppTheme.kidsPurple.withOpacity(0.3)), // era: _purple
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _purple, width: 2),
+          borderSide: const BorderSide(
+              color: AppTheme.kidsPurple, width: 2), // era: _purple
         ),
       ),
     );
@@ -305,14 +298,16 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF8F8FF),
+        fillColor: AppTheme.surfaceLight, // era: const Color(0xFFF8F8FF)
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: _purple.withOpacity(0.3)),
+          borderSide: BorderSide(
+              color: AppTheme.kidsPurple.withOpacity(0.3)), // era: _purple
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _purple, width: 2),
+          borderSide: const BorderSide(
+              color: AppTheme.kidsPurple, width: 2), // era: _purple
         ),
       ),
     );
@@ -373,14 +368,10 @@ class _ImagePicker extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
         height: _hasImage ? 180 : 100,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F0FF),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: _purple.withOpacity(0.3),
-            width: 1.5,
-          ),
-        ),
+        // era: BoxDecoration inline com Color(0xFFF5F0FF) + _purple
+        decoration: _hasImage
+            ? AppDecorations.dreamImagePickerFilled
+            : AppDecorations.dreamImagePickerEmpty,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(17),
           child: _buildContent(),
@@ -396,7 +387,6 @@ class _ImagePicker extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Image.file(File(newPhoto!.path), fit: BoxFit.cover),
-          // Overlay com ícone de edição
           Positioned(
             right: 10, bottom: 10,
             child: _editBadge(),
@@ -430,14 +420,15 @@ class _ImagePicker extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.add_photo_alternate_rounded,
-            size: 32, color: _purple.withOpacity(0.6)),
+            size: 32,
+            color: AppTheme.kidsPurple.withOpacity(0.6)), // era: _purple
         const SizedBox(height: 8),
         Text(
           'Adicionar imagem de inspiração',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: _purple.withOpacity(0.7),
+            color: AppTheme.kidsPurple.withOpacity(0.7), // era: _purple
           ),
         ),
         const SizedBox(height: 2),
@@ -455,17 +446,14 @@ class _ImagePicker extends StatelessWidget {
   Widget _editBadge() {
     return Container(
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
+      decoration: AppDecorations.dreamImageEditBadge, // era: BoxDecoration inline
+      child: const Icon(Icons.edit_rounded, size: 14, color: AppTheme.backgroundColor),
     );
   }
 
   Widget _placeholder() {
     return Container(
-      color: const Color(0xFFF5F0FF),
+      decoration: AppDecorations.dreamImagePickerPlaceholder, // era: BoxDecoration inline
       child: Center(
         child: Icon(Icons.broken_image_rounded,
             size: 40, color: Colors.grey.shade300),

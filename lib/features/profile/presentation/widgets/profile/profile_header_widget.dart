@@ -3,15 +3,10 @@ import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/profile/presentation/page/edit_profile/edit_profile.dart';
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/account_settings_page.dart';
 import 'package:empatia/features/settings/presentation/pages/settings_page.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _amber  = Color(0xFFFFC837);
-const _purple = Color(0xFF8B5CF6);
-const _green  = Color(0xFF4ADE80);
-
 
 class ProfileHeaderWidget extends StatelessWidget {
   final UserModel user;
@@ -24,7 +19,7 @@ class ProfileHeaderWidget extends StatelessWidget {
       expandedHeight: 320,
       pinned: true,
       stretch: true,
-      backgroundColor: _pink,
+      backgroundColor: AppTheme.kidsPink,
       automaticallyImplyLeading: false,
       actions: const [],
       flexibleSpace: FlexibleSpaceBar(
@@ -44,14 +39,7 @@ class _HeaderBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFF6B9D), Color(0xFFE040A0), Color(0xFF8B5CF6)],
-          stops: [0.0, 0.55, 1.0],
-        ),
-      ),
+      decoration: AppDecorations.profileHeaderBackground,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,12 +61,12 @@ class _HeaderBackground extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      _iconBtn(Icons.edit_rounded, onTap: () {
+                      _iconBtn(AppIcons.edit, onTap: () {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (_) => EditProfilePage(currentUser: user)));
                       }),
                       const SizedBox(width: 8),
-                      _iconBtn(Icons.settings_rounded, onTap: () {
+                      _iconBtn(AppIcons.settings, onTap: () {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const SettingsPage()));
                       }),
@@ -143,7 +131,7 @@ class _HeaderBackground extends StatelessWidget {
       onPressed: onTap,
       icon: Icon(icon, color: Colors.white, size: 20),
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.2),
+        backgroundColor: AppDecorations.profileHeaderIconButton.color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.all(8),
       ),
@@ -164,22 +152,7 @@ class ProfileAvatarWidget extends StatelessWidget {
     return Container(
       width: 88,
       height: 88,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(
-          color: fullyVerified ? _amber : Colors.white,
-          width: fullyVerified ? 3.5 : 3,
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: fullyVerified
-                  ? _amber.withOpacity(0.5)
-                  : Colors.black.withOpacity(0.2),
-              blurRadius: fullyVerified ? 20 : 16,
-              offset: const Offset(0, 6)),
-        ],
-      ),
+      decoration: AppDecorations.profileAvatarRing(verified: fullyVerified),
       child: ClipOval(
         child: user.profileImage != null
             ? Image.network(
@@ -213,24 +186,15 @@ class VerificationChipWidget extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: fullyVerified
-              ? _green.withOpacity(0.2)
-              : Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: fullyVerified ? _green : Colors.white38,
-            width: 1.5,
-          ),
-        ),
+        decoration: AppDecorations.verificationChip(verified: fullyVerified),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               fullyVerified
-                  ? Icons.verified_rounded
-                  : Icons.shield_outlined,
-              color: fullyVerified ? _green : Colors.white70,
+                  ? AppIcons.verified
+                  : AppIcons.shieldOutline,
+              color: fullyVerified ? AppTheme.kidsGreen : Colors.white70,
               size: 13,
             ),
             const SizedBox(width: 5),
@@ -239,7 +203,7 @@ class VerificationChipWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: fullyVerified ? _green : Colors.white70,
+                color: fullyVerified ? AppTheme.kidsGreen : Colors.white70,
               ),
             ),
             if (fullyVerified) ...[
@@ -250,10 +214,7 @@ class VerificationChipWidget extends StatelessWidget {
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _amber,
-                  borderRadius: BorderRadius.circular(6),
-                ),
+                decoration: AppDecorations.verificationBadge,
                 child: const Text('Verificar',
                     style: TextStyle(
                         fontSize: 10,
@@ -324,10 +285,7 @@ class ProfileMetaRowWidget extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: AppDecorations.profileMetaRow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -414,16 +372,7 @@ class ProfileStatusBannerWidget extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: AppDecorations.profileStatusBanner,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -437,7 +386,7 @@ class ProfileStatusBannerWidget extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: _pink,
+                color: AppTheme.kidsPink,
               ),
             ),
           ),
@@ -481,18 +430,11 @@ class VerificationSheetWidget extends StatelessWidget {
           // Ícone principal
           Container(
             width: 72, height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: fullyVerified
-                    ? [_green, const Color(0xFF22C55E)]
-                    : [_pink, _purple],
-              ),
-            ),
+            decoration: AppDecorations.verificationSheetIcon(verified: fullyVerified),
             child: Icon(
               fullyVerified
-                  ? Icons.verified_rounded
-                  : Icons.shield_outlined,
+                  ? AppIcons.verified
+                  : AppIcons.shieldOutline,
               color: Colors.white, size: 34,
             ),
           ),
@@ -501,7 +443,7 @@ class VerificationSheetWidget extends StatelessWidget {
           Text(
             fullyVerified ? 'Perfil Verificado! 🎉' : 'Verificar Perfil',
             style: const TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w900, color: _navy),
+                fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primaryBlue),
           ),
           const SizedBox(height: 6),
           Text(
@@ -517,7 +459,7 @@ class VerificationSheetWidget extends StatelessWidget {
           // ── Etapa 1: E-mail ──
           _buildStep(
             context,
-            icon: Icons.email_rounded,
+            icon: AppIcons.email,
             title: 'Verificar e-mail',
             subtitle: emailVerified
                 ? 'E-mail confirmado ✓'
@@ -531,7 +473,7 @@ class VerificationSheetWidget extends StatelessWidget {
           // ── Etapa 2: Perfil completo ──
           _buildStep(
             context,
-            icon: Icons.person_rounded,
+            icon: AppIcons.person,
             title: 'Completar perfil',
             subtitle: profileComplete
                 ? 'Todas as informações preenchidas ✓'
@@ -552,13 +494,7 @@ class VerificationSheetWidget extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [_green.withOpacity(0.15), _amber.withOpacity(0.1)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _green.withOpacity(0.4), width: 1.5),
-              ),
+              decoration: AppDecorations.verifiedMemberBanner,
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -569,7 +505,7 @@ class VerificationSheetWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF166534),
+                      color: AppTheme.verifiedTextDark,
                     ),
                   ),
                 ],
@@ -596,28 +532,14 @@ class VerificationSheetWidget extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: done ? _green.withOpacity(0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: done ? _green.withOpacity(0.4) : const Color(0xFFEEEEEE),
-            width: 1.5,
-          ),
-        ),
+        decoration: AppDecorations.verificationStepCard(done: done),
         child: Row(
           children: [
             Container(
               width: 42, height: 42,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: done
-                      ? [_green, const Color(0xFF22C55E)]
-                      : [_pink, _purple],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: AppDecorations.verificationStepIcon(done: done),
               child: Icon(
-                done ? Icons.check_rounded : icon,
+                done ? AppIcons.check : icon,
                 color: Colors.white, size: 20,
               ),
             ),
@@ -630,21 +552,21 @@ class VerificationSheetWidget extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: done ? const Color(0xFF166534) : _navy)),
+                          color: done ? AppTheme.verifiedTextDark : AppTheme.primaryBlue)),
                   Text(subtitle,
                       style: TextStyle(
                           fontSize: 12,
                           color: done
-                              ? const Color(0xFF166534).withOpacity(0.7)
+                              ? AppTheme.verifiedTextDark.withOpacity(0.7)
                               : Colors.grey.shade500)),
                 ],
               ),
             ),
             if (!done && onTap != null)
-              Icon(Icons.chevron_right_rounded,
+              Icon(AppIcons.chevronRight,
                   color: Colors.grey.shade400, size: 22),
             if (done)
-              const Icon(Icons.verified_rounded, color: _green, size: 20),
+              const Icon(AppIcons.verified, color: AppTheme.kidsGreen, size: 20),
           ],
         ),
       ),

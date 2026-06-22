@@ -203,10 +203,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
         child: Container(
           padding: EdgeInsets.symmetric(
               horizontal: 16 * r.scale, vertical: 10 * r.scale),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(20),
-          ),
+          decoration: AppDecorations.forgotBackButton,
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.arrow_back_ios_new_rounded,
                 color: Colors.white, size: 18 * r.scale),
@@ -315,12 +312,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
               Container(
                 padding: EdgeInsets.symmetric(
                     horizontal: 16 * r.scale, vertical: 14 * r.scale),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                      color: AppTheme.kidsPurple.withOpacity(0.3), width: 2),
-                ),
+                decoration: AppDecorations.forgotInfoBox,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -615,19 +607,7 @@ class _ForgotPasswordInstructionsPageState
 
         return Scaffold(
           body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.kidsCyan,
-                  AppTheme.kidsGreen,
-                  AppTheme.kidsPurple,
-                  AppTheme.kidsPink,
-                ],
-                stops: [0.0, 0.3, 0.65, 1.0],
-              ),
-            ),
+            decoration: AppDecorations.loginBackground,
             child: Stack(children: [
               ..._buildBubbles(),
               SafeArea(
@@ -711,26 +691,13 @@ class _ForgotPasswordInstructionsPageState
   // ── Card de instruções ────────────────────────────────────────────────────
   Widget _buildInstructionsCard(_Responsive r) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.kidsCyan.withOpacity(0.3),
-            blurRadius: 40, offset: const Offset(0, 10)),
-          BoxShadow(
-            color: AppTheme.kidsGreen.withOpacity(0.2),
-            blurRadius: 50, spreadRadius: 5, offset: const Offset(0, 15)),
-        ],
-      ),
+      decoration: AppDecorations.loginCard,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
         child: Column(children: [
           Container(
             height: 10,
-            decoration: const BoxDecoration(
-              gradient: AppTheme.kidsRainbow,
-            ),
+            decoration: AppDecorations.cardRainbowBar,
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(r.cardPadH, r.gapL, r.cardPadH, r.gapL),
@@ -739,11 +706,7 @@ class _ForgotPasswordInstructionsPageState
               // Cabeçalho
               Container(
                 padding: EdgeInsets.all(16 * r.scale),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFFE6FFF0), Color(0xFFE6F7FF)]),
-                  borderRadius: BorderRadius.circular(24),
-                ),
+                decoration: AppDecorations.forgotSuccessHeader,
                 child: Column(children: [
                   Text(
                     '📬 Email Enviado!',
@@ -766,11 +729,7 @@ class _ForgotPasswordInstructionsPageState
                   Container(
                     padding: EdgeInsets.symmetric(
                         horizontal: 14 * r.scale, vertical: 8 * r.scale),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [AppTheme.kidsCyan, AppTheme.kidsGreen]),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    decoration: AppDecorations.forgotEmailChip,
                     child: Text(
                       widget.email,
                       style: TextStyle(
@@ -819,12 +778,7 @@ class _ForgotPasswordInstructionsPageState
               // Dica: link expira
               Container(
                 padding: EdgeInsets.all(16 * r.scale),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBE6),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: AppTheme.kidsYellow.withOpacity(0.6), width: 2),
-                ),
+                decoration: AppDecorations.forgotWarningBox,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -840,7 +794,7 @@ class _ForgotPasswordInstructionsPageState
                             style: TextStyle(
                               fontSize: r.fontStep,
                               fontWeight: FontWeight.w900,
-                              color: const Color(0xFF92400E),
+                              color: AppTheme.kidsAmberDark,
                             ),
                           ),
                           SizedBox(height: r.gapXS),
@@ -849,7 +803,7 @@ class _ForgotPasswordInstructionsPageState
                             style: TextStyle(
                               fontSize: r.fontStepDesc,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFB45309),
+                              color: AppTheme.kidsAmber,
                               height: 1.4,
                             ),
                           ),
@@ -866,12 +820,7 @@ class _ForgotPasswordInstructionsPageState
                 Container(
                   padding: EdgeInsets.symmetric(
                       horizontal: 16 * r.scale, vertical: 12 * r.scale),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6FFF0),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                        color: AppTheme.kidsGreen.withOpacity(0.5)),
-                  ),
+                  decoration: AppDecorations.forgotResentBanner,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -895,11 +844,7 @@ class _ForgotPasswordInstructionsPageState
                   child: Container(
                     padding: EdgeInsets.symmetric(
                         horizontal: 20 * r.scale, vertical: 14 * r.scale),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: AppTheme.kidsCyan.withOpacity(0.5), width: 2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    decoration: AppDecorations.forgotResendButton,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

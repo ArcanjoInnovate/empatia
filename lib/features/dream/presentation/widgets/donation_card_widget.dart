@@ -1,13 +1,16 @@
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/donation/controller/donation_controller.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-const _purple = Color(0xFF8B5CF6);
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _green  = Color(0xFF22C55E);
-const _bg     = Color(0xFFF7F8FC);
+// ── Cores locais removidas — use AppTheme ─────────────────────────────────────
+// _purple → AppTheme.kidsPurple
+// _pink   → AppTheme.kidsPink
+// _navy   → AppTheme.primaryBlue
+// _green  → AppTheme.kidsGreenDeep
+// _bg     → AppTheme.profileBackground
 
 class DonationCardWidget extends StatelessWidget {
   final DonationModel donation;
@@ -40,25 +43,14 @@ class DonationCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFCE7F3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: _pink.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.donationCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Imagem + badges ──────────────────────────────────────────
           Stack(
             children: [
-              // ✅ GestureDetector abre o fullscreen ao tocar na imagem
+              // GestureDetector abre o fullscreen ao tocar na imagem
               GestureDetector(
                 onTap: () => _openFullscreen(context),
                 child: Hero(
@@ -126,7 +118,7 @@ class DonationCardWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: _navy,
+                      color: AppTheme.primaryBlue, // era: _navy
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -162,7 +154,7 @@ class DonationCardWidget extends StatelessWidget {
 
   Widget _placeholderImage() {
     return Container(
-      color: const Color(0xFFFCE7F3),
+      color: AppTheme.donationPlaceholderBg, // era: const Color(0xFFFCE7F3)
       child: Center(
         child: Text(
           donation.emoji ?? '📦',
@@ -172,14 +164,16 @@ class DonationCardWidget extends StatelessWidget {
     );
   }
 
+  /// Retorna a cor de fundo do badge de status.
+  /// Centralizado em [AppTheme] para reutilização.
   Color _statusColor(String status) {
     switch (status) {
       case 'reserved':
-        return const Color(0xFFF59E0B);
+        return AppTheme.donationReservedColor; // era: const Color(0xFFF59E0B)
       case 'donated':
-        return _green;
+        return AppTheme.kidsGreenDeep; // era: _green
       default:
-        return _pink;
+        return AppTheme.kidsPink; // era: _pink
     }
   }
 }
@@ -253,11 +247,7 @@ class _DonationFullscreenView extends StatelessWidget {
                 24,
                 MediaQuery.of(context).padding.bottom + 24,
               ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
+              decoration: AppDecorations.donationFullscreenPanel, // era: BoxDecoration inline
               child: Row(
                 children: [
                   // Info
@@ -326,11 +316,7 @@ class _DonationFullscreenView extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 18, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                            colors: [_pink, Color(0xFFFF8FB3)]),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      decoration: AppDecorations.donationFullscreenEditButton, // era: BoxDecoration inline
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -362,7 +348,7 @@ class _DonationFullscreenView extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: 300,
-      color: const Color(0xFFFCE7F3),
+      color: AppTheme.donationPlaceholderBg, // era: const Color(0xFFFCE7F3)
       child: Center(
         child: Text(
           donation.emoji ?? '📦',
@@ -375,11 +361,11 @@ class _DonationFullscreenView extends StatelessWidget {
   Color _statusColor(String status) {
     switch (status) {
       case 'reserved':
-        return const Color(0xFFF59E0B);
+        return AppTheme.donationReservedColor;
       case 'donated':
-        return _green;
+        return AppTheme.kidsGreenDeep;
       default:
-        return _pink;
+        return AppTheme.kidsPink;
     }
   }
 }
@@ -397,17 +383,7 @@ class _EditMenu extends StatelessWidget {
     final ctrl = context.read<DonationController>();
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.donationEditMenuContainer, // era: BoxDecoration inline
       child: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert_rounded,
             color: Colors.grey.shade600, size: 18),
@@ -424,41 +400,41 @@ class _EditMenu extends StatelessWidget {
           }
         },
         itemBuilder: (_) => [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'edit',
             child: Row(children: [
-              Icon(Icons.edit_rounded, size: 16, color: _pink),
-              SizedBox(width: 10),
-              Text('Editar'),
+              const Icon(Icons.edit_rounded, size: 16, color: AppTheme.kidsPink), // era: _pink
+              const SizedBox(width: 10),
+              const Text('Editar'),
             ]),
           ),
           const PopupMenuDivider(),
           if (donation.status != 'available')
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'status_available',
               child: Row(children: [
-                Icon(Icons.check_circle_outline, size: 16, color: _pink),
-                SizedBox(width: 10),
-                Text('Marcar disponível'),
+                const Icon(Icons.check_circle_outline, size: 16, color: AppTheme.kidsPink), // era: _pink
+                const SizedBox(width: 10),
+                const Text('Marcar disponível'),
               ]),
             ),
           if (donation.status != 'reserved')
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'status_reserved',
               child: Row(children: [
-                Icon(Icons.schedule_rounded,
-                    size: 16, color: Color(0xFFF59E0B)),
-                SizedBox(width: 10),
-                Text('Marcar reservado'),
+                const Icon(Icons.schedule_rounded,
+                    size: 16, color: AppTheme.donationReservedColor), // era: Color(0xFFF59E0B)
+                const SizedBox(width: 10),
+                const Text('Marcar reservado'),
               ]),
             ),
           if (donation.status != 'donated')
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'status_donated',
               child: Row(children: [
-                Icon(Icons.favorite_rounded, size: 16, color: _green),
-                SizedBox(width: 10),
-                Text('Marcar doado'),
+                const Icon(Icons.favorite_rounded, size: 16, color: AppTheme.kidsGreenDeep), // era: _green
+                const SizedBox(width: 10),
+                const Text('Marcar doado'),
               ]),
             ),
           const PopupMenuDivider(),

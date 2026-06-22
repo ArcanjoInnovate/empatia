@@ -5,16 +5,14 @@ import 'package:empatia/features/donation/controller/donation_controller.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
 import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
-// ─── Design tokens ─────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
 
 const _categories = [
   ('clothes',   '👕', 'Roupas'),
@@ -132,13 +130,13 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
             Container(
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.dividerColor,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: _pink),
+              leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.kidsPink),
               title: const Text('Tirar foto',
                   style: TextStyle(fontWeight: FontWeight.w700)),
               onTap: () {
@@ -147,7 +145,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: _pink),
+              leading: const Icon(Icons.photo_library_rounded, color: AppTheme.kidsPink),
               title: const Text('Escolher da galeria',
                   style: TextStyle(fontWeight: FontWeight.w700)),
               onTap: () {
@@ -251,7 +249,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppTheme.errorRedDeep,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14)),
@@ -279,10 +277,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
             Center(
               child: Container(
                 width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+                decoration: AppDecorations.donationFormHandle,
               ),
             ),
             const SizedBox(height: 18),
@@ -292,13 +287,13 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: _navy,
+                color: AppTheme.primaryBlue,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Todos os campos são obrigatórios',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
             const SizedBox(height: 20),
 
@@ -360,19 +355,15 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
                 duration: const Duration(milliseconds: 200),
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: _loading
-                      ? null
-                      : const LinearGradient(colors: [_pink, _purple]),
-                  color: _loading ? Colors.grey.shade200 : null,
-                  borderRadius: BorderRadius.circular(18),
-                ),
+                decoration: _loading
+                    ? AppDecorations.donationSubmitLoading
+                    : AppDecorations.donationSubmitActive,
                 child: Center(
                   child: _loading
                       ? const SizedBox(
                           width: 22, height: 22,
                           child: CircularProgressIndicator(
-                            color: _pink,
+                            color: AppTheme.kidsPink,
                             strokeWidth: 2.5,
                           ),
                         )
@@ -411,14 +402,14 @@ class _SectionLabel extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: _navy,
+            color: AppTheme.primaryBlue,
           ),
         ),
         if (error != null) ...[
           const SizedBox(height: 3),
           Text(
             error!,
-            style: const TextStyle(fontSize: 11, color: Colors.red),
+            style: const TextStyle(fontSize: 11, color: AppTheme.errorRed),
           ),
         ],
       ],
@@ -448,19 +439,9 @@ class _PhotoPicker extends StatelessWidget {
       child: Container(
         height: 180,
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: hasError
-              ? Colors.red.shade50
-              : const Color(0xFFF8F8FF),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: hasError
-                ? Colors.red
-                : hasPhoto
-                    ? _pink.withOpacity(0.4)
-                    : Colors.grey.shade300,
-            width: hasError ? 2 : 1.5,
-          ),
+        decoration: AppDecorations.donationPhotoPicker(
+          hasError: hasError,
+          hasPhoto: hasPhoto,
         ),
         child: hasPhoto
             ? ClipRRect(
@@ -478,7 +459,7 @@ class _PhotoPicker extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: AppTheme.shadowDark,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -509,13 +490,13 @@ class _PhotoPicker extends StatelessWidget {
                     width: 56, height: 56,
                     decoration: BoxDecoration(
                       color: hasError
-                          ? Colors.red.shade100
-                          : _pink.withOpacity(0.1),
+                          ? AppTheme.errorRed.withOpacity(0.12)
+                          : AppTheme.kidsPink.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.add_a_photo_rounded,
-                      color: hasError ? Colors.red : _pink,
+                      color: hasError ? AppTheme.errorRed : AppTheme.kidsPink,
                       size: 28,
                     ),
                   ),
@@ -525,7 +506,7 @@ class _PhotoPicker extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: hasError ? Colors.red : _navy,
+                      color: hasError ? AppTheme.errorRed : AppTheme.primaryBlue,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -533,7 +514,7 @@ class _PhotoPicker extends StatelessWidget {
                     'Toque para escolher ou tirar uma foto',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade500,
+                      color: AppTheme.textMuted,
                     ),
                   ),
                 ],
@@ -560,7 +541,7 @@ class _CategoryGrid extends StatelessWidget {
       padding: hasError ? const EdgeInsets.all(8) : EdgeInsets.zero,
       decoration: hasError
           ? BoxDecoration(
-              border: Border.all(color: Colors.red, width: 1.5),
+              border: Border.all(color: AppTheme.errorRed, width: 1.5),
               borderRadius: BorderRadius.circular(14),
             )
           : null,
@@ -577,11 +558,11 @@ class _CategoryGrid extends StatelessWidget {
                   horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: sel
-                    ? _pink.withOpacity(0.12)
-                    : const Color(0xFFF5F5F5),
+                    ? AppTheme.kidsPink.withOpacity(0.12)
+                    : AppTheme.backgroundColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: sel ? _pink : Colors.transparent,
+                  color: sel ? AppTheme.kidsPink : Colors.transparent,
                   width: 2,
                 ),
               ),
@@ -596,7 +577,7 @@ class _CategoryGrid extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: sel ? _pink : Colors.grey.shade700,
+                      color: sel ? AppTheme.kidsPink : AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -634,21 +615,21 @@ class _Field extends StatelessWidget {
         hintText: hint,
         hintStyle: TextStyle(
           fontSize: 13,
-          color: Colors.grey.shade400,
+          color: AppTheme.textMuted,
         ),
         filled: true,
-        fillColor: hasError ? Colors.red.shade50 : const Color(0xFFF8F8FF),
+        fillColor: hasError ? AppTheme.errorRed.withOpacity(0.06) : AppTheme.surfaceLight,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: hasError ? Colors.red : _pink.withOpacity(0.3),
+            color: hasError ? AppTheme.errorRed : AppTheme.kidsPink.withOpacity(0.3),
             width: hasError ? 2 : 1.5,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: hasError ? Colors.red : _pink,
+            color: hasError ? AppTheme.errorRed : AppTheme.kidsPink,
             width: 2,
           ),
         ),

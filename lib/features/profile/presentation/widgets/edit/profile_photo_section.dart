@@ -1,12 +1,11 @@
+import 'dart:io'; // ← NOVO
 import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-// ── Design tokens ────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 
 /// 📸 PROFILE PHOTO SECTION
 ///
@@ -15,7 +14,7 @@ const _purple = Color(0xFF8B5CF6);
 class ProfilePhotoSection extends StatefulWidget {
   final String? currentPhotoUrl;
   final String currentEmoji;
-  final Function(XFile? photo, String emoji) onPhotoChanged; // era File?
+  final Function(XFile? photo, String emoji) onPhotoChanged;
   final List<String> availableEmojis;
 
   const ProfilePhotoSection({
@@ -31,7 +30,7 @@ class ProfilePhotoSection extends StatefulWidget {
 }
 
 class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
-  XFile?  _selectedPhoto; // era File?
+  XFile?  _selectedPhoto;
   late String _selectedEmoji;
   bool _usePhoto = false;
 
@@ -123,7 +122,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
 
       if (image != null) {
         setState(() {
-          _selectedPhoto = image; // XFile direto — sem File(image.path)
+          _selectedPhoto = image;
           _usePhoto = true;
         });
         widget.onPhotoChanged(_selectedPhoto, _selectedEmoji);
@@ -172,12 +171,12 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: _navy,
+                color: AppTheme.primaryBlue,
               ),
             ),
             const SizedBox(height: 20),
             _buildSourceOption(
-              icon: Icons.camera_alt_rounded,
+              icon: AppIcons.camera,
               label: 'Tirar foto',
               onTap: () {
                 Navigator.pop(context);
@@ -186,7 +185,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
             ),
             const SizedBox(height: 12),
             _buildSourceOption(
-              icon: Icons.photo_library_rounded,
+              icon: AppIcons.gallery,
               label: 'Escolher da galeria',
               onTap: () {
                 Navigator.pop(context);
@@ -196,7 +195,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
             if (_selectedPhoto != null || widget.currentPhotoUrl != null) ...[
               const SizedBox(height: 12),
               _buildSourceOption(
-                icon: Icons.delete_outline_rounded,
+                icon: AppIcons.delete,
                 label: 'Remover foto',
                 color: Colors.red,
                 onTap: () {
@@ -221,24 +220,17 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: (color ?? _pink).withOpacity(0.3),
-            width: 2,
-          ),
-        ),
+        decoration: AppDecorations.photoSourceOption(accentColor: color),
         child: Row(
           children: [
-            Icon(icon, color: color ?? _pink, size: 24),
+            Icon(icon, color: color ?? AppTheme.kidsPink, size: 24),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: color ?? _navy,
+                color: color ?? AppTheme.primaryBlue,
               ),
             ),
           ],
@@ -298,17 +290,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            gradient: selected
-                ? const LinearGradient(colors: [_pink, _purple])
-                : null,
-            color: selected ? null : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? Colors.transparent : _pink.withOpacity(0.2),
-              width: 1.5,
-            ),
-          ),
+          decoration: AppDecorations.photoModeChip(selected: selected),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -337,42 +319,17 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
           Container(
             width: 140,
             height: 140,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: _pink.withOpacity(0.3), width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: _pink.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+            decoration: AppDecorations.photoPreviewCircle,
             child: ClipOval(
-              child: _selectedPhoto != null
-                  // XFile.path é blob URL no web, caminho no mobile
-                  // Image.network funciona nos dois
-                  ? Image.network(_selectedPhoto!.path, fit: BoxFit.cover)
-                  : widget.currentPhotoUrl != null
-                      ? Image.network(
-                          widget.currentPhotoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _emptyPhotoPlaceholder(),
-                        )
-                      : _emptyPhotoPlaceholder(),
+              child: _buildPhotoWidget(),
             ),
           ),
           Positioned(
             bottom: 0, right: 0,
             child: Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_pink, _purple]),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-              ),
-              child: const Icon(Icons.camera_alt_rounded,
+              decoration: AppDecorations.photoCameraBadge,
+              child: const Icon(AppIcons.camera,
                   color: Colors.white, size: 18),
             ),
           ),
@@ -381,11 +338,50 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
     );
   }
 
+  /// ✅ FIX PRINCIPAL:
+  /// - Foto nova selecionada no mobile  → Image.file (caminho local)
+  /// - Foto nova selecionada no web     → Image.network (blob URL)
+  /// - Foto salva no Firebase (https)   → Image.network
+  /// - Sem foto                         → placeholder
+  Widget _buildPhotoWidget() {
+    // 1. Usuário acabou de selecionar uma foto nesta sessão
+    if (_selectedPhoto != null) {
+      if (kIsWeb) {
+        // No web, XFile.path é um blob URL — funciona com Image.network
+        return Image.network(
+          _selectedPhoto!.path,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _emptyPhotoPlaceholder(),
+        );
+      } else {
+        // No mobile, XFile.path é um caminho local — usa Image.file
+        return Image.file(
+          File(_selectedPhoto!.path),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _emptyPhotoPlaceholder(),
+        );
+      }
+    }
+
+    // 2. Foto já salva no Firebase (URL remota)
+    if (widget.currentPhotoUrl != null &&
+        widget.currentPhotoUrl!.startsWith('http')) {
+      return Image.network(
+        widget.currentPhotoUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _emptyPhotoPlaceholder(),
+      );
+    }
+
+    // 3. Nenhuma foto disponível
+    return _emptyPhotoPlaceholder();
+  }
+
   Widget _emptyPhotoPlaceholder() {
     return Container(
-      color: const Color(0xFFF8F8FF),
+      decoration: AppDecorations.photoEmptyPlaceholder,
       child: const Center(
-        child: Icon(Icons.person_rounded, size: 60, color: Color(0xFFD1D5DB)),
+        child: Icon(AppIcons.person, size: 60, color: AppTheme.placeholderIcon),
       ),
     );
   }
@@ -396,18 +392,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
         Container(
           width: 120,
           height: 120,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(color: _pink.withOpacity(0.3), width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: _pink.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: AppDecorations.photoPreviewCircle,
           child: Center(
             child: Text(_selectedEmoji, style: const TextStyle(fontSize: 60)),
           ),
@@ -427,16 +412,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
                 duration: const Duration(milliseconds: 180),
                 width: 50,
                 height: 50,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? _pink.withOpacity(0.15)
-                      : const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: selected ? _pink : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
+                decoration: AppDecorations.childEmojiOption(selected: selected),
                 child: Center(
                   child: Text(emoji, style: const TextStyle(fontSize: 28)),
                 ),

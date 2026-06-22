@@ -1,11 +1,7 @@
 import 'package:empatia/core/data/models/child_model.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
 
 /// 👨‍👩‍👧‍👦 PROFILE CHILDREN WIDGET
 ///
@@ -78,17 +74,17 @@ class _ProfileChildrenWidgetState extends State<ProfileChildrenWidget>
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEEEE),
+              color: AppTheme.surfaceNeutral,
               borderRadius: BorderRadius.circular(14),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: _pink,
+                color: AppTheme.kidsPink,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                      color: _pink.withOpacity(0.3),
+                      color: AppTheme.kidsPink.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3)),
                 ],
@@ -153,7 +149,7 @@ class ChildCardWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE3ECFF), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFF2563EB).withOpacity(0.05),
+              color: AppTheme.childCardAccent.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 4)),
         ],
@@ -164,7 +160,7 @@ class ChildCardWidget extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFFE0F2FE),
+              color: AppTheme.childCardBg,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
@@ -183,7 +179,7 @@ class ChildCardWidget extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: _navy,
+                    color: AppTheme.primaryBlue,
                   ),
                 ),
                 if (child.age != null) ...[
@@ -192,7 +188,7 @@ class ChildCardWidget extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _pink.withOpacity(0.1),
+                      color: AppTheme.kidsPink.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -200,7 +196,7 @@ class ChildCardWidget extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: _pink,
+                        color: AppTheme.kidsPink,
                       ),
                     ),
                   ),

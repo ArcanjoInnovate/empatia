@@ -1,23 +1,15 @@
 import 'package:empatia/core/data/models/dream_model.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// ─── Design tokens ─────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _amber  = Color(0xFFFFC837);
-const _purple = Color(0xFF8B5CF6);
-const _green  = Color(0xFF4ADE80);
-
 /// 💭 DREAM CARD WIDGET
 ///
-/// Card reutilizável para exibir um sonho com progresso e imagem de inspiração.
-/// Usado na DreamPage e no ProfilePage.
-///
-/// Quando [editable] = true, exibe menu de edição/remoção
-/// e slider de progresso interativo.
+/// Card reutilizável para exibir um sonho com imagem de inspiração.
+/// Quando [editable] = true, exibe menu de edição/remoção.
 class DreamCardWidget extends StatelessWidget {
   final DreamModel dream;
   final bool editable;
@@ -34,26 +26,23 @@ class DreamCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = dream.progress;
 
-    Color progressColor = _pink;
-    String progressLabel = '🚀 Começando!';
+    Color progressColor = AppTheme.kidsPink;
     if (progress != null) {
       if (progress >= 0.7) {
-        progressColor = _green;
-        progressLabel = '🌟 Quase lá!';
+        progressColor = AppTheme.kidsGreen;
       } else if (progress >= 0.4) {
-        progressColor = _amber;
-        progressLabel = '💪 No caminho!';
+        progressColor = AppTheme.kidsYellow;
       }
     }
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBackground,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFF0E6FF), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: _purple.withOpacity(0.06),
+            color: AppTheme.kidsPurple.withOpacity(0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -63,9 +52,10 @@ class DreamCardWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Imagem de inspiração (se existir) ───────────────────────
-          if (dream.imageUrl != null) _DreamImage(imageUrl: dream.imageUrl!, dreamTitle: dream.title),
+          if (dream.imageUrl != null)
+            _DreamImage(imageUrl: dream.imageUrl!, dreamTitle: dream.title),
 
-          // ── Conteúdo ─────────────────────────────────────────────────
+          // ── Conteúdo ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -79,7 +69,8 @@ class DreamCardWidget extends StatelessWidget {
                       height: 52,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                            colors: [_purple, Color(0xFFBB86FC)]),
+                          colors: [AppTheme.kidsPurple, Color(0xFFBB86FC)],
+                        ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
@@ -101,16 +92,16 @@ class DreamCardWidget extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: _navy,
+                              color: AppTheme.primaryBlue,
                             ),
                           ),
                           if (dream.date != null) ...[
                             const SizedBox(height: 3),
                             Text(
                               '📅  ${dream.date}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade500,
+                                color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -119,8 +110,6 @@ class DreamCardWidget extends StatelessWidget {
                       ),
                     ),
 
-                    
-
                     // Menu de edição
                     if (editable) ...[
                       const SizedBox(width: 4),
@@ -128,9 +117,8 @@ class DreamCardWidget extends StatelessWidget {
                     ],
                   ],
                 ),
-
-                
-        ]),
+              ],
+            ),
           ),
         ],
       ),
@@ -178,7 +166,7 @@ class _DreamImage extends StatelessWidget {
                           ? progress.cumulativeBytesLoaded /
                               progress.expectedTotalBytes!
                           : null,
-                      color: _purple,
+                      color: AppTheme.kidsPurple,
                       strokeWidth: 2,
                     ),
                   ),
@@ -226,7 +214,7 @@ class _EditMenu extends StatelessWidget {
         const PopupMenuItem(
           value: 'edit',
           child: Row(children: [
-            Icon(Icons.edit_rounded, size: 16, color: Color(0xFF8B5CF6)),
+            Icon(Icons.edit_rounded, size: 16, color: AppTheme.kidsPurple),
             SizedBox(width: 10),
             Text('Editar'),
           ]),
@@ -260,7 +248,6 @@ class _EditMenu extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // Passa a imageUrl para que o service delete do Cloudinary
               ctrl.deleteDream(dream.id!, imageUrl: dream.imageUrl);
             },
             child: const Text('Remover',

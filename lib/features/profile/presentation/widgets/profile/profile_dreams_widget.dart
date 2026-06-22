@@ -1,13 +1,7 @@
 import 'package:empatia/core/data/models/dream_model.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _amber  = Color(0xFFFFC837);
-const _purple = Color(0xFF8B5CF6);
-const _green  = Color(0xFF4ADE80);
 
 /// 💭 PROFILE DREAMS WIDGET
 ///
@@ -47,14 +41,14 @@ class DreamCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = dream.progress;
 
-    Color progressColor = _pink;
+    Color progressColor = AppTheme.kidsPink;
     String progressLabel = '🚀 Começando!';
     if (progress != null) {
       if (progress >= 0.7) {
-        progressColor = _green;
+        progressColor = AppTheme.kidsGreen;
         progressLabel = '🌟 Quase lá!';
       } else if (progress >= 0.4) {
-        progressColor = _amber;
+        progressColor = AppTheme.kidsYellow;
         progressLabel = '💪 No caminho!';
       }
     }
@@ -67,7 +61,7 @@ class DreamCardWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF0E6FF), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: _purple.withOpacity(0.06),
+              color: AppTheme.kidsPurple.withOpacity(0.06),
               blurRadius: 12,
               offset: const Offset(0, 4)),
         ],
@@ -80,8 +74,8 @@ class DreamCardWidget extends StatelessWidget {
               Container(
                 width: 52, height: 52,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_purple, Color(0xFFBB86FC)]),
+                  gradient: LinearGradient(
+                      colors: [AppTheme.kidsPurple, AppTheme.kidsPurpleLight]),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
@@ -101,7 +95,7 @@ class DreamCardWidget extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: _navy,
+                        color: AppTheme.primaryBlue,
                       ),
                     ),
                     if (dream.date != null) ...[
@@ -118,11 +112,11 @@ class DreamCardWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              
-              
+
+
             ],
           ),
-          
+
       ]),
     );
   }

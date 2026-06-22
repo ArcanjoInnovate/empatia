@@ -4,14 +4,12 @@ import 'package:empatia/features/profile/data/service/location_service.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/children_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/location_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/profile_photo_section.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-
-// ── Design tokens ─────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
 
 class EditProfilePage extends StatefulWidget {
   /// Usuário já carregado na tela anterior.
@@ -102,7 +100,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (!mounted) return;
     final ctrl = _profileController!;
     if (ctrl.saveState == SaveState.success) {
-      _showSnackBar('✅ Perfil atualizado!', const Color(0xFF4ADE80));
+      _showSnackBar('✅ Perfil atualizado!', AppTheme.kidsGreen);
       ctrl.resetState();
     } else if (ctrl.saveState == SaveState.error) {
       _showSnackBar('❌ ${ctrl.errorMessage}', Colors.redAccent);
@@ -138,7 +136,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (bairroDigitado.isNotEmpty && !_neighborhoodConfirmed) {
       _showSnackBar(
         '⚠️ Selecione o bairro na lista de sugestões.',
-        const Color(0xFFF59E0B),
+        AppTheme.donationReservedColor,
       );
       return;
     }
@@ -171,7 +169,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     // context.watch escopo estreito: apenas o botão salvar recria.
     // O restante da tela usa context.read para evitar rebuilds desnecessários.
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppTheme.surfaceNeutral,
       body: Column(
         children: [
           _buildHeader(),
@@ -293,13 +291,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Widget _buildHeader() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_pink, Color(0xFFFFC837), _purple],
-        ),
-      ),
+      decoration: AppDecorations.editProfileHeader,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -310,11 +302,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 onTap: () => Navigator.pop(context),
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  decoration: AppDecorations.editProfileBackButton,
+                  child: const Icon(AppIcons.back,
                       color: Colors.white, size: 20),
                 ),
               ),
@@ -339,16 +328,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 6))
-        ],
-      ),
+      decoration: AppDecorations.editProfileSectionCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -358,10 +338,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_pink, _purple]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  decoration: AppDecorations.editProfileSectionIcon,
                   child: Text(emoji, style: const TextStyle(fontSize: 20)),
                 ),
                 const SizedBox(width: 12),
@@ -369,7 +346,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: _navy)),
+                        color: AppTheme.primaryBlue)),
               ],
             ),
           ),
@@ -398,17 +375,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            gradient: sel
-                ? const LinearGradient(colors: [_pink, _purple])
-                : null,
-            color: sel ? null : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: sel ? Colors.transparent : _pink.withOpacity(0.2),
-              width: 1.5,
-            ),
-          ),
+          decoration: AppDecorations.editProfileSexoChip(selected: sel),
           child: Column(
             children: [
               Text(icone, style: const TextStyle(fontSize: 18)),
@@ -455,24 +422,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
           controller: controller,
           keyboardType: keyboardType,
           style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w700, color: _navy),
+              fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
                 color: Colors.grey.shade400, fontWeight: FontWeight.w500),
             filled: true,
-            fillColor: const Color(0xFFF8F8FF),
+            fillColor: AppTheme.surfaceBlueTint,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide:
-                  BorderSide(color: _pink.withOpacity(0.2), width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: _pink, width: 2),
-            ),
+            enabledBorder: AppDecorations.editProfileFieldBorder(focused: false),
+            focusedBorder: AppDecorations.editProfileFieldBorder(focused: true),
           ),
         ),
       ],
@@ -489,22 +449,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           duration: const Duration(milliseconds: 200),
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isLoading
-                  ? [Colors.grey.shade400, Colors.grey.shade500]
-                  : const [_pink, Color(0xFFFFC837), _purple],
-            ),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: isLoading
-                ? []
-                : [
-                    BoxShadow(
-                        color: _pink.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8))
-                  ],
-          ),
+          decoration: AppDecorations.editProfileSaveButton(loading: isLoading),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -514,7 +459,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2.5))
               else
-                const Icon(Icons.check_circle_rounded,
+                const Icon(AppIcons.checkCircle,
                     color: Colors.white, size: 24),
               const SizedBox(width: 10),
               Text(

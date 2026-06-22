@@ -84,6 +84,7 @@ class _FunDivider extends StatelessWidget {
             child: Container(
               height: 2,
               decoration: BoxDecoration(
+                // Usa lista de cores do AppTheme — transparente → teal → transparente
                 gradient: LinearGradient(colors: [
                   Colors.transparent,
                   AppTheme.accentTeal.withOpacity(0.4),
@@ -179,10 +180,8 @@ class _DreamHeader extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                          // era: BoxDecoration inline com Colors.white.withOpacity(0.2)
+                          decoration: AppDecorations.dreamHeaderIconBox,
                           child: const Text('🌠',
                               style: TextStyle(fontSize: 22)),
                         ),
@@ -435,7 +434,8 @@ class _MyDonationsSection extends StatelessWidget {
             onTap: () {
               if (userModel == null) return;
               if (!ProfileService.isFullyVerified(userModel)) {
-                showVerificationRequiredDialog(context, feature: 'criar uma doação');
+                showVerificationRequiredDialog(context,
+                    feature: 'criar uma doação');
                 return;
               }
               showDonationItemFormSheet(context, currentUser: userModel);
@@ -573,10 +573,8 @@ class _SectionWrapper extends StatelessWidget {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  // era: BoxDecoration inline com color.withOpacity(0.15)
+                  decoration: AppDecorations.dreamSectionCountChip(color),
                   child: Text(
                     '$count',
                     style: TextStyle(

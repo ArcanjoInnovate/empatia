@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:empatia/features/profile/data/models/city_model.dart';
 import 'package:empatia/features/profile/data/models/state_model.dart';
 import 'package:empatia/features/profile/data/service/location_service.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 /// 📍 LOCATION SECTION
@@ -57,12 +60,6 @@ class _LocationSectionState extends State<LocationSection> {
 
   /// true = bairro foi selecionado da lista; false = texto livre
   bool _neighborhoodConfirmed = false;
-
-  // ── Design tokens ───────────────────────────────────────────
-  static const _pink   = Color(0xFFFF6B9D);
-  static const _navy   = Color(0xFF1E3A8A);
-  static const _amber  = Color(0xFFFFC837);
-  static const _purple = Color(0xFF8B5CF6);
 
   // ══════════════════════════════════════════════════════════
   // LIFECYCLE
@@ -230,11 +227,7 @@ class _LocationSectionState extends State<LocationSection> {
 
         // ── Container com os 3 campos ───────────────────────
         Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F8FF),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _pink.withOpacity(0.2), width: 1.5),
-          ),
+          decoration: AppDecorations.locationFieldsBox,
           child: Column(
             children: [
               _buildRow(
@@ -304,7 +297,7 @@ class _LocationSectionState extends State<LocationSection> {
         if (showDivider)
           Divider(
             height: 1, thickness: 1,
-            color: _pink.withOpacity(0.1),
+            color: AppTheme.kidsPink.withOpacity(0.1),
             indent: 16, endIndent: 16,
           ),
       ],
@@ -322,9 +315,9 @@ class _LocationSectionState extends State<LocationSection> {
                 fontSize: 14)),
         isExpanded: true,
         borderRadius: BorderRadius.circular(16),
-        icon: const Icon(Icons.expand_more_rounded, color: _pink, size: 20),
+        icon: const Icon(AppIcons.dropdownArrow, color: AppTheme.kidsPink, size: 20),
         style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w700, color: _navy),
+            fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
         items: estadosBrasileiros.map((e) {
           return DropdownMenuItem<String>(
             value: e['sigla'],
@@ -357,7 +350,7 @@ class _LocationSectionState extends State<LocationSection> {
     if (_loadingCidades) {
       return const SizedBox(
           width: 20, height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2, color: _pink));
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.kidsPink));
     }
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
@@ -369,9 +362,9 @@ class _LocationSectionState extends State<LocationSection> {
                 fontSize: 14)),
         isExpanded: true,
         borderRadius: BorderRadius.circular(16),
-        icon: const Icon(Icons.expand_more_rounded, color: _pink, size: 20),
+        icon: const Icon(AppIcons.dropdownArrow, color: AppTheme.kidsPink, size: 20),
         style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w700, color: _navy),
+            fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
         items: _cidades.map((c) {
           return DropdownMenuItem<String>(value: c.nome, child: Text(c.nome));
         }).toList(),
@@ -398,7 +391,7 @@ class _LocationSectionState extends State<LocationSection> {
       style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: _navy,
+          color: AppTheme.primaryBlue,
           overflow: TextOverflow.ellipsis), // ✅ trunca com ... se muito longo
       decoration: InputDecoration(
         hintText: widget.selectedCity == null
@@ -417,11 +410,11 @@ class _LocationSectionState extends State<LocationSection> {
                 child: SizedBox(
                     width: 16, height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: _pink)),
+                        strokeWidth: 2, color: AppTheme.kidsPink)),
               )
             : hasText
                 ? IconButton(
-                    icon: Icon(Icons.clear_rounded,
+                    icon: Icon(AppIcons.close,
                         size: 18, color: Colors.grey.shade400),
                     onPressed: _clearNeighborhood,
                   )
@@ -436,11 +429,7 @@ class _LocationSectionState extends State<LocationSection> {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: _amber.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _amber.withOpacity(0.5), width: 1.5),
-      ),
+      decoration: AppDecorations.locationNeighborhoodWarning,
       child: Row(
         children: [
           const Text('⚠️', style: TextStyle(fontSize: 16)),
@@ -451,7 +440,7 @@ class _LocationSectionState extends State<LocationSection> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF92400E),
+                color: AppTheme.kidsAmberDark,
               ),
             ),
           ),
@@ -463,29 +452,19 @@ class _LocationSectionState extends State<LocationSection> {
   Widget _buildSuggestions() {
     return Container(
       margin: const EdgeInsets.only(top: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _pink.withOpacity(0.2), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: AppDecorations.locationSuggestionsBox,
       child: Column(
         children: _suggestions.take(5).map((s) {
           return ListTile(
             dense: true,
-            leading: const Icon(Icons.location_on_outlined,
-                color: _pink, size: 18),
+            leading: const Icon(AppIcons.locationPinOutline,
+                color: AppTheme.kidsPink, size: 18),
             title: Text(
               s['neighborhood'] ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis, // ✅ trunca nome do bairro na lista
               style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: _navy),
+                  fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
             ),
             subtitle: Text(
               s['description'] ?? '',
@@ -510,16 +489,7 @@ class _LocationSectionState extends State<LocationSection> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _pink.withOpacity(0.08),
-            _purple.withOpacity(0.08),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _pink.withOpacity(0.2)),
-      ),
+      decoration: AppDecorations.locationAddressPreview,
       child: Row(
         children: [
           const Text('📬', style: TextStyle(fontSize: 16)),
@@ -532,12 +502,12 @@ class _LocationSectionState extends State<LocationSection> {
               style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _navy),
+                  color: AppTheme.primaryBlue),
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.check_circle_rounded,
-              color: Color(0xFF4ADE80), size: 18),
+          const Icon(AppIcons.checkCircle,
+              color: AppTheme.kidsGreen, size: 18),
         ],
       ),
     );

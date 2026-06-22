@@ -1,14 +1,10 @@
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_children_widget.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_dreams_widget.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
-
-// ─── Design tokens ────────────────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _bg     = Color(0xFFF7F8FC);
-const _purple = Color(0xFF8B5CF6);
 
 /// 💚 DONOR PROFILE BODY
 ///
@@ -23,7 +19,7 @@ class ProfileDonorBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: _bg,
+        color: AppTheme.profileBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
@@ -42,7 +38,7 @@ class ProfileDonorBody extends StatelessWidget {
           // ── Divisor ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(height: 1, color: const Color(0xFFEEEEEE)),
+            child: Container(height: 1, color: AppTheme.dividerColor),
           ),
           const SizedBox(height: 24),
 
@@ -57,7 +53,7 @@ class ProfileDonorBody extends StatelessWidget {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(height: 1, color: const Color(0xFFEEEEEE)),
+            child: Container(height: 1, color: AppTheme.dividerColor),
           ),
           const SizedBox(height: 8),
 
@@ -100,7 +96,7 @@ class _DonorBannerWidget extends StatelessWidget {
           colors: [Color(0xFFFFF0F6), Color(0xFFF3EEFF)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _pink.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,14 +107,13 @@ class _DonorBannerWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [_pink, _purple]),
+                  gradient: AppTheme.pinkPurpleGradient,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.volunteer_activism_rounded,
+                    Icon(AppIcons.donate,
                         color: Colors.white, size: 14),
                     SizedBox(width: 6),
                     Text(
@@ -140,7 +135,7 @@ class _DonorBannerWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: _navy,
+              color: AppTheme.primaryBlue,
             ),
           ),
           const SizedBox(height: 6),
@@ -156,8 +151,8 @@ class _DonorBannerWidget extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.location_on_rounded,
-                    color: _pink, size: 15),
+                Icon(AppIcons.locationPin,
+                    color: AppTheme.kidsPink, size: 15),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(

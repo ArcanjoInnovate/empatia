@@ -311,13 +311,7 @@ class _RegisterPageState extends State<RegisterPage>
   Widget _blob(double size, double opacity) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [
-            Colors.white.withOpacity(opacity),
-            Colors.white.withOpacity(opacity * 0.15),
-          ]),
-        ),
+        decoration: AppDecorations.blobDecoration(opacity),
       );
 
   // ── Logo com anel giratório ───────────────────────────────────────────────
@@ -768,7 +762,7 @@ class _RegisterPageState extends State<RegisterPage>
                 letterSpacing: 1.4,
                 shadows: const [
                   Shadow(
-                      color: Color(0x55000000),
+                      color: AppTheme.shadowDark,
                       blurRadius: 6,
                       offset: Offset(0, 2))
                 ],

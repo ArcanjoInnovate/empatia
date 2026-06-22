@@ -282,7 +282,7 @@ class _SuccessAnimationPageState extends State<SuccessAnimationPage>
             style: TextStyle(
               fontSize: r.fontSubtitle,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF059669),
+              color: AppTheme.kidsGreenDeep,
             ),
           ),
           SizedBox(width: r.gapS),

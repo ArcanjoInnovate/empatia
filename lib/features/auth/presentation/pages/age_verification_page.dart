@@ -1,3 +1,4 @@
+import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
@@ -43,6 +44,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
   final _yearFocus  = FocusNode();
 
   String? _submitError;
+  bool _isSubmitting = false;
 
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────
 
@@ -104,10 +106,10 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
-            primary:   Color(0xFFFF6B9D),
+            primary:   AppTheme.kidsPink,
             onPrimary: Colors.white,
             surface:   Colors.white,
-            onSurface: Color(0xFF1A1A2E),
+            onSurface: AppTheme.textDark,
           ),
         ),
         child: child!,
@@ -124,60 +126,67 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
 
   Future<void> _submit() async {
     final date = _controller.selectedDate;
-    if (date == null) return;
+    if (date == null || _isSubmitting) return;
 
-    setState(() => _submitError = null);
+    setState(() {
+      _submitError = null;
+      _isSubmitting = true;
+    });
 
-    if (widget.isRegistrationFlow) {
-      // ── FLUXO DE CADASTRO ────────────────────────────────────────────────
-      // Só agora criamos a conta no Firebase Auth + RTDB, com tudo validado.
-      final result = await widget.authController!.registerUserWithBirthDate(
-        email:     widget.email!,
-        password:  widget.password!,
-        birthDate: date,
-      );
-
-      if (!mounted) return;
-
-      if (result == 'success') {
-        _successAnim.forward();
-        await Future.delayed(const Duration(milliseconds: 900));
-        if (!mounted) return;
-
-        final userData = await widget.authController!.getUserData();
-        if (!mounted) return;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SuccessAnimationPage(
-              message: 'Cadastrado!',
-              user: userData!,
-            ),
-          ),
+    try {
+      if (widget.isRegistrationFlow) {
+        // ── FLUXO DE CADASTRO ──────────────────────────────────────────────
+        // Só agora criamos a conta no Firebase Auth + RTDB, com tudo validado.
+        final result = await widget.authController!.registerUserWithBirthDate(
+          email:     widget.email!,
+          password:  widget.password!,
+          birthDate: date,
         );
+
+        if (!mounted) return;
+
+        if (result == 'success') {
+          _successAnim.forward();
+          await Future.delayed(const Duration(milliseconds: 900));
+          if (!mounted) return;
+
+          final userData = await widget.authController!.getUserData();
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SuccessAnimationPage(
+                message: 'Cadastrado!',
+                user: userData!,
+              ),
+            ),
+          );
+        } else {
+          setState(() => _submitError = result ?? 'Algo deu errado! 😅');
+        }
       } else {
-        setState(() => _submitError = result ?? 'Algo deu errado! 😅');
-      }
-    } else {
-      // ── FLUXO DE ATUALIZAÇÃO (usuário já logado) ─────────────────────────
-      // Usa o BirthController para salvar apenas a data de nascimento.
-      final uid = _getCurrentUid();
-      if (uid == null) {
-        setState(() => _submitError = 'Usuário não autenticado. Faça login novamente.');
-        return;
-      }
+        // ── FLUXO DE ATUALIZAÇÃO (usuário já logado) ───────────────────────
+        // Usa o BirthController para salvar apenas a data de nascimento.
+        final uid = _getCurrentUid();
+        if (uid == null) {
+          setState(() => _submitError = 'Usuário não autenticado. Faça login novamente.');
+          return;
+        }
 
-      final success = await _controller.saveBirthDate(
-        userId: uid, birthDate: date,
-      );
+        final success = await _controller.saveBirthDate(
+          userId: uid, birthDate: date,
+        );
 
-      if (!mounted) return;
-      if (success) {
-        _successAnim.forward();
-        await Future.delayed(const Duration(milliseconds: 1000));
-        if (mounted) Navigator.pop(context, true);
+        if (!mounted) return;
+        if (success) {
+          _successAnim.forward();
+          await Future.delayed(const Duration(milliseconds: 1000));
+          if (mounted) Navigator.pop(context, true);
+        }
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -228,13 +237,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end:   Alignment.bottomRight,
-          colors: [Color(0xFFFF6B9D), Color(0xFFFFC837)],
-        ),
-      ),
+      decoration: AppDecorations.ageVerificationHeader,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -272,20 +275,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
     return Container(
       key: const ValueKey('info'),
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end:   Alignment.bottomRight,
-          colors: [Color(0xFFFF6B9D), Color(0xFFFFC837)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6B9D).withOpacity(0.35),
-            blurRadius: 24, offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.ageVerificationInfoBadge,
       child: Column(
         children: [
           const Text('🎂', style: TextStyle(fontSize: 56)),
@@ -317,17 +307,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
     return Container(
       key: const ValueKey('success'),
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [Color(0xFF4ADE80), Color(0xFF22C55E)]),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4ADE80).withOpacity(0.40),
-            blurRadius: 24, offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.ageVerificationSuccessBadge,
       child: const Column(
         children: [
           Text('🎉', style: TextStyle(fontSize: 56)),
@@ -350,16 +330,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
     final canSubmit  = hasDate && (validation?.isValid ?? false);
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20, offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.ageVerificationCard,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -369,18 +340,15 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B9D).withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  decoration: AppDecorations.ageVerificationCalendarIcon,
                   child: const Icon(Icons.calendar_month_rounded,
-                      color: Color(0xFFFF6B9D), size: 20),
+                      color: AppTheme.kidsPink, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Text(
                   'Data de nascimento',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A1A2E)),
+                      color: AppTheme.textDark),
                 ),
               ],
             ),
@@ -415,20 +383,16 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
               onTap: _pickFromCalendar,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B9D).withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFF6B9D).withOpacity(0.25)),
-                ),
+                decoration: AppDecorations.ageVerificationCalendarButton,
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.date_range_rounded,
-                        color: Color(0xFFFF6B9D), size: 18),
+                        color: AppTheme.kidsPink, size: 18),
                     SizedBox(width: 8),
                     Text('Escolher pelo calendário',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                            color: Color(0xFFFF6B9D))),
+                            color: AppTheme.kidsPink)),
                   ],
                 ),
               ),
@@ -487,27 +451,27 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
             _onFieldChanged();
           },
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900,
-              color: Color(0xFF1A1A2E)),
+              color: AppTheme.textDark),
           decoration: InputDecoration(
             hintText: hint,
             counterText: '',
             hintStyle: TextStyle(fontSize: 16, color: Colors.grey.shade300,
                 fontWeight: FontWeight.w700),
             filled: true,
-            fillColor: const Color(0xFFFAFAFA),
+            fillColor: AppTheme.surfaceLight,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
                 color: controller.text.isNotEmpty
-                    ? const Color(0xFFFF6B9D).withOpacity(0.5)
+                    ? AppTheme.kidsPink.withOpacity(0.5)
                     : Colors.grey.shade200,
                 width: 1.5,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFFF6B9D), width: 2),
+              borderSide: const BorderSide(color: AppTheme.kidsPink, width: 2),
             ),
           ),
         ),
@@ -532,20 +496,16 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
     if (validation.isValid) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF4ADE80).withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF4ADE80).withOpacity(0.35)),
-        ),
+        decoration: AppDecorations.ageVerificationFeedbackValid,
         child: Row(
           children: [
             const Icon(Icons.check_circle_rounded,
-                color: Color(0xFF22C55E), size: 18),
+                color: AppTheme.kidsGreenDeep, size: 18),
             const SizedBox(width: 10),
             Text(
               'Tudo certo! Você tem ${validation.age} anos.',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                  color: Color(0xFF166534)),
+                  color: AppTheme.kidsGreenDeep),
             ),
           ],
         ),
@@ -554,20 +514,16 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-      ),
+      decoration: AppDecorations.ageVerificationFeedbackError,
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 18),
+          Icon(Icons.error_outline_rounded, color: AppTheme.errorRed, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               validation.errorMessage ?? 'Data inválida.',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                  color: Colors.red),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                  color: AppTheme.errorRed),
             ),
           ),
         ],
@@ -578,23 +534,19 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
   Widget _buildErrorBanner(String message) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-      ),
+      decoration: AppDecorations.ageVerificationErrorBanner,
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 18),
+          Icon(Icons.error_outline_rounded, color: AppTheme.errorRed, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(message,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                    color: Colors.red)),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: AppTheme.errorRed)),
           ),
           GestureDetector(
             onTap: () => setState(() => _submitError = null),
-            child: const Icon(Icons.close_rounded, color: Colors.red, size: 18),
+            child: Icon(Icons.close_rounded, color: AppTheme.errorRed, size: 18),
           ),
         ],
       ),
@@ -603,25 +555,15 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
 
   Widget _buildSubmitButton(bool canSubmit) {
     return GestureDetector(
-      onTap: (_controller.isLoading || !canSubmit) ? null : _submit,
+      onTap: (_isSubmitting || _controller.isLoading || !canSubmit) ? null : _submit,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          gradient: canSubmit
-              ? const LinearGradient(
-                  colors: [Color(0xFFFF6B9D), Color(0xFFFFC837)])
-              : LinearGradient(
-                  colors: [Colors.grey.shade300, Colors.grey.shade300]),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: canSubmit
-              ? [BoxShadow(
-                  color: const Color(0xFFFF6B9D).withOpacity(0.40),
-                  blurRadius: 16, offset: const Offset(0, 6))]
-              : [],
-        ),
-        child: _controller.isLoading
+        decoration: canSubmit
+            ? AppDecorations.ageVerificationSubmitActive
+            : AppDecorations.ageVerificationSubmitDisabled,
+        child: (_isSubmitting || _controller.isLoading)
             ? const Center(
                 child: SizedBox(
                   width: 22, height: 22,
@@ -635,7 +577,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.verified_rounded,
-                      color: canSubmit ? Colors.white : Colors.grey.shade400,
+                      color: canSubmit ? Colors.white : AppTheme.textMuted,
                       size: 20),
                   const SizedBox(width: 8),
                   Text(
@@ -644,7 +586,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                         : 'Confirmar data de nascimento',
                     style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w800,
-                      color: canSubmit ? Colors.white : Colors.grey.shade400,
+                      color: canSubmit ? Colors.white : AppTheme.textMuted,
                     ),
                   ),
                 ],
@@ -658,11 +600,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
   Widget _buildPrivacyNote() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.pink.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.pink.shade100),
-      ),
+      decoration: AppDecorations.ageVerificationPrivacyNote,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -673,7 +611,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
               'Sua data de nascimento é armazenada com segurança e usada apenas para verificar sua maioridade. Ela não é exibida publicamente.',
               style: TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w600,
-                color: Colors.pink.shade800, height: 1.5,
+                color: AppTheme.kidsPinkDeep, height: 1.5,
               ),
             ),
           ),

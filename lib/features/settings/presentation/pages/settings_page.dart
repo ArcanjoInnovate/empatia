@@ -2,6 +2,9 @@ import 'package:empatia/features/auth/presentation/pages/login_page.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/pages/account_information_page.dart';
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/account_settings_page.dart';
 import 'package:empatia/features/settings/features/change_password/presentation/pages/change_password_page.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,7 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppTheme.surfaceNeutral,
       body: Column(
         children: [
           _buildHeader(context),
@@ -716,7 +719,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      // TODO: deletar conta no Firebase
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 15),

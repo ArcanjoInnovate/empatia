@@ -1,12 +1,10 @@
 import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
+import 'package:empatia/core/theme/app_decorations.dart';
+import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-// ── Design tokens ────────────────────────────────────────────
-const _pink   = Color(0xFFFF6B9D);
-const _navy   = Color(0xFF1E3A8A);
-const _purple = Color(0xFF8B5CF6);
 
 const _childEmojis = ['👦', '👧', '👶', '🧒', '👦🏽', '👧🏽'];
 
@@ -123,19 +121,7 @@ class _ChildCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFE0F2FE),
-            const Color(0xFFFFF9E6).withOpacity(0.5),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF2563EB).withOpacity(0.15),
-          width: 2,
-        ),
-      ),
+      decoration: AppDecorations.childEditCard,
       child: Row(
         children: [
           GestureDetector(
@@ -143,14 +129,7 @@ class _ChildCard extends StatelessWidget {
             child: Container(
               width: 54,
               height: 54,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF2563EB).withOpacity(0.2),
-                  width: 2,
-                ),
-              ),
+              decoration: AppDecorations.childEditAvatar,
               child: Center(
                 child: Text(child.emoji ?? '👶',
                     style: const TextStyle(fontSize: 30)),
@@ -167,7 +146,7 @@ class _ChildCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: _navy,
+                    color: AppTheme.primaryBlue,
                   ),
                 ),
                 if (child.age != null)
@@ -184,12 +163,12 @@ class _ChildCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: onEdit,
-            icon: const Icon(Icons.edit_rounded,
-                color: Color(0xFF2563EB), size: 20),
+            icon: const Icon(AppIcons.edit,
+                color: AppTheme.childCardAccent, size: 20),
           ),
           IconButton(
             onPressed: onRemove,
-            icon: const Icon(Icons.delete_outline_rounded,
+            icon: const Icon(AppIcons.delete,
                 color: Colors.red, size: 20),
           ),
         ],
@@ -213,22 +192,18 @@ class _AddChildButton extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _pink.withOpacity(0.3), width: 2),
-        ),
+        decoration: AppDecorations.addChildButton,
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_rounded, color: _pink, size: 22),
+            Icon(AppIcons.add, color: AppTheme.kidsPink, size: 22),
             SizedBox(width: 8),
             Text(
               'Adicionar filho',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: _pink,
+                color: AppTheme.kidsPink,
               ),
             ),
           ],
@@ -370,7 +345,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: _navy,
+                color: AppTheme.primaryBlue,
               ),
             ),
           ),
@@ -394,16 +369,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     width: 50, height: 50,
-                    decoration: BoxDecoration(
-                      color: sel
-                          ? _pink.withOpacity(0.15)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: sel ? _pink : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
+                    decoration: AppDecorations.childEmojiOption(selected: sel),
                     child: Center(
                       child: Text(e, style: const TextStyle(fontSize: 28)),
                     ),
@@ -457,19 +423,13 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: _loading
-                    ? null
-                    : const LinearGradient(colors: [_pink, _purple]),
-                color: _loading ? Colors.grey.shade200 : null,
-                borderRadius: BorderRadius.circular(18),
-              ),
+              decoration: AppDecorations.childFormSubmitButton(loading: _loading),
               child: Center(
                 child: _loading
                     ? const SizedBox(
                         width: 22, height: 22,
                         child: CircularProgressIndicator(
-                          color: _pink, strokeWidth: 2.5,
+                          color: AppTheme.kidsPink, strokeWidth: 2.5,
                         ),
                       )
                     : Text(
@@ -507,7 +467,7 @@ class _FieldLabel extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: _navy,
+            color: AppTheme.primaryBlue,
           ),
         ),
         if (error != null && !error!.contains('entre 0 e 17')) ...[
@@ -552,18 +512,18 @@ class _InputField extends StatelessWidget {
         hintText: hint,
         hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
         filled: true,
-        fillColor: hasError ? Colors.red.shade50 : const Color(0xFFF8F8FF),
+        fillColor: hasError ? Colors.red.shade50 : AppTheme.surfaceBlueTint,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: hasError ? Colors.red : _pink.withOpacity(0.3),
+            color: hasError ? Colors.red : AppTheme.kidsPink.withOpacity(0.3),
             width: hasError ? 2 : 1.5,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: hasError ? Colors.red : _pink,
+            color: hasError ? Colors.red : AppTheme.kidsPink,
             width: 2,
           ),
         ),
