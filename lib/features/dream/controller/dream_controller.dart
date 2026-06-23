@@ -34,6 +34,9 @@ class DreamController extends ChangeNotifier {
     required String? title,
     required String emoji,
     required UserModel currentUser,
+    required String childId,
+    required String childName,
+    required String childEmoji,
     String? date,
     double? progress,
     XFile? photo,
@@ -46,6 +49,9 @@ class DreamController extends ChangeNotifier {
         title: title,
         emoji: emoji,
         currentUser: currentUser,
+        childId: childId,
+        childName: childName,
+        childEmoji: childEmoji,
         date: date,
         progress: progress,
         photo: photo,
@@ -62,10 +68,15 @@ class DreamController extends ChangeNotifier {
   }
 
   /// Edita um sonho
+  /// Edita um sonho
   Future<bool> updateDream({
     required String dreamId,
     required String? title,
     required String emoji,
+    required String childId,
+    required String childName,
+    required String childEmoji,
+    required UserModel currentUser,
     String? date,
     double? progress,
     String? currentImageUrl,
@@ -80,6 +91,10 @@ class DreamController extends ChangeNotifier {
         dreamId: dreamId,
         title: title,
         emoji: emoji,
+        childId: childId,
+        childName: childName,
+        childEmoji: childEmoji,
+        currentUser: currentUser,
         date: date,
         progress: progress,
         currentImageUrl: currentImageUrl,

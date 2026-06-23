@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
@@ -45,6 +46,8 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
   late String _selectedEmoji;
   late double _progress;
 
+  ChildModel? _selectedChild;
+
   XFile? _newPhoto;
   bool _removeCurrentImage = false;
   bool _loading = false;
@@ -65,6 +68,18 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
     _dateCtrl  = TextEditingController(text: widget.dream?.date);
     _selectedEmoji = widget.dream?.emoji ?? '💭';
     _progress = widget.dream?.progress ?? 0.0;
+
+    // Em modo edição, pré-seleciona o filho já vinculado ao sonho
+    if (widget.dream?.childId != null) {
+      _selectedChild = widget.currentUser.children?.firstWhere(
+        (c) => c.id == widget.dream!.childId,
+        orElse: () => ChildModel(
+          id: widget.dream!.childId,
+          name: widget.dream!.childName,
+          emoji: widget.dream!.childEmoji,
+        ),
+      );
+    }
   }
 
   @override
@@ -236,6 +251,14 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             _fieldDescription(_dateCtrl, 'Descrição do sonho'),
             const SizedBox(height: 20),
 
+            // ── Seletor de filho ─────────────────────────────────────
+            _ChildSelector(
+              children: widget.currentUser.children ?? [],
+              selected: _selectedChild,
+              onSelected: (child) => setState(() => _selectedChild = child),
+            ),
+            const SizedBox(height: 20),
+
             // ── Botão salvar ─────────────────────────────────────────
             GestureDetector(
               onTap: _loading ? null : _submit,
@@ -314,6 +337,19 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
   }
 
   Future<void> _submit() async {
+    if (_selectedChild == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione para qual filho é este sonho'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14))),
+        ),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     final ctrl = context.read<DreamController>();
     bool ok;
@@ -328,6 +364,10 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
         currentImageUrl: widget.dream?.imageUrl,
         newPhoto: _newPhoto,
         removeImage: _removeCurrentImage,
+        childId: _selectedChild!.id!,
+        childName: _selectedChild!.name ?? '',
+        childEmoji: _selectedChild!.emoji ?? '👶',
+        currentUser: widget.currentUser,
       );
     } else {
       ok = await ctrl.addDream(
@@ -337,6 +377,9 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
         progress: _progress,
         photo: _newPhoto,
         currentUser: widget.currentUser,
+        childId: _selectedChild!.id!,
+        childName: _selectedChild!.name ?? '',
+        childEmoji: _selectedChild!.emoji ?? '👶',
       );
     }
 
@@ -458,6 +501,121 @@ class _ImagePicker extends StatelessWidget {
         child: Icon(Icons.broken_image_rounded,
             size: 40, color: Colors.grey.shade300),
       ),
+    );
+  }
+}
+
+// ── Seletor de filho ──────────────────────────────────────────────────────────
+
+class _ChildSelector extends StatelessWidget {
+  final List<ChildModel> children;
+  final ChildModel? selected;
+  final void Function(ChildModel) onSelected;
+
+  const _ChildSelector({
+    required this.children,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Para qual filho?',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (children.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceLight,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.child_care_rounded,
+                    color: Colors.grey.shade400, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  'Nenhum filho cadastrado no perfil',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: children.map((child) {
+              final isSel = child.id == selected?.id;
+              return GestureDetector(
+                onTap: () => onSelected(child),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSel
+                        ? AppTheme.kidsPurple
+                        : AppTheme.surfaceLight,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: isSel
+                          ? AppTheme.kidsPurple
+                          : AppTheme.kidsPurple.withOpacity(0.3),
+                      width: isSel ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        child.emoji ?? '👶',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        child.name ?? '',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isSel
+                              ? Colors.white
+                              : AppTheme.primaryBlue,
+                        ),
+                      ),
+                      if (child.age != null) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${child.age}a',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isSel
+                                ? Colors.white70
+                                : Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 }

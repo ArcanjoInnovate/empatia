@@ -20,6 +20,12 @@ class DreamFeedItem {
   final int likesCount;
   final int commentsCount;
 
+  /// Localização do autor no momento da criação (copiada do perfil).
+  final String? city;
+  final String? state;
+  final double? latitude;
+  final double? longitude;
+
   /// Se o usuário atual já curtiu esse sonho. Calculado localmente a
   /// partir do mapa `likes` que já vem dentro do próprio nó do sonho —
   /// não exige nenhuma leitura adicional no Firebase.
@@ -40,6 +46,10 @@ class DreamFeedItem {
     this.updatedAt = 0,
     this.likesCount = 0,
     this.commentsCount = 0,
+    this.city,
+    this.state,
+    this.latitude,
+    this.longitude,
     this.likedByMe = false,
   });
 
@@ -71,6 +81,10 @@ class DreamFeedItem {
       updatedAt: (map['updatedAt'] as num?)?.toInt() ?? 0,
       likesCount: (map['likesCount'] as num?)?.toInt() ?? 0,
       commentsCount: (map['commentsCount'] as num?)?.toInt() ?? 0,
+      city: map['city'] as String?,
+      state: map['state'] as String?,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
       likedByMe: liked,
     );
   }
@@ -90,6 +104,10 @@ class DreamFeedItem {
       'updatedAt': updatedAt,
       'likesCount': likesCount,
       'commentsCount': commentsCount,
+      if (city != null) 'city': city,
+      if (state != null) 'state': state,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 
@@ -114,6 +132,10 @@ class DreamFeedItem {
       updatedAt: updatedAt,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount,
+      city: city,
+      state: state,
+      latitude: latitude,
+      longitude: longitude,
       likedByMe: likedByMe ?? this.likedByMe,
     );
   }

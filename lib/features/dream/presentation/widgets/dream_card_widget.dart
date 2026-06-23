@@ -8,8 +8,11 @@ import 'package:provider/provider.dart';
 
 /// 💭 DREAM CARD WIDGET
 ///
-/// Card reutilizável para exibir um sonho com imagem de inspiração.
-/// Quando [editable] = true, exibe menu de edição/remoção.
+/// Card redesenhado com hierarquia visual clara:
+///   1. Imagem de inspiração (opcional, 16:9)
+///   2. Chip do filho vinculado — identidade imediata
+///   3. Emoji + Título + Descrição
+///   4. Barra de progresso com label
 class DreamCardWidget extends StatelessWidget {
   final DreamModel dream;
   final bool editable;
@@ -22,65 +25,70 @@ class DreamCardWidget extends StatelessWidget {
     this.onEdit,
   }) : super(key: key);
 
+  // Cor da barra de progresso por nível
+  List<Color> get _progressColors {
+    final p = dream.progress ?? 0;
+    if (p >= 0.7) return AppTheme.progressHigh;
+    if (p >= 0.4) return AppTheme.progressMid;
+    return AppTheme.progressLow;
+  }
+
+  Color get _progressColor => _progressColors.first;
+
+  bool get _hasChild =>
+      dream.childId != null && dream.childId!.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
-    final progress = dream.progress;
-
-    Color progressColor = AppTheme.kidsPink;
-    if (progress != null) {
-      if (progress >= 0.7) {
-        progressColor = AppTheme.kidsGreen;
-      } else if (progress >= 0.4) {
-        progressColor = AppTheme.kidsYellow;
-      }
-    }
-
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFF0E6FF), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.kidsPurple.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: AppTheme.kidsPurple.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Imagem de inspiração (se existir) ───────────────────────
+          // ── 1. Imagem de inspiração ───────────────────────────────
           if (dream.imageUrl != null)
             _DreamImage(imageUrl: dream.imageUrl!, dreamTitle: dream.title),
 
-          // ── Conteúdo ──────────────────────────────────────────────
+          // ── 2. Corpo do card ──────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Linha topo: chip do filho + menu
                 Row(
                   children: [
-                    // Ícone emoji
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppTheme.kidsPurple, Color(0xFFBB86FC)],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                    if (_hasChild) ...[
+                      _ChildChip(
+                        emoji: dream.childEmoji ?? '👶',
+                        name: dream.childName ?? '',
                       ),
-                      child: Center(
-                        child: Text(dream.emoji ?? '💭',
-                            style: const TextStyle(fontSize: 26)),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
+                    ],
+                    const Spacer(),
+                    if (editable)
+                      _EditMenu(dream: dream, onEdit: onEdit),
+                  ],
+                ),
 
-                    // Título e data
+                const SizedBox(height: 14),
+
+                // Emoji + Título
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _EmojiBox(emoji: dream.emoji ?? '💭'),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,37 +98,118 @@ class DreamCardWidget extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: AppTheme.primaryBlue,
+                              height: 1.25,
                             ),
                           ),
-                          if (dream.date != null) ...[
-                            const SizedBox(height: 3),
+                          if (dream.date != null &&
+                              dream.date!.isNotEmpty) ...[
+                            const SizedBox(height: 6),
                             Text(
-                              '📅  ${dream.date}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
+                              dream.date!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppTheme.textSecondary
+                                    .withValues(alpha: 0.85),
                                 fontWeight: FontWeight.w500,
+                                height: 1.4,
                               ),
                             ),
                           ],
                         ],
                       ),
                     ),
-
-                    // Menu de edição
-                    if (editable) ...[
-                      const SizedBox(width: 4),
-                      _EditMenu(dream: dream, onEdit: onEdit),
-                    ],
                   ],
                 ),
+
+                const SizedBox(height: 16),
+
+               
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Chip do filho ─────────────────────────────────────────────────────────────
+
+class _ChildChip extends StatelessWidget {
+  final String emoji;
+  final String name;
+
+  const _ChildChip({required this.emoji, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.childCardBg,
+            AppTheme.childCardBg.withValues(alpha: 0.6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: AppTheme.childCardAccent.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 5),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.childCardAccent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Emoji box ─────────────────────────────────────────────────────────────────
+
+class _EmojiBox extends StatelessWidget {
+  final String emoji;
+  const _EmojiBox({required this.emoji});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 54,
+      height: 54,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.kidsPurple, Color(0xFFBB86FC)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.kidsPurple.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(emoji, style: const TextStyle(fontSize: 26)),
       ),
     );
   }
@@ -148,7 +237,8 @@ class _DreamImage extends StatelessWidget {
         ),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(23)),
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Hero(
@@ -200,9 +290,10 @@ class _EditMenu extends StatelessWidget {
     final ctrl = context.read<DreamController>();
 
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert_rounded,
-          color: Colors.grey.shade400, size: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      icon:
+          Icon(Icons.more_vert_rounded, color: Colors.grey.shade400, size: 20),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
         if (value == 'edit') {
           onEdit?.call();
@@ -236,7 +327,8 @@ class _EditMenu extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Remover sonho?'),
         content: Text(
             'Tem certeza que deseja remover "${dream.title ?? "este sonho"}"?'),
@@ -250,60 +342,10 @@ class _EditMenu extends StatelessWidget {
               Navigator.pop(context);
               ctrl.deleteDream(dream.id!, imageUrl: dream.imageUrl);
             },
-            child: const Text('Remover',
-                style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Remover', style: TextStyle(color: Colors.red)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Slider de progresso ───────────────────────────────────────────────────────
-
-class _ProgressSlider extends StatefulWidget {
-  final DreamModel dream;
-  final Color progressColor;
-
-  const _ProgressSlider({
-    required this.dream,
-    required this.progressColor,
-  });
-
-  @override
-  State<_ProgressSlider> createState() => _ProgressSliderState();
-}
-
-class _ProgressSliderState extends State<_ProgressSlider> {
-  late double _value;
-
-  @override
-  void initState() {
-    super.initState();
-    _value = widget.dream.progress ?? 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        trackHeight: 8,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-        activeTrackColor: widget.progressColor,
-        inactiveTrackColor: Colors.grey.shade100,
-        thumbColor: widget.progressColor,
-        overlayColor: widget.progressColor.withValues(alpha: 0.15),
-      ),
-      child: Slider(
-        value: _value,
-        onChanged: (v) => setState(() => _value = v),
-        onChangeEnd: (v) {
-          context.read<DreamController>().updateProgress(
-                widget.dream.id!,
-                v,
-              );
-        },
       ),
     );
   }

@@ -4,24 +4,35 @@ import 'package:empatia/features/profile/data/service/cloudinary_service.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../repository/dream_repository.dart';
+import '../repository/dreams_feed_repository.dart';
 
 /// 💭 DREAM SERVICE
 ///
 /// Valida dados, faz upload opcional de imagem e orquestra operações de sonhos.
 /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
+///
+/// Ao criar um sonho, escreve em dois nós simultaneamente:
+///   • Users/{uid}/dreams/{id}  — sonhos do perfil do usuário
+///   • Dreams/{id}              — feed global (denormalizado com dados do usuário)
 class DreamService {
   final DreamRepository _repository;
   final CloudinaryService _cloudinaryService;
+  final DreamsFeedRepository _feedRepository;
 
-  DreamService(this._repository, this._cloudinaryService);
+  DreamService(this._repository, this._cloudinaryService, this._feedRepository);
 
   Stream<List<DreamModel>> watchDreams() => _repository.watchDreams();
 
-  /// Adiciona um sonho COM VALIDAÇÃO e upload opcional de imagem
+  /// Adiciona um sonho COM VALIDAÇÃO e upload opcional de imagem.
+  /// Salva em Users/{uid}/dreams (perfil) e Dreams (feed global) ao mesmo tempo.
+  /// O sonho é obrigatoriamente atrelado a um filho via [childId], [childName] e [childEmoji].
   Future<String> addDream({
     required String? title,
     required String emoji,
     required UserModel currentUser,
+    required String childId,
+    required String childName,
+    required String childEmoji,
     String? date,
     double? progress,
     XFile? photo,
@@ -58,17 +69,49 @@ class DreamService {
       date: date?.trim().isEmpty == true ? null : date?.trim(),
       progress: progress,
       imageUrl: imageUrl,
+      childId: childId,
+      childName: childName,
+      childEmoji: childEmoji,
       createdAt: DateTime.now(),
     );
 
-    return await _repository.addDream(dream);
+    // Salva em Users/{uid}/dreams (perfil do usuário)
+    final dreamId = await _repository.addDream(dream);
+
+    // Salva em Dreams/{id} (feed global) com o mesmo ID gerado acima
+    await _feedRepository.createDreamWithId(
+      dreamId: dreamId,
+      userId: currentUser.id ?? '',
+      userName: currentUser.name ?? '',
+      userProfileImage: currentUser.profileImage,
+      userProfileEmoji: currentUser.profileEmoji,
+      title: trimmed,
+      date: date?.trim().isEmpty == true ? null : date?.trim(),
+      emoji: emoji,
+      imageUrl: imageUrl,
+      progress: progress ?? 0.0,
+      childId: childId,
+      childName: childName,
+      childEmoji: childEmoji,
+      city: currentUser.city,
+      state: currentUser.state,
+      latitude: currentUser.latitude,
+      longitude: currentUser.longitude,
+    );
+
+    return dreamId;
   }
 
-  /// Edita um sonho existente com suporte a troca/remoção de imagem
+  /// Edita um sonho existente com suporte a troca/remoção de imagem e filho.
+  /// Atualiza Users/{uid}/dreams (perfil) e Dreams/{id} (feed global).
   Future<void> updateDream({
     required String dreamId,
     required String? title,
     required String emoji,
+    required String childId,
+    required String childName,
+    required String childEmoji,
+    required UserModel currentUser,
     String? date,
     double? progress,
     String? currentImageUrl,
@@ -87,29 +130,49 @@ class DreamService {
     String? imageUrl = currentImageUrl;
 
     if (removeImage) {
-      // Remove imagem do Cloudinary e limpa a URL
       if (currentImageUrl != null && currentImageUrl.isNotEmpty) {
         await _cloudinaryService.deleteProfileImage(currentImageUrl);
       }
       imageUrl = null;
     } else if (newPhoto != null) {
-      // Troca a imagem — faz upload da nova (apaga a antiga se existir)
       imageUrl = await _cloudinaryService.uploadProfileImage(
         newPhoto,
         oldImageUrl: currentImageUrl,
       );
     }
 
+    final cleanDate = date?.trim().isEmpty == true ? null : date?.trim();
+
     final dream = DreamModel(
       id: dreamId,
       title: trimmed,
       emoji: emoji,
-      date: date?.trim().isEmpty == true ? null : date?.trim(),
+      date: cleanDate,
       progress: progress,
       imageUrl: imageUrl,
+      childId: childId,
+      childName: childName,
+      childEmoji: childEmoji,
     );
 
-    await _repository.updateDream(dream);
+    await Future.wait([
+      _repository.updateDream(dream),
+      _feedRepository.updateDream(
+        dreamId: dreamId,
+        title: trimmed,
+        emoji: emoji,
+        date: cleanDate,
+        imageUrl: imageUrl,
+        progress: progress,
+        childId: childId,
+        childName: childName,
+        childEmoji: childEmoji,
+        city: currentUser.city,
+        state: currentUser.state,
+        latitude: currentUser.latitude,
+        longitude: currentUser.longitude,
+      ),
+    ]);
   }
 
   /// Atualiza só o progresso
@@ -120,11 +183,14 @@ class DreamService {
     await _repository.updateProgress(dreamId, progress);
   }
 
-  /// Remove um sonho e sua imagem associada
+  /// Remove um sonho e sua imagem associada (perfil + feed global)
   Future<void> deleteDream(String dreamId, {String? imageUrl}) async {
     if (imageUrl != null && imageUrl.isNotEmpty) {
       await _cloudinaryService.deleteProfileImage(imageUrl);
     }
-    await _repository.deleteDream(dreamId);
+    await Future.wait([
+      _repository.deleteDream(dreamId),
+      _feedRepository.deleteDream(dreamId),
+    ]);
   }
 }

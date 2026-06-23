@@ -7,6 +7,7 @@ import 'package:empatia/features/donation/data/repository/donation_repository.da
 import 'package:empatia/features/donation/data/service/donation_service.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/data/repository/dream_repository.dart';
+import 'package:empatia/features/dream/data/repository/dreams_feed_repository.dart';
 import 'package:empatia/features/dream/data/service/dream_service.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:empatia/features/profile/data/repository/cloudinary_repository.dart';
@@ -18,9 +19,11 @@ import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/request/controller/request_controller.dart';
 import 'package:empatia/features/request/data/repository/request_repository.dart';
 import 'package:empatia/features/request/data/service/request_service.dart';
+import 'package:empatia/features/search/controller/search_controller.dart';
+import 'package:empatia/features/search/data/repositories/search_repository.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SearchController;
 import 'package:provider/provider.dart';
 
 class MyApp extends StatelessWidget {
@@ -37,7 +40,9 @@ class MyApp extends StatelessWidget {
         Provider<DonationRepository>(create: (_) => DonationRepository()),
         Provider<RequestRepository>(create: (_) => RequestRepository()),
         Provider<DreamRepository>(create: (_) => DreamRepository()),
+        Provider<DreamsFeedRepository>(create: (_) => DreamsFeedRepository()),
         Provider<UserRepository>(create: (_) => UserRepository()),
+        Provider<SearchRepository>(create: (_) => SearchRepository()),
 
         // ── 2. Services ──────────────────────────────────────
         ProxyProvider<CloudinaryRepository, CloudinaryService>(
@@ -57,9 +62,9 @@ class MyApp extends StatelessWidget {
         ProxyProvider<RequestRepository, RequestService>(
           update: (_, repo, __) => RequestService(repo),
         ),
-        ProxyProvider2<DreamRepository, CloudinaryService, DreamService>(
-          update: (_, repo, cloudinary, __) =>
-              DreamService(repo, cloudinary),
+        ProxyProvider3<DreamRepository, CloudinaryService, DreamsFeedRepository, DreamService>(
+          update: (_, repo, cloudinary, feedRepo, __) =>
+              DreamService(repo, cloudinary, feedRepo),
         ),
 
         // ── 3. Stream do UserModel ───────────────────────────
@@ -98,16 +103,21 @@ class MyApp extends StatelessWidget {
               RequestController(RequestService(RequestRepository())),
           update: (_, service, __) => RequestController(service),
         ),
-        ChangeNotifierProxyProvider2<DreamRepository, CloudinaryService,
-            DreamController>(
+        ChangeNotifierProxyProvider3<DreamRepository, CloudinaryService,
+            DreamsFeedRepository, DreamController>(
           create: (_) => DreamController(
             DreamService(
               DreamRepository(),
               CloudinaryService(CloudinaryRepository()),
+              DreamsFeedRepository(),
             ),
           ),
-          update: (_, repo, cloudinary, __) =>
-              DreamController(DreamService(repo, cloudinary)),
+          update: (_, repo, cloudinary, feedRepo, __) =>
+              DreamController(DreamService(repo, cloudinary, feedRepo)),
+        ),
+        ChangeNotifierProxyProvider<SearchRepository, SearchController>(
+          create: (_) => SearchController(SearchRepository()),
+          update: (_, repo, __) => SearchController(repo),
         ),
       ],
       child: MaterialApp(

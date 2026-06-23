@@ -98,6 +98,58 @@ class DreamsFeedRepository {
     });
   }
 
+  /// Cria um novo sonho já no formato denormalizado do feed,
+  /// usando o mesmo [dreamId] gerado em Users/{uid}/dreams para manter
+  /// os dois nós sincronizados pela mesma chave.
+  Future<void> createDreamWithId({
+    required String dreamId,
+    required String userId,
+    required String userName,
+    String? userProfileImage,
+    String? userProfileEmoji,
+    required String title,
+    String? date,
+    required String emoji,
+    String? imageUrl,
+    double progress = 0.0,
+    required String childId,
+    required String childName,
+    required String childEmoji,
+    String? city,
+    String? state,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _dreamsRef.child(dreamId).set({
+      'userId': userId,
+      'userName': userName,
+      'userProfileImage': userProfileImage,
+      'userProfileEmoji': userProfileEmoji,
+      'title': title,
+      'date': date,
+      'emoji': emoji,
+      'imageUrl': imageUrl,
+      'progress': progress,
+      'childId': childId,
+      'childName': childName,
+      'childEmoji': childEmoji,
+      'createdAt': now,
+      'updatedAt': now,
+      'likesCount': 0,
+      'commentsCount': 0,
+      if (city != null) 'city': city,
+      if (state != null) 'state': state,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+    });
+  }
+
+  /// Remove um sonho do feed global.
+  Future<void> deleteDream(String dreamId) {
+    return _dreamsRef.child(dreamId).remove();
+  }
+
   /// Cria um novo sonho já no formato denormalizado do feed.
   /// Use isso no lugar de escrever em `Users/{uid}/dreams`.
   Future<void> createDream({
@@ -128,6 +180,39 @@ class DreamsFeedRepository {
       'updatedAt': now,
       'likesCount': 0,
       'commentsCount': 0,
+    });
+  }
+
+  /// Atualiza os dados editáveis de um sonho no feed global.
+  Future<void> updateDream({
+    required String dreamId,
+    required String title,
+    required String emoji,
+    String? date,
+    String? imageUrl,
+    double? progress,
+    required String childId,
+    required String childName,
+    required String childEmoji,
+    String? city,
+    String? state,
+    double? latitude,
+    double? longitude,
+  }) {
+    return _dreamsRef.child(dreamId).update({
+      'title': title,
+      'emoji': emoji,
+      'date': date,
+      'imageUrl': imageUrl,
+      'progress': progress ?? 0.0,
+      'childId': childId,
+      'childName': childName,
+      'childEmoji': childEmoji,
+      if (city != null) 'city': city,
+      if (state != null) 'state': state,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
   }
 

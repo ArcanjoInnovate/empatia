@@ -1,6 +1,6 @@
 /// 💭 DREAM MODEL
 ///
-/// Representa um sonho/objetivo do usuário.
+/// Representa um sonho/objetivo atrelado a um filho do usuário.
 /// Fica em /Users/{uid}/dreams/{id} no Firebase.
 class DreamModel {
   final String? id;
@@ -16,6 +16,11 @@ class DreamModel {
   /// URL da imagem de inspiração no Cloudinary (opcional)
   final String? imageUrl;
 
+  // ── Filho vinculado ──────────────────────────────────────────────────────
+  final String? childId;
+  final String? childName;
+  final String? childEmoji;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -26,6 +31,9 @@ class DreamModel {
     this.date,
     this.progress,
     this.imageUrl,
+    this.childId,
+    this.childName,
+    this.childEmoji,
     this.createdAt,
     this.updatedAt,
   });
@@ -40,6 +48,9 @@ class DreamModel {
           ? double.tryParse(map['progress'].toString())
           : null,
       imageUrl: map['imageUrl']?.toString(),
+      childId: map['childId']?.toString(),
+      childName: map['childName']?.toString(),
+      childEmoji: map['childEmoji']?.toString(),
       createdAt: map['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(
               int.parse(map['createdAt'].toString()))
@@ -58,6 +69,9 @@ class DreamModel {
       if (date != null) 'date': date,
       if (progress != null) 'progress': progress,
       if (imageUrl != null) 'imageUrl': imageUrl,
+      if (childId != null) 'childId': childId,
+      if (childName != null) 'childName': childName,
+      if (childEmoji != null) 'childEmoji': childEmoji,
       'createdAt': createdAt?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -71,6 +85,9 @@ class DreamModel {
     String? date,
     double? progress,
     String? imageUrl,
+    String? childId,
+    String? childName,
+    String? childEmoji,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -81,6 +98,9 @@ class DreamModel {
       date: date ?? this.date,
       progress: progress ?? this.progress,
       imageUrl: imageUrl ?? this.imageUrl,
+      childId: childId ?? this.childId,
+      childName: childName ?? this.childName,
+      childEmoji: childEmoji ?? this.childEmoji,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
