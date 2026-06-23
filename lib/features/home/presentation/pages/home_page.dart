@@ -1,8 +1,9 @@
 import 'package:empatia/core/data/models/user_model.dart';
-import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/features/dream/data/model/dream_feed_item.dart';
+import 'package:empatia/features/dream/data/repository/dreams_feed_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'dart:async';
 
 class HomePage extends StatefulWidget {
@@ -21,6 +22,8 @@ class _HomePageState extends State<HomePage> {
   final PageController _adsController = PageController();
   int _currentAdPage = 0;
   Timer? _adTimer;
+  final DreamsFeedRepository _dreamsRepository = DreamsFeedRepository();
+  late final Stream<List<DreamFeedItem>> _dreamsStream;
 
   final List<Map<String, dynamic>> _ads = [
     {
@@ -47,6 +50,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _startAdTimer();
+    // Cria o stream UMA ÚNICA VEZ aqui. Se isso ficasse dentro do build()
+    // (ou direto no StreamBuilder), cada setState — inclusive o do
+    // carrossel de anúncios a cada 2s — criaria uma instância nova de
+    // Stream, fazendo o StreamBuilder cancelar o listener antigo no
+    // Firebase e abrir outro. É isso que gera leitura repetida.
   }
 
   void _startAdTimer() {
@@ -145,7 +153,7 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -162,7 +170,7 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9),
+                            color: AppTheme.backgroundColor.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -175,12 +183,12 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: AppTheme.backgroundColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   AppIcons.notificationsOutline,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   size: 24,
                 ),
               ),
@@ -217,7 +225,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: ad['colors'][0].withOpacity(0.3),
+                        color: ad['colors'][0].withValues(alpha: 0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -233,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                           ad['emoji'],
                           style: TextStyle(
                             fontSize: 120,
-                            color: Colors.white.withOpacity(0.15),
+                            color: AppTheme.backgroundColor.withValues(alpha: 0.15),
                           ),
                         ),
                       ),
@@ -261,7 +269,7 @@ class _HomePageState extends State<HomePage> {
                                     style: const TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.w900,
-                                      color: Colors.white,
+                                      color: AppTheme.backgroundColor,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -270,7 +278,7 @@ class _HomePageState extends State<HomePage> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white.withOpacity(0.9),
+                                      color: AppTheme.backgroundColor.withValues(alpha: 0.9),
                                     ),
                                   ),
                                 ],
@@ -311,106 +319,123 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildDreamsList() {
-    // Usa os sonhos do usuário se existirem, senão mostra exemplos
-    final dreams = widget.user.dreams;
-    
-    if (dreams == null || dreams.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
+    return StreamBuilder<List<DreamFeedItem>>(
+      stream: _dreamsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final dreams = snapshot.data ?? const <DreamFeedItem>[];
+
+        if (dreams.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const Text(
+                  'Sonhos 💭',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('🌟', style: TextStyle(fontSize: 60)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Nenhum sonho por aqui ainda',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Seja o primeiro a compartilhar um sonho!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sonhos 💭',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: AppTheme.primaryBlue,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Text(
+                    'Sonhos da Comunidade ',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  Text(
+                    '(${dreams.length})',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text('🌟', style: TextStyle(fontSize: 60)),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Nenhum sonho ainda',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Adicione seus sonhos no perfil!',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              const Text(
-                'Meus Sonhos ',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-              Text(
-                '(${dreams.length})',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Lista de sonhos reais do usuário
-        ...dreams.map((dream) => _buildDreamCard(
-          title: dream.title ?? 'Sem título',
-          subtitle: dream.date ?? '',
-          emoji: dream.emoji ?? '💭',
-          progress: dream.progress ?? 0.0,
-          likes: 0, // Implementar likes no futuro
-          comments: 0, // Implementar comentários no futuro
-        )),
-      ],
+            // Feed de sonhos de todos os usuários, mais recente primeiro
+            ...dreams.map((dream) => _buildDreamCard(
+                  authorName: dream.userName,
+                  authorEmoji: dream.userProfileEmoji,
+                  authorImage: dream.userProfileImage,
+                  title: dream.title,
+                  subtitle: dream.date ?? '',
+                  emoji: dream.emoji,
+                  progress: dream.progress,
+                  likes: dream.likesCount,
+                  comments: dream.commentsCount,
+                )),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildDreamCard({
+    required String authorName,
+    String? authorEmoji,
+    String? authorImage,
     required String title,
     required String subtitle,
     required String emoji,
@@ -422,11 +447,11 @@ class _HomePageState extends State<HomePage> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -436,7 +461,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           Row(
             children: [
-              // Avatar do usuário
+              // Avatar do autor do sonho
               Container(
                 width: 50,
                 height: 50,
@@ -448,7 +473,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: Center(
                   child: Text(
-                    widget.user.profileImage ?? '👩',
+                    authorEmoji ?? '👤',
                     style: const TextStyle(fontSize: 28),
                   ),
                 ),
@@ -460,6 +485,14 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      authorName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
                     Text(
                       title,
                       style: const TextStyle(
@@ -477,6 +510,8 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade600,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],
@@ -504,7 +539,7 @@ class _HomePageState extends State<HomePage> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: AppTheme.backgroundColor,
                   ),
                 ),
               ),
@@ -525,7 +560,7 @@ class _HomePageState extends State<HomePage> {
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppTheme.primaryBlueMid.withOpacity(0.2),
+                color: AppTheme.primaryBlueMid.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -580,7 +615,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFC837).withOpacity(0.3),
+                      color: const Color(0xFFFFC837).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -593,7 +628,7 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                     SizedBox(width: 6),

@@ -1,5 +1,6 @@
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/navigation/main_navigation.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -227,7 +228,7 @@ class _AuthGuardState extends State<AuthGuard> with TickerProviderStateMixin {
                             width: 150,
                             height: 150,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppTheme.backgroundColor,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -285,7 +286,7 @@ class _AuthGuardState extends State<AuthGuard> with TickerProviderStateMixin {
                                   child: const Icon(
                                     Icons.favorite,
                                     size: 60,
-                                    color: Colors.white,
+                                    color: AppTheme.backgroundColor,
                                   ),
                                 ),
                               ],
@@ -338,7 +339,7 @@ class _AuthGuardState extends State<AuthGuard> with TickerProviderStateMixin {
                           vertical: 20,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.backgroundColor,
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
@@ -456,7 +457,7 @@ class _AuthGuardState extends State<AuthGuard> with TickerProviderStateMixin {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.12),
+              color: AppTheme.backgroundColor.withOpacity(0.12),
             ),
           ),
         ),

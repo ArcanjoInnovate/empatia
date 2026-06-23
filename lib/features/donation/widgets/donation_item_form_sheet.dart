@@ -372,7 +372,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                           ),
                         ),
                 ),
@@ -466,12 +466,12 @@ class _PhotoPicker extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.camera_alt_rounded,
-                                color: Colors.white, size: 14),
+                                color: AppTheme.backgroundColor, size: 14),
                             SizedBox(width: 4),
                             Text(
                               'Trocar foto',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppTheme.backgroundColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                               ),

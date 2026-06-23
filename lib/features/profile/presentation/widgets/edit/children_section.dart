@@ -437,7 +437,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: AppTheme.backgroundColor,
                         ),
                       ),
               ),

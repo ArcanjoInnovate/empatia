@@ -301,7 +301,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: selected ? Colors.white : Colors.grey.shade600,
+                  color: selected ? AppTheme.backgroundColor : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -330,7 +330,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
               padding: const EdgeInsets.all(8),
               decoration: AppDecorations.photoCameraBadge,
               child: const Icon(AppIcons.camera,
-                  color: Colors.white, size: 18),
+                  color: AppTheme.backgroundColor, size: 18),
             ),
           ),
         ],
@@ -429,7 +429,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
       SnackBar(
         content: Text(message,
             style: const TextStyle(
-                fontWeight: FontWeight.w700, color: Colors.white)),
+                fontWeight: FontWeight.w700, color: AppTheme.backgroundColor)),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         shape:

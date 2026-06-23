@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:empatia/features/settings/features/account_verification/controller/email_controller.dart';
 import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/features/settings/features/account_verification/controller/email_controller.dart';
 import 'package:flutter/material.dart';
 
 /// Página de verificação de e-mail exclusiva do fluxo de configurações.
@@ -221,11 +219,11 @@ class _SettingsEmailVerificationPageState
                   padding: const EdgeInsets.symmetric(
                       horizontal: 32, vertical: 48),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.backgroundColor,
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF22C55E).withOpacity(0.2),
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.2),
                         blurRadius: 40,
                         spreadRadius: 4,
                         offset: const Offset(0, 12),
@@ -256,7 +254,7 @@ class _SettingsEmailVerificationPageState
                               boxShadow: [
                                 BoxShadow(
                                   color: const Color(0xFF22C55E)
-                                      .withOpacity(0.45),
+                                      .withValues(alpha: 0.45),
                                   blurRadius: 30,
                                   spreadRadius: 2,
                                 ),
@@ -264,7 +262,7 @@ class _SettingsEmailVerificationPageState
                             ),
                             child: const Icon(
                               Icons.mark_email_read_rounded,
-                              color: Colors.white,
+                              color: AppTheme.backgroundColor,
                               size: 56,
                             ),
                           ),
@@ -307,7 +305,7 @@ class _SettingsEmailVerificationPageState
                             value: value,
                             minHeight: 6,
                             backgroundColor:
-                                const Color(0xFF4ADE80).withOpacity(0.2),
+                                const Color(0xFF4ADE80).withValues(alpha: 0.2),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Color(0xFF22C55E),
                             ),
@@ -376,7 +374,7 @@ class _SettingsEmailVerificationPageState
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B9D).withOpacity(0.45),
+                    color: const Color(0xFFFF6B9D).withValues(alpha: 0.45),
                     blurRadius: 40,
                     spreadRadius: 4,
                   ),
@@ -395,7 +393,7 @@ class _SettingsEmailVerificationPageState
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(colors: [
-                            Colors.white.withOpacity(0.15),
+                            AppTheme.backgroundColor.withValues(alpha: 0.15),
                             Colors.transparent,
                           ]),
                         ),
@@ -417,11 +415,11 @@ class _SettingsEmailVerificationPageState
   Widget _buildCard(String email) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6B9D).withOpacity(0.12),
+            color: const Color(0xFFFF6B9D).withValues(alpha: 0.12),
             blurRadius: 30,
             spreadRadius: 2,
             offset: const Offset(0, 10),
@@ -472,12 +470,12 @@ class _SettingsEmailVerificationPageState
                       horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [
-                      const Color(0xFFFF6B9D).withOpacity(0.08),
-                      const Color(0xFFA855F7).withOpacity(0.08),
+                      const Color(0xFFFF6B9D).withValues(alpha: 0.08),
+                      const Color(0xFFA855F7).withValues(alpha: 0.08),
                     ]),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFFF6B9D).withOpacity(0.25),
+                      color: const Color(0xFFFF6B9D).withValues(alpha: 0.25),
                       width: 1.5,
                     ),
                   ),
@@ -572,7 +570,7 @@ class _SettingsEmailVerificationPageState
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                 ),
               ),
             ),
@@ -614,7 +612,7 @@ class _SettingsEmailVerificationPageState
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF6B9D).withOpacity(0.45),
+                  color: const Color(0xFFFF6B9D).withValues(alpha: 0.45),
                   blurRadius: 20,
                   spreadRadius: 1,
                   offset: const Offset(0, 8),
@@ -628,7 +626,7 @@ class _SettingsEmailVerificationPageState
                       height: 26,
                       child: CircularProgressIndicator(
                         strokeWidth: 3,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     )
                   : const Row(
@@ -641,7 +639,7 @@ class _SettingsEmailVerificationPageState
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -663,10 +661,10 @@ class _SettingsEmailVerificationPageState
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF4ADE80).withOpacity(0.1),
+          color: const Color(0xFF4ADE80).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFF4ADE80).withOpacity(0.4),
+            color: const Color(0xFF4ADE80).withValues(alpha: 0.4),
           ),
         ),
         child: const Row(
@@ -696,7 +694,7 @@ class _SettingsEmailVerificationPageState
           border: Border.all(
             color: onCooldown
                 ? Colors.grey.shade300
-                : const Color(0xFFA855F7).withOpacity(0.5),
+                : const Color(0xFFA855F7).withValues(alpha: 0.5),
             width: 2,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -750,7 +748,7 @@ class _SettingsEmailVerificationPageState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.7),
+          color: AppTheme.backgroundColor.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.shade200),
         ),

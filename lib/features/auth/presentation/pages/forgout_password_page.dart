@@ -206,12 +206,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           decoration: AppDecorations.forgotBackButton,
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white, size: 18 * r.scale),
+                color: AppTheme.backgroundColor, size: 18 * r.scale),
             SizedBox(width: 6 * r.scale),
             Text(
               'Voltar',
               style: TextStyle(
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 fontWeight: FontWeight.w800,
                 fontSize: r.fontSubtitle,
               ),
@@ -259,7 +259,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                     ),
                   ),
                   child: Icon(Icons.lock_reset_rounded,
-                      size: r.iconIconSize, color: Colors.white),
+                      size: r.iconIconSize, color: AppTheme.backgroundColor),
                 ),
               ]),
             ),
@@ -448,7 +448,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                   ? const SizedBox(
                       width: 28, height: 28,
                       child: CircularProgressIndicator(
-                          strokeWidth: 3, color: Colors.white))
+                          strokeWidth: 3, color: AppTheme.backgroundColor))
                   : Row(mainAxisSize: MainAxisSize.min, children: [
                       Text('📩', style: TextStyle(fontSize: r.fontButton + 9)),
                       SizedBox(width: 12 * r.scale),
@@ -456,7 +456,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                           style: TextStyle(
                             fontSize: r.fontButton,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                             letterSpacing: 1.5,
                           )),
                       SizedBox(width: 12 * r.scale),
@@ -521,7 +521,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           child: Container(
             width: size, height: size,
             decoration: AppDecorations.bubble(
-                Colors.white.withOpacity(opacity)),
+                AppTheme.backgroundColor.withOpacity(opacity)),
           ),
         ),
       ),
@@ -679,7 +679,7 @@ class _ForgotPasswordInstructionsPageState
                   ),
                 ),
                 child: Icon(Icons.mark_email_read_rounded,
-                    size: r.icon2IconSize, color: Colors.white),
+                    size: r.icon2IconSize, color: AppTheme.backgroundColor),
               ),
             ]),
           ),
@@ -735,7 +735,7 @@ class _ForgotPasswordInstructionsPageState
                       style: TextStyle(
                         fontSize: r.fontEmail,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                   ),
@@ -923,7 +923,7 @@ class _ForgotPasswordInstructionsPageState
                 style: TextStyle(
                   fontSize: r.stepNumSize,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                 ),
               ),
             ),
@@ -993,7 +993,7 @@ class _ForgotPasswordInstructionsPageState
             style: TextStyle(
               fontSize: r.fontButton,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: AppTheme.backgroundColor,
               letterSpacing: 1.5,
             ),
           ),
@@ -1031,7 +1031,7 @@ class _ForgotPasswordInstructionsPageState
             child: Container(
               width: size, height: size,
               decoration:
-                  AppDecorations.bubble(Colors.white.withOpacity(opacity)),
+                  AppDecorations.bubble(AppTheme.backgroundColor.withOpacity(opacity)),
             ),
           );
         },

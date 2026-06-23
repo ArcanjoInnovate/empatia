@@ -214,7 +214,7 @@ class _SuccessAnimationPageState extends State<SuccessAnimationPage>
                 width: r.iconInnerSize, height: r.iconInnerSize,
                 decoration: AppDecorations.successIconInner,
                 child: Icon(Icons.check_rounded,
-                    size: r.iconCheckSize, color: Colors.white),
+                    size: r.iconCheckSize, color: AppTheme.backgroundColor),
               ),
             ]),
           ),
@@ -378,7 +378,7 @@ class _SuccessAnimationPageState extends State<SuccessAnimationPage>
           child: Container(
             width: size, height: size,
             decoration:
-                AppDecorations.bubble(Colors.white.withOpacity(opacity)),
+                AppDecorations.bubble(AppTheme.backgroundColor.withOpacity(opacity)),
           ),
         ),
       ),

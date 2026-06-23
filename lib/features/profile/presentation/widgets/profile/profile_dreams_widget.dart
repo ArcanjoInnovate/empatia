@@ -1,7 +1,7 @@
 import 'package:empatia/core/data/models/dream_model.dart';
-import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 
 /// 💭 PROFILE DREAMS WIDGET
 ///
@@ -56,12 +56,12 @@ class DreamCardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFF0E6FF), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: AppTheme.kidsPurple.withOpacity(0.06),
+              color: AppTheme.kidsPurple.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 4)),
         ],

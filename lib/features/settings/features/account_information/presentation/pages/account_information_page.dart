@@ -1,9 +1,7 @@
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/settings/features/account_information/controller/account_info_controller.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/widgets/change_email_sheet.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/widgets/info_card.dart';
-import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class AccountInformationPage extends StatefulWidget {
@@ -68,9 +66,9 @@ class _AccountInformationPageState extends State<AccountInformationPage> {
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white, size: 20),
+                    color: AppTheme.backgroundColor, size: 20),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.25),
+                  backgroundColor: AppTheme.backgroundColor.withValues(alpha: 0.25),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.all(10),
@@ -82,7 +80,7 @@ class _AccountInformationPageState extends State<AccountInformationPage> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   letterSpacing: 1.4,
                 ),
               ),

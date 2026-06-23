@@ -1,4 +1,5 @@
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_page.dart';
 import 'package:empatia/features/profile/presentation/page/profile/profile_page.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import '../../features/home/presentation/pages/home_page.dart';
 
 class MainNavigation extends StatefulWidget {
   final UserModel user;
-  
+
   const MainNavigation({
     super.key,
     required this.user,
@@ -74,10 +75,19 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      // IndexedStack mantém TODAS as páginas montadas na árvore ao mesmo
+      // tempo — só exibe a do índice atual, mas o Element/State das outras
+      // continua vivo "por baixo". Isso evita que o HomePage seja
+      // desmontado (dispose) e remontado (initState de novo) a cada troca
+      // de aba, que era o que estava reabrindo o listener do Firebase em
+      // /Dreams repetidamente.
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -171,7 +181,7 @@ class _MainNavigationState extends State<MainNavigation> {
             Icon(
               icon,
               color: isActive || isSpecial
-                  ? Colors.white
+                  ? AppTheme.backgroundColor
                   : Colors.grey.shade500,
               size: isSpecial ? 28 : 24,
             ),
@@ -182,7 +192,7 @@ class _MainNavigationState extends State<MainNavigation> {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: isActive || isSpecial
-                    ? Colors.white
+                    ? AppTheme.backgroundColor
                     : Colors.grey.shade500,
               ),
             ),

@@ -1,10 +1,9 @@
 import 'package:empatia/core/data/models/dream_model.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
-import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
 import 'package:flutter/material.dart';
+import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_icons.dart';
 import 'package:provider/provider.dart';
 
 /// 💭 DREAM CARD WIDGET
@@ -43,7 +42,7 @@ class DreamCardWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF0E6FF), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.kidsPurple.withOpacity(0.06),
+            color: AppTheme.kidsPurple.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -294,7 +293,7 @@ class _ProgressSliderState extends State<_ProgressSlider> {
         activeTrackColor: widget.progressColor,
         inactiveTrackColor: Colors.grey.shade100,
         thumbColor: widget.progressColor,
-        overlayColor: widget.progressColor.withOpacity(0.15),
+        overlayColor: widget.progressColor.withValues(alpha: 0.15),
       ),
       child: Slider(
         value: _value,

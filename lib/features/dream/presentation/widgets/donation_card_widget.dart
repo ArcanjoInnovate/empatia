@@ -89,7 +89,7 @@ class DonationCardWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppTheme.backgroundColor,
                     ),
                   ),
                 ),
@@ -228,7 +228,7 @@ class _DonationFullscreenView extends StatelessWidget {
                 ),
                 child: const Icon(
                   Icons.close_rounded,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   size: 22,
                 ),
               ),
@@ -261,7 +261,7 @@ class _DonationFullscreenView extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -278,7 +278,7 @@ class _DonationFullscreenView extends StatelessWidget {
                               DonationModel.categoryLabel(donation.category),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white.withOpacity(0.75),
+                                color: AppTheme.backgroundColor.withOpacity(0.75),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -295,7 +295,7 @@ class _DonationFullscreenView extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: AppTheme.backgroundColor,
                                 ),
                               ),
                             ),
@@ -321,14 +321,14 @@ class _DonationFullscreenView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.edit_rounded,
-                              color: Colors.white, size: 16),
+                              color: AppTheme.backgroundColor, size: 16),
                           SizedBox(width: 6),
                           Text(
                             'Editar',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppTheme.backgroundColor,
                             ),
                           ),
                         ],

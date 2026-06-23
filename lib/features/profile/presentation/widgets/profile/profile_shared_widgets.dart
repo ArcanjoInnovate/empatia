@@ -89,7 +89,7 @@ class ProfileEmptyStateWidget extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppTheme.dividerColor, width: 1.5),
         ),

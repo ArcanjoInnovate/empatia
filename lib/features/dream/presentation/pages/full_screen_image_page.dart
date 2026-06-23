@@ -1,3 +1,4 @@
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -124,7 +125,7 @@ class _FullscreenImagePageState extends State<FullscreenImagePage> {
                 ? progress.cumulativeBytesLoaded /
                     progress.expectedTotalBytes!
                 : null,
-            color: Colors.white,
+            color: AppTheme.backgroundColor,
             strokeWidth: 2,
           ),
         );
@@ -134,11 +135,11 @@ class _FullscreenImagePageState extends State<FullscreenImagePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.broken_image_rounded,
-                size: 64, color: Colors.white24),
+                size: 64, color: AppTheme.backgroundColor),
             SizedBox(height: 12),
             Text(
               'Não foi possível carregar a imagem',
-              style: TextStyle(color: Colors.white38, fontSize: 14),
+              style: TextStyle(color: AppTheme.backgroundColor, fontSize: 14),
             ),
           ],
         ),
@@ -193,7 +194,7 @@ class _TopBar extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -230,7 +231,7 @@ class _CircleButton extends StatelessWidget {
           color: Colors.black.withOpacity(0.5),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
+        child: Icon(icon, color: AppTheme.backgroundColor, size: 20),
       ),
     );
   }

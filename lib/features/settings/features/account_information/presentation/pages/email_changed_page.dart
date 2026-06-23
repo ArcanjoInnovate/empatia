@@ -1,9 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 /// Tela exibida após o envio do link de troca de e-mail.
@@ -174,16 +172,16 @@ class _EmailChangedPageState extends State<EmailChangedPage>
               width: 130,
               height: 130,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B9D).withOpacity(0.5),
+                    color: const Color(0xFFFF6B9D).withValues(alpha: 0.5),
                     blurRadius: 35,
                     spreadRadius: 6,
                   ),
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
                     blurRadius: 45,
                     spreadRadius: 12,
                   ),
@@ -229,7 +227,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
                     ),
                     child: const Icon(
                       Icons.mark_email_unread_rounded,
-                      color: Colors.white,
+                      color: AppTheme.backgroundColor,
                       size: 46,
                     ),
                   ),
@@ -249,12 +247,12 @@ class _EmailChangedPageState extends State<EmailChangedPage>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Colors.white, Color(0xFFFFF9E6)],
+          colors: [AppTheme.backgroundColor, Color(0xFFFFF9E6)],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFC837).withOpacity(0.5),
+            color: const Color(0xFFFFC837).withValues(alpha: 0.5),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -272,7 +270,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 height: 1.2,
               ),
             ),
@@ -298,12 +296,12 @@ class _EmailChangedPageState extends State<EmailChangedPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3), width: 2),
+        border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.3), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.15),
+            color: const Color(0xFF2563EB).withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -345,11 +343,11 @@ class _EmailChangedPageState extends State<EmailChangedPage>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -369,7 +367,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.info_rounded,
-                    color: Colors.white, size: 18),
+                    color: AppTheme.backgroundColor, size: 18),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -425,7 +423,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
         border: Border.all(color: const Color(0xFFFCD34D), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFC837).withOpacity(0.25),
+            color: const Color(0xFFFFC837).withValues(alpha: 0.25),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -491,7 +489,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.5),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.5),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -500,14 +498,14 @@ class _EmailChangedPageState extends State<EmailChangedPage>
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.login_rounded, color: Colors.white, size: 22),
+                Icon(Icons.login_rounded, color: AppTheme.backgroundColor, size: 22),
                 SizedBox(width: 10),
                 Text(
                   'Ir para Login',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: AppTheme.backgroundColor,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -528,15 +526,15 @@ class _EmailChangedPageState extends State<EmailChangedPage>
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF8B5CF6).withOpacity(0.4),
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -628,7 +626,7 @@ class _EmailChangedPageState extends State<EmailChangedPage>
               height: p[4],
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.10),
+                color: AppTheme.backgroundColor.withValues(alpha: 0.10),
               ),
             ),
           ),

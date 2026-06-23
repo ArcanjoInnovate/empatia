@@ -1,7 +1,5 @@
-import 'package:empatia/features/settings/features/account_information/presentation/widgets/sheet_components.dart';
 import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/features/settings/features/account_information/presentation/widgets/sheet_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -65,7 +63,7 @@ class _ChangePhoneSheetState extends State<ChangePhoneSheet> {
           bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
@@ -233,7 +231,7 @@ SnackBar _successSnackBar(String message) => SnackBar(
   content: Row(
     children: [
       const Icon(Icons.check_circle_rounded,
-          color: Colors.white, size: 20),
+          color: AppTheme.backgroundColor, size: 20),
       const SizedBox(width: 12),
       Expanded(
         child: Text(message,

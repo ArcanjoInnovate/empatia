@@ -1,6 +1,4 @@
 import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class InfoCard extends StatelessWidget {
@@ -29,11 +27,11 @@ class InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -54,7 +52,7 @@ class InfoCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color:     glowColor.withOpacity(0.30),
+                        color:     glowColor.withValues(alpha: 0.30),
                         blurRadius: 10,
                         offset:    const Offset(0, 4),
                       ),
@@ -122,7 +120,7 @@ class InfoCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color:     glowColor.withOpacity(0.35),
+                      color:     glowColor.withValues(alpha: 0.35),
                       blurRadius: 14,
                       offset:    const Offset(0, 5),
                     ),
@@ -132,14 +130,14 @@ class InfoCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.edit_rounded,
-                        color: Colors.white, size: 16),
+                        color: AppTheme.backgroundColor, size: 16),
                     const SizedBox(width: 8),
                     Text(
                       buttonLabel,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                   ],

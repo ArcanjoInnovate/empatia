@@ -55,7 +55,7 @@ class _HeaderBackground extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white70,
+                      color: AppTheme.backgroundColor,
                       letterSpacing: 2,
                     ),
                   ),
@@ -99,7 +99,7 @@ class _HeaderBackground extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.white,
+                                  color: AppTheme.backgroundColor,
                                   height: 1.1,
                                 ),
                               ),
@@ -129,7 +129,7 @@ class _HeaderBackground extends StatelessWidget {
   Widget _iconBtn(IconData icon, {required VoidCallback onTap}) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, color: Colors.white, size: 20),
+      icon: Icon(icon, color: AppTheme.backgroundColor, size: 20),
       style: IconButton.styleFrom(
         backgroundColor: AppDecorations.profileHeaderIconButton.color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -194,7 +194,7 @@ class VerificationChipWidget extends StatelessWidget {
               fullyVerified
                   ? AppIcons.verified
                   : AppIcons.shieldOutline,
-              color: fullyVerified ? AppTheme.kidsGreen : Colors.white70,
+              color: fullyVerified ? AppTheme.kidsGreen : AppTheme.backgroundColor,
               size: 13,
             ),
             const SizedBox(width: 5),
@@ -203,7 +203,7 @@ class VerificationChipWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: fullyVerified ? AppTheme.kidsGreen : Colors.white70,
+                color: fullyVerified ? AppTheme.kidsGreen : AppTheme.backgroundColor,
               ),
             ),
             if (fullyVerified) ...[
@@ -219,7 +219,7 @@ class VerificationChipWidget extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white)),
+                        color: AppTheme.backgroundColor)),
               ),
             ],
           ],
@@ -306,7 +306,7 @@ class ProfileMetaRowWidget extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                     if (!isLast)
@@ -316,7 +316,7 @@ class ProfileMetaRowWidget extends StatelessWidget {
                           width: 3,
                           height: 3,
                           decoration: const BoxDecoration(
-                            color: Colors.white38,
+                            color: AppTheme.backgroundColor,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -342,7 +342,7 @@ class ProfileMetaRowWidget extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AppTheme.backgroundColor,
                     ),
                   ),
                 ),
@@ -410,7 +410,7 @@ class VerificationSheetWidget extends StatelessWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -435,7 +435,7 @@ class VerificationSheetWidget extends StatelessWidget {
               fullyVerified
                   ? AppIcons.verified
                   : AppIcons.shieldOutline,
-              color: Colors.white, size: 34,
+              color: AppTheme.backgroundColor, size: 34,
             ),
           ),
           const SizedBox(height: 16),
@@ -540,7 +540,7 @@ class VerificationSheetWidget extends StatelessWidget {
               decoration: AppDecorations.verificationStepIcon(done: done),
               child: Icon(
                 done ? AppIcons.check : icon,
-                color: Colors.white, size: 20,
+                color: AppTheme.backgroundColor, size: 20,
               ),
             ),
             const SizedBox(width: 14),

@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:flutter/material.dart';
 
 // ── Design tokens (mesmos do app) ──────────────────────────────────────────
 
@@ -21,7 +21,7 @@ Future<void> showVerificationRequiredDialog(
   return showDialog(
     context: context,
     barrierDismissible: true,
-    barrierColor: Colors.black.withOpacity(0.55),
+    barrierColor: Colors.black.withValues(alpha: 0.55),
     builder: (_) => _VerificationRequiredDialog(feature: feature),
   );
 }
@@ -61,7 +61,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.22),
+                        color: AppTheme.backgroundColor.withValues(alpha: 0.22),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(
@@ -77,7 +77,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -163,7 +163,7 @@ class _VerificationRequiredDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppTheme.backgroundColor,
                               letterSpacing: -0.2,
                             ),
                           ),

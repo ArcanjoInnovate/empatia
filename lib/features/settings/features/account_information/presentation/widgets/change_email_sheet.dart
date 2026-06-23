@@ -1,8 +1,6 @@
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/pages/email_changed_page.dart';
 import 'package:empatia/features/settings/features/account_information/presentation/widgets/sheet_components.dart';
-import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class ChangeEmailSheet extends StatefulWidget {
@@ -107,7 +105,7 @@ class _ChangeEmailSheetState extends State<ChangeEmailSheet> {
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),

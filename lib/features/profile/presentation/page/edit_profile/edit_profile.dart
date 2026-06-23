@@ -304,7 +304,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   padding: const EdgeInsets.all(10),
                   decoration: AppDecorations.editProfileBackButton,
                   child: const Icon(AppIcons.back,
-                      color: Colors.white, size: 20),
+                      color: AppTheme.backgroundColor, size: 20),
                 ),
               ),
               const SizedBox(width: 16),
@@ -312,7 +312,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                      color: AppTheme.backgroundColor,
                       letterSpacing: 1.5)),
             ],
           ),
@@ -384,7 +384,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: sel ? Colors.white : Colors.grey.shade600)),
+                      color: sel ? AppTheme.backgroundColor : Colors.grey.shade600)),
             ],
           ),
         ),
@@ -457,17 +457,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const SizedBox(
                     width: 22, height: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5))
+                        color: AppTheme.backgroundColor, strokeWidth: 2.5))
               else
                 const Icon(AppIcons.checkCircle,
-                    color: Colors.white, size: 24),
+                    color: AppTheme.backgroundColor, size: 24),
               const SizedBox(width: 10),
               Text(
                 isLoading ? 'Salvando...' : 'SALVAR ALTERAÇÕES',
                 style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: AppTheme.backgroundColor,
                     letterSpacing: 1.2),
               ),
             ],
@@ -481,7 +481,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message,
           style: const TextStyle(
-              fontWeight: FontWeight.w700, color: Colors.white)),
+              fontWeight: FontWeight.w700, color: AppTheme.backgroundColor)),
       backgroundColor: color,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

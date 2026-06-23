@@ -337,7 +337,7 @@ class _AmbientBubbles extends StatelessWidget {
               child: Container(
                 width: size.width * 0.55,
                 height: size.width * 0.55,
-                decoration: AppDecorations.bubble(Colors.white.withOpacity(0.10)),
+                decoration: AppDecorations.bubble(AppTheme.backgroundColor.withOpacity(0.10)),
               ),
             ),
             Positioned(
@@ -346,7 +346,7 @@ class _AmbientBubbles extends StatelessWidget {
               child: Container(
                 width: size.width * 0.6,
                 height: size.width * 0.6,
-                decoration: AppDecorations.bubble(Colors.white.withOpacity(0.08)),
+                decoration: AppDecorations.bubble(AppTheme.backgroundColor.withOpacity(0.08)),
               ),
             ),
             Positioned(
@@ -355,7 +355,7 @@ class _AmbientBubbles extends StatelessWidget {
               child: Container(
                 width: size.width * 0.22,
                 height: size.width * 0.22,
-                decoration: AppDecorations.bubble(Colors.white.withOpacity(0.12)),
+                decoration: AppDecorations.bubble(AppTheme.backgroundColor.withOpacity(0.12)),
               ),
             ),
           ],
@@ -406,7 +406,7 @@ class _Brand extends StatelessWidget {
                   child: Icon(
                     Icons.favorite_rounded,
                     size: r.logoSize * 0.4,
-                    color: Colors.white,
+                    color: AppTheme.backgroundColor,
                   ),
                 ),
               ],
@@ -947,7 +947,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
                       key: ValueKey('loading'),
                       width: 26,
                       height: 26,
-                      child: CircularProgressIndicator(strokeWidth: 2.8, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2.8, color: AppTheme.backgroundColor),
                     )
                   : Row(
                       key: const ValueKey('label'),
@@ -960,7 +960,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
                           style: TextStyle(
                             fontSize: r.fontButton,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                             letterSpacing: 1.5,
                           ),
                         ),
@@ -1020,7 +1020,7 @@ class _SecondaryButtonState extends State<_SecondaryButton> {
                 style: TextStyle(
                   fontSize: r.fontButton * 0.92,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   letterSpacing: 1,
                 ),
               ),

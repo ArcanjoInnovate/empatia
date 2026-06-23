@@ -1,9 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:empatia/features/settings/features/change_password/controller/change_password_controller.dart';
 import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
+import 'package:empatia/features/settings/features/change_password/controller/change_password_controller.dart';
 import 'package:flutter/material.dart';
 
 class ChangePasswordPage extends StatefulWidget {
@@ -255,9 +253,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
             IconButton(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 20),
+                  color: AppTheme.backgroundColor, size: 20),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.25),
+                backgroundColor: AppTheme.backgroundColor.withValues(alpha: 0.25),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.all(10),
@@ -269,7 +267,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 letterSpacing: 1.5,
               ),
             ),
@@ -293,16 +291,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.5),
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.5),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
                   BoxShadow(
-                    color: const Color(0xFFFF6B9D).withOpacity(0.35),
+                    color: const Color(0xFFFF6B9D).withValues(alpha: 0.35),
                     blurRadius: 40,
                     spreadRadius: 10,
                   ),
@@ -345,7 +343,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                       ),
                     ),
                     child: const Icon(Icons.lock_rounded,
-                        color: Colors.white, size: 38),
+                        color: AppTheme.backgroundColor, size: 38),
                   ),
                 ],
               ),
@@ -362,11 +360,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [Colors.white, Color(0xFFFFF9E6)]),
+            colors: [AppTheme.backgroundColor, Color(0xFFFFF9E6)]),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFC837).withOpacity(0.4),
+            color: const Color(0xFFFFC837).withValues(alpha: 0.4),
             blurRadius: 18,
             spreadRadius: 2,
           ),
@@ -384,7 +382,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
               ),
             ),
           ),
@@ -414,11 +412,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.backgroundColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -578,11 +576,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -647,11 +645,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -671,7 +669,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Icon(Icons.tips_and_updates_rounded,
-                    color: Colors.white, size: 16),
+                    color: AppTheme.backgroundColor, size: 16),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -695,7 +693,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                   height: 26,
                   decoration: BoxDecoration(
                     color: t.$3
-                        ? const Color(0xFF4ADE80).withOpacity(0.15)
+                        ? const Color(0xFF4ADE80).withValues(alpha: 0.15)
                         : Colors.grey.shade100,
                     shape: BoxShape.circle,
                   ),
@@ -748,7 +746,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.5),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.5),
                   blurRadius: 22,
                   offset: const Offset(0, 8),
                 ),
@@ -762,21 +760,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                       child: CircularProgressIndicator(
                         strokeWidth: 3,
                         valueColor:
-                            AlwaysStoppedAnimation(Colors.white),
+                            AlwaysStoppedAnimation(AppTheme.backgroundColor),
                       ),
                     )
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.lock_reset_rounded,
-                            color: Colors.white, size: 22),
+                            color: AppTheme.backgroundColor, size: 22),
                         SizedBox(width: 10),
                         Text(
                           'Salvar nova senha 🚀',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                             letterSpacing: 0.4,
                           ),
                         ),
@@ -812,7 +810,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
             height: p[4],
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.09),
+              color: AppTheme.backgroundColor.withValues(alpha: 0.09),
             ),
           ),
         ),

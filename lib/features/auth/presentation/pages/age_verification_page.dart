@@ -107,8 +107,8 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
             primary:   AppTheme.kidsPink,
-            onPrimary: Colors.white,
-            surface:   Colors.white,
+            onPrimary: AppTheme.backgroundColor,
+            surface:   AppTheme.backgroundColor,
             onSurface: AppTheme.textDark,
           ),
         ),
@@ -250,7 +250,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                     : 'ATUALIZAR IDADE',
                 style: const TextStyle(
                   fontSize: 18, fontWeight: FontWeight.w900,
-                  color: Colors.white, letterSpacing: 1.4,
+                  color: AppTheme.backgroundColor, letterSpacing: 1.4,
                 ),
               ),
             ],
@@ -285,7 +285,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 22, fontWeight: FontWeight.w900,
-              color: Colors.white, height: 1.3,
+              color: AppTheme.backgroundColor, height: 1.3,
             ),
           ),
           const SizedBox(height: 10),
@@ -294,7 +294,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.85),
+              color: AppTheme.backgroundColor.withOpacity(0.85),
               height: 1.4,
             ),
           ),
@@ -313,10 +313,10 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
           Text('🎉', style: TextStyle(fontSize: 56)),
           SizedBox(height: 16),
           Text('Tudo certo!',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.backgroundColor)),
           SizedBox(height: 8),
           Text('Criando sua conta...',
-              style: TextStyle(fontSize: 14, color: Colors.white)),
+              style: TextStyle(fontSize: 14, color: AppTheme.backgroundColor)),
         ],
       ),
     );
@@ -569,7 +569,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                   width: 22, height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.backgroundColor),
                   ),
                 ),
               )
@@ -577,7 +577,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.verified_rounded,
-                      color: canSubmit ? Colors.white : AppTheme.textMuted,
+                      color: canSubmit ? AppTheme.backgroundColor : AppTheme.textMuted,
                       size: 20),
                   const SizedBox(width: 8),
                   Text(
@@ -586,7 +586,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
                         : 'Confirmar data de nascimento',
                     style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w800,
-                      color: canSubmit ? Colors.white : AppTheme.textMuted,
+                      color: canSubmit ? AppTheme.backgroundColor : AppTheme.textMuted,
                     ),
                   ),
                 ],

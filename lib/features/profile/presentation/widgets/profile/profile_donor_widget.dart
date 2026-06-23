@@ -114,14 +114,14 @@ class _DonorBannerWidget extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(AppIcons.donate,
-                        color: Colors.white, size: 14),
+                        color: AppTheme.backgroundColor, size: 14),
                     SizedBox(width: 6),
                     Text(
                       'Modo Doador Ativo',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                   ],

@@ -249,7 +249,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
                       ? const SizedBox(
                           width: 20, height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                             strokeWidth: 2,
                           ),
                         )
@@ -258,7 +258,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            color: AppTheme.backgroundColor,
                           ),
                         ),
                 ),

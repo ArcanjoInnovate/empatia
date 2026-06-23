@@ -1,7 +1,7 @@
 import 'package:empatia/core/data/models/child_model.dart';
-import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:empatia/core/theme/app_theme.dart';
 
 /// 👨‍👩‍👧‍👦 PROFILE CHILDREN WIDGET
 ///
@@ -84,14 +84,14 @@ class _ProfileChildrenWidgetState extends State<ProfileChildrenWidget>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                      color: AppTheme.kidsPink.withOpacity(0.3),
+                      color: AppTheme.kidsPink.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3)),
                 ],
               ),
               indicatorPadding:
                   const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              labelColor: Colors.white,
+              labelColor: AppTheme.backgroundColor,
               unselectedLabelColor: Colors.grey.shade500,
               labelStyle:
                   const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
@@ -144,12 +144,12 @@ class ChildCardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE3ECFF), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: AppTheme.childCardAccent.withOpacity(0.05),
+              color: AppTheme.childCardAccent.withValues(alpha: 0.05),
               blurRadius: 12,
               offset: const Offset(0, 4)),
         ],
@@ -188,7 +188,7 @@ class ChildCardWidget extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.kidsPink.withOpacity(0.1),
+                      color: AppTheme.kidsPink.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

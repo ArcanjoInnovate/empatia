@@ -348,7 +348,7 @@ class _RegisterPageState extends State<RegisterPage>
               height: r.logoInnerSize,
               decoration: AppDecorations.registerLogoInner,
               child: Icon(Icons.favorite,
-                  size: r.logoIconSize, color: Colors.white),
+                  size: r.logoIconSize, color: AppTheme.backgroundColor),
             ),
           ]),
         ),
@@ -694,7 +694,7 @@ class _RegisterPageState extends State<RegisterPage>
             decoration: AppDecorations.termsCheckboxTick(accepted: _acceptTerms),
             child: _acceptTerms
                 ? const Icon(Icons.check_rounded,
-                    size: 17, color: Colors.white)
+                    size: 17, color: AppTheme.backgroundColor)
                 : null,
           ),
           SizedBox(width: r.gapM),
@@ -758,7 +758,7 @@ class _RegisterPageState extends State<RegisterPage>
               style: TextStyle(
                 fontSize: r.fontButton,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 letterSpacing: 1.4,
                 shadows: const [
                   Shadow(
@@ -804,7 +804,7 @@ class _RegisterPageState extends State<RegisterPage>
               style: TextStyle(
                 fontSize: r.fontCaption + 1,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 letterSpacing: 0.8,
               ),
             ),

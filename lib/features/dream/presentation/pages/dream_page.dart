@@ -61,7 +61,7 @@ class DreamPage extends StatelessWidget {
               label: const Text(
                 'Novo sonho!',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
                 ),
@@ -145,28 +145,28 @@ class _DreamHeader extends StatelessWidget {
               child: Text('☁️',
                   style: TextStyle(
                       fontSize: 38,
-                      color: Colors.white.withOpacity(0.18))),
+                      color: AppTheme.backgroundColor.withOpacity(0.18))),
             ),
             Positioned(
               top: 50, left: 8,
               child: Text('☁️',
                   style: TextStyle(
                       fontSize: 24,
-                      color: Colors.white.withOpacity(0.12))),
+                      color: AppTheme.backgroundColor.withOpacity(0.12))),
             ),
             Positioned(
               bottom: 50, right: 55,
               child: Text('⭐',
                   style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.3))),
+                      color: AppTheme.backgroundColor.withOpacity(0.3))),
             ),
             Positioned(
               bottom: 64, left: 28,
               child: Text('🌈',
                   style: TextStyle(
                       fontSize: 18,
-                      color: Colors.white.withOpacity(0.22))),
+                      color: AppTheme.backgroundColor.withOpacity(0.22))),
             ),
 
             SafeArea(
@@ -180,7 +180,7 @@ class _DreamHeader extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(9),
-                          // era: BoxDecoration inline com Colors.white.withOpacity(0.2)
+                          // era: BoxDecoration inline com AppTheme.backgroundColor.withOpacity(0.2)
                           decoration: AppDecorations.dreamHeaderIconBox,
                           child: const Text('🌠',
                               style: TextStyle(fontSize: 22)),
@@ -194,14 +194,14 @@ class _DreamHeader extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: AppTheme.backgroundColor,
                               ),
                             ),
                             Text(
                               'Realize seus desejos! ✨',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white.withOpacity(0.8),
+                                color: AppTheme.backgroundColor.withOpacity(0.8),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -296,11 +296,11 @@ class _StatBubble extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white)),
+                      color: AppTheme.backgroundColor)),
               Text(label,
                   style: TextStyle(
                       fontSize: 8,
-                      color: Colors.white.withOpacity(0.8),
+                      color: AppTheme.backgroundColor.withOpacity(0.8),
                       fontWeight: FontWeight.w700)),
             ],
           ),
@@ -621,7 +621,7 @@ class _AddButton extends StatelessWidget {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w900,
-            color: Colors.white,
+            color: AppTheme.backgroundColor,
           ),
         ),
       ),

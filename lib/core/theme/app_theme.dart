@@ -458,7 +458,7 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryBlue,
-        foregroundColor: Colors.white,
+        foregroundColor: AppTheme.backgroundColor,
         elevation: 0,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -474,7 +474,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppTheme.backgroundColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Color(0xFFE0E0E0)),

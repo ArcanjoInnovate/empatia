@@ -1,9 +1,7 @@
+import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/email_verification_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:empatia/core/theme/app_theme.dart';
-import 'package:empatia/core/theme/app_decorations.dart';
-import 'package:empatia/core/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 
 class AccountSettingsPage extends StatefulWidget {
@@ -134,11 +132,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   size: 20,
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.25),
+                  backgroundColor: AppTheme.backgroundColor.withValues(alpha: 0.25),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -151,7 +149,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                   letterSpacing: 1.5,
                 ),
               ),
@@ -177,7 +175,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6B9D).withOpacity(0.35),
+            color: const Color(0xFFFF6B9D).withValues(alpha: 0.35),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -191,7 +189,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: AppTheme.backgroundColor.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text('🛡️', style: TextStyle(fontSize: 28)),
@@ -206,7 +204,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: AppTheme.backgroundColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -214,7 +212,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       'Perfis verificados transmitem\nmais confiança para a comunidade.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.85),
+                        color: AppTheme.backgroundColor.withValues(alpha: 0.85),
                         height: 1.4,
                       ),
                     ),
@@ -234,7 +232,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withOpacity(0.9),
+                  color: AppTheme.backgroundColor.withValues(alpha: 0.9),
                 ),
               ),
               Text(
@@ -242,7 +240,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.backgroundColor,
                 ),
               ),
             ],
@@ -252,8 +250,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withOpacity(0.25),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              backgroundColor: AppTheme.backgroundColor.withValues(alpha: 0.25),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.backgroundColor),
               minHeight: 10,
             ),
           ),
@@ -299,11 +297,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -323,7 +321,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: glowColor.withOpacity(0.30),
+                        color: glowColor.withValues(alpha: 0.30),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -353,8 +351,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: verified
-                                  ? const Color(0xFF22C55E).withOpacity(0.1)
-                                  : tagColor.withOpacity(0.1),
+                                  ? const Color(0xFF22C55E).withValues(alpha: 0.1)
+                                  : tagColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -402,8 +400,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               color: verified
-                                  ? const Color(0xFF22C55E).withOpacity(0.12)
-                                  : tagColor.withOpacity(0.1),
+                                  ? const Color(0xFF22C55E).withValues(alpha: 0.12)
+                                  : tagColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(
@@ -438,10 +436,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4ADE80).withOpacity(0.1),
+                      color: const Color(0xFF4ADE80).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF4ADE80).withOpacity(0.4),
+                        color: const Color(0xFF4ADE80).withValues(alpha: 0.4),
                         width: 1.5,
                       ),
                     ),
@@ -472,7 +470,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: glowColor.withOpacity(0.35),
+                            color: glowColor.withValues(alpha: 0.35),
                             blurRadius: 14,
                             offset: const Offset(0, 5),
                           ),
@@ -481,14 +479,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(buttonIcon, color: Colors.white, size: 20),
+                          Icon(buttonIcon, color: AppTheme.backgroundColor, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             buttonLabel,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AppTheme.backgroundColor,
                             ),
                           ),
                         ],
@@ -530,7 +528,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       SnackBar(
         content: Row(
           children: [
-            Icon(icon, color: Colors.white),
+            Icon(icon, color: AppTheme.backgroundColor),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

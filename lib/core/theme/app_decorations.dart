@@ -44,12 +44,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(40),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.3),
+        color: AppTheme.kidsPink.withValues(alpha: 0.3),
         blurRadius: 40,
         offset: const Offset(0, 10),
       ),
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.2),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.2),
         blurRadius: 50,
         spreadRadius: 5,
         offset: const Offset(0, 15),
@@ -63,12 +63,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(40),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.4),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.4),
         blurRadius: 40,
         offset: const Offset(0, 10),
       ),
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.3),
+        color: AppTheme.kidsPink.withValues(alpha: 0.3),
         blurRadius: 50,
         spreadRadius: 5,
         offset: const Offset(0, 15),
@@ -95,7 +95,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.2),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.2),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -110,12 +110,12 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.4),
+        color: AppTheme.kidsPink.withValues(alpha: 0.4),
         blurRadius: 30,
         spreadRadius: 5,
       ),
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.3),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.3),
         blurRadius: 40,
         spreadRadius: 10,
       ),
@@ -128,12 +128,12 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.5),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.5),
         blurRadius: 30,
         spreadRadius: 5,
       ),
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.4),
+        color: AppTheme.kidsPink.withValues(alpha: 0.4),
         blurRadius: 40,
         spreadRadius: 10,
       ),
@@ -167,12 +167,12 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.6),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.6),
         blurRadius: 50,
         spreadRadius: 10,
       ),
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.4),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.4),
         blurRadius: 60,
         spreadRadius: 20,
       ),
@@ -195,7 +195,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(30),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.1),
+        color: Colors.black.withValues(alpha: 0.1),
         blurRadius: 30,
         spreadRadius: 5,
       ),
@@ -210,7 +210,7 @@ class AppDecorations {
     border: Border.all(color: AppTheme.kidsGreen, width: 3),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.3),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.3),
         blurRadius: 20,
         offset: const Offset(0, 5),
       ),
@@ -222,7 +222,7 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.4),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.4),
         blurRadius: 30,
         spreadRadius: 5,
       ),
@@ -268,8 +268,8 @@ class AppDecorations {
       borderRadius: BorderRadius.circular(22),
       gradient: LinearGradient(
         colors: [
-          gradientColors[0].withOpacity(0.1),
-          gradientColors[1].withOpacity(0.05),
+          gradientColors[0].withValues(alpha: 0.1),
+          gradientColors[1].withValues(alpha: 0.05),
         ],
       ),
     );
@@ -280,7 +280,7 @@ class AppDecorations {
       gradient: LinearGradient(colors: gradientColors),
       borderRadius: BorderRadius.circular(15),
       boxShadow: [
-        BoxShadow(color: gradientColors[0].withOpacity(0.4), blurRadius: 8),
+        BoxShadow(color: gradientColors[0].withValues(alpha: 0.4), blurRadius: 8),
       ],
     );
   }
@@ -293,7 +293,7 @@ class AppDecorations {
     border: Border.all(color: AppTheme.errorRed, width: 2),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.errorRed.withOpacity(0.3),
+        color: AppTheme.errorRed.withValues(alpha: 0.3),
         blurRadius: 15,
         offset: const Offset(0, 5),
       ),
@@ -312,13 +312,13 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(32),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.6),
+        color: AppTheme.kidsPink.withValues(alpha: 0.6),
         blurRadius: 25,
         spreadRadius: 2,
         offset: const Offset(0, 8),
       ),
       BoxShadow(
-        color: AppTheme.kidsPinkDeep.withOpacity(0.4),
+        color: AppTheme.kidsPinkDeep.withValues(alpha: 0.4),
         blurRadius: 35,
         spreadRadius: 5,
         offset: const Offset(0, 12),
@@ -333,13 +333,13 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(34),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.45),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.45),
         blurRadius: 18,
         spreadRadius: 0,
         offset: const Offset(0, 6),
       ),
       BoxShadow(
-        color: AppTheme.kidsYellowGold.withOpacity(0.25),
+        color: AppTheme.kidsYellowGold.withValues(alpha: 0.25),
         blurRadius: 28,
         spreadRadius: 2,
         offset: const Offset(0, 10),
@@ -352,7 +352,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(30),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.5),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.5),
         blurRadius: 20,
         offset: const Offset(0, 8),
       ),
@@ -364,7 +364,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(25),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.4),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.4),
         blurRadius: 15,
         offset: const Offset(0, 5),
       ),
@@ -388,7 +388,7 @@ class AppDecorations {
       boxShadow: [
         BoxShadow(
           color: (accepted ? AppTheme.kidsGreen : AppTheme.kidsYellow)
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
           blurRadius: 15,
           offset: const Offset(0, 5),
         ),
@@ -412,7 +412,7 @@ class AppDecorations {
       boxShadow: accepted
           ? [
               BoxShadow(
-                color: AppTheme.kidsGreen.withOpacity(0.5),
+                color: AppTheme.kidsGreen.withValues(alpha: 0.5),
                 blurRadius: 10,
               ),
             ]
@@ -427,7 +427,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(30),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.5),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.5),
         blurRadius: 20,
         spreadRadius: 2,
       ),
@@ -438,7 +438,7 @@ class AppDecorations {
     color: Colors.white,
     borderRadius: BorderRadius.circular(25),
     boxShadow: [
-      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10),
     ],
   );
 
@@ -453,7 +453,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(28),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.35),
+        color: AppTheme.kidsPink.withValues(alpha: 0.35),
         blurRadius: 24,
         offset: const Offset(0, 10),
       ),
@@ -465,7 +465,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(28),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.40),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.40),
         blurRadius: 24,
         offset: const Offset(0, 10),
       ),
@@ -477,7 +477,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(24),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.06),
+        color: Colors.black.withValues(alpha: 0.06),
         blurRadius: 20,
         offset: const Offset(0, 6),
       ),
@@ -485,32 +485,32 @@ class AppDecorations {
   );
 
   static BoxDecoration ageVerificationCalendarIcon = BoxDecoration(
-    color: AppTheme.kidsPink.withOpacity(0.10),
+    color: AppTheme.kidsPink.withValues(alpha: 0.10),
     borderRadius: BorderRadius.circular(10),
   );
 
   static BoxDecoration ageVerificationCalendarButton = BoxDecoration(
-    color: AppTheme.kidsPink.withOpacity(0.06),
+    color: AppTheme.kidsPink.withValues(alpha: 0.06),
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.25)),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.25)),
   );
 
   static BoxDecoration ageVerificationFeedbackValid = BoxDecoration(
-    color: AppTheme.kidsGreen.withOpacity(0.08),
+    color: AppTheme.kidsGreen.withValues(alpha: 0.08),
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.35)),
+    border: Border.all(color: AppTheme.kidsGreen.withValues(alpha: 0.35)),
   );
 
   static BoxDecoration ageVerificationFeedbackError = BoxDecoration(
-    color: AppTheme.errorRed.withOpacity(0.08),
+    color: AppTheme.errorRed.withValues(alpha: 0.08),
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppTheme.errorRed.withOpacity(0.35)),
+    border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.35)),
   );
 
   static BoxDecoration ageVerificationErrorBanner = BoxDecoration(
-    color: AppTheme.errorRed.withOpacity(0.08),
+    color: AppTheme.errorRed.withValues(alpha: 0.08),
     borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: AppTheme.errorRed.withOpacity(0.35)),
+    border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.35)),
   );
 
   static BoxDecoration ageVerificationSubmitActive = BoxDecoration(
@@ -518,7 +518,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(18),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.40),
+        color: AppTheme.kidsPink.withValues(alpha: 0.40),
         blurRadius: 16,
         offset: const Offset(0, 6),
       ),
@@ -532,9 +532,9 @@ class AppDecorations {
 
   /// Nota de privacidade no rodapé da AgeVerificationPage (_buildPrivacyNote)
   static BoxDecoration ageVerificationPrivacyNote = BoxDecoration(
-    color: AppTheme.kidsPink.withOpacity(0.06),
+    color: AppTheme.kidsPink.withValues(alpha: 0.06),
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.20)),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.20)),
   );
 
   // ─── Blobs decorativos de fundo ──────────────────────────────────────────────
@@ -548,7 +548,7 @@ class AppDecorations {
       gradient: RadialGradient(
         colors: [
           Colors.white.withOpacity(opacity),
-          Colors.white.withOpacity(0),
+          Colors.white.withValues(alpha: 0),
         ],
       ),
     );
@@ -561,7 +561,7 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.5),
+        color: AppTheme.kidsPink.withValues(alpha: 0.5),
         blurRadius: 40,
         spreadRadius: 8,
       ),
@@ -581,7 +581,7 @@ class AppDecorations {
   static BoxDecoration forgotInfoBox = BoxDecoration(
     color: const Color(0xFFF3E8FF),
     borderRadius: BorderRadius.circular(18),
-    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 2),
+    border: Border.all(color: AppTheme.kidsPurple.withValues(alpha: 0.3), width: 2),
   );
 
   /// Alias mantido para retrocompatibilidade — prefira [forgotInfoBox].
@@ -592,7 +592,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(32),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.6),
+        color: AppTheme.kidsPink.withValues(alpha: 0.6),
         blurRadius: 25,
         spreadRadius: 2,
         offset: const Offset(0, 8),
@@ -606,7 +606,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(32),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.6),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.6),
         blurRadius: 25,
         spreadRadius: 2,
         offset: const Offset(0, 8),
@@ -625,12 +625,12 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.6),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.6),
         blurRadius: 50,
         spreadRadius: 10,
       ),
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.4),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.4),
         blurRadius: 60,
         spreadRadius: 20,
       ),
@@ -647,12 +647,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(40),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.3),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.3),
         blurRadius: 40,
         offset: const Offset(0, 10),
       ),
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.2),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.2),
         blurRadius: 50,
         spreadRadius: 5,
         offset: const Offset(0, 15),
@@ -676,7 +676,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.3),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.3),
         blurRadius: 10,
         offset: const Offset(0, 3),
       ),
@@ -694,7 +694,7 @@ class AppDecorations {
   static BoxDecoration forgotWarningBox = BoxDecoration(
     color: const Color(0xFFFFFBE6),
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: AppTheme.kidsYellow.withOpacity(0.6), width: 2),
+    border: Border.all(color: AppTheme.kidsYellow.withValues(alpha: 0.6), width: 2),
   );
 
   /// Alias mantido para retrocompatibilidade — prefira [forgotWarningBox].
@@ -704,7 +704,7 @@ class AppDecorations {
   static BoxDecoration forgotResentBanner = BoxDecoration(
     color: const Color(0xFFE6FFF0),
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.5)),
+    border: Border.all(color: AppTheme.kidsGreen.withValues(alpha: 0.5)),
   );
 
   /// Alias mantido para retrocompatibilidade — prefira [forgotResentBanner].
@@ -712,7 +712,7 @@ class AppDecorations {
 
   /// Botão de reenviar email — apenas borda cyan, sem preenchimento
   static BoxDecoration forgotResendButton = BoxDecoration(
-    border: Border.all(color: AppTheme.kidsCyan.withOpacity(0.5), width: 2),
+    border: Border.all(color: AppTheme.kidsCyan.withValues(alpha: 0.5), width: 2),
     borderRadius: BorderRadius.circular(20),
   );
 
@@ -769,7 +769,7 @@ class AppDecorations {
   }) {
     return BoxDecoration(
       color: hasError
-          ? AppTheme.errorRed.withOpacity(0.06)
+          ? AppTheme.errorRed.withValues(alpha: 0.06)
           : const Color(
               0xFFF8F8FF,
             ), // surfaceLight levemente azulado, padrão do sheet
@@ -778,7 +778,7 @@ class AppDecorations {
         color: hasError
             ? AppTheme.errorRed
             : hasPhoto
-            ? AppTheme.kidsPink.withOpacity(0.4)
+            ? AppTheme.kidsPink.withValues(alpha: 0.4)
             : AppTheme.dividerColor,
         width: hasError ? 2 : 1.5,
       ),
@@ -791,7 +791,7 @@ class AppDecorations {
       shape: BoxShape.circle,
       color: done
           ? AppTheme.kidsGreenDeep
-          : AppTheme.textMuted.withOpacity(0.25),
+          : AppTheme.textMuted.withValues(alpha: 0.25),
     );
   }
 
@@ -805,34 +805,34 @@ class AppDecorations {
   /// Ícone de seção (emoji dentro do círculo colorido em _SectionWrapper)
   static BoxDecoration dreamSectionIcon(Color color) => BoxDecoration(
     gradient: LinearGradient(
-      colors: [color.withOpacity(0.22), color.withOpacity(0.08)],
+      colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0.08)],
     ),
     shape: BoxShape.circle,
   );
 
   /// Bolha de estatística no header — estado normal
   static BoxDecoration dreamStatBubble = BoxDecoration(
-    color: Colors.white.withOpacity(0.15),
+    color: Colors.white.withValues(alpha: 0.15),
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.5),
   );
 
   /// Bolha de estatística no header — estado ativo (glow colorido)
   static BoxDecoration dreamStatBubbleActive(Color color) => BoxDecoration(
-    color: color.withOpacity(0.25),
+    color: color.withValues(alpha: 0.25),
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: color.withOpacity(0.6), width: 1.5),
-    boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 10)],
+    border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
+    boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10)],
   );
 
   /// Card de doação recebida
   static BoxDecoration dreamReceivedCard = BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3), width: 2),
+    border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.3), width: 2),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.accentGreen.withOpacity(0.08),
+        color: AppTheme.accentGreen.withValues(alpha: 0.08),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -843,8 +843,8 @@ class AppDecorations {
   static BoxDecoration dreamReceivedCardIcon = BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        AppTheme.accentGreen.withOpacity(0.18),
-        AppTheme.accentTeal.withOpacity(0.18),
+        AppTheme.accentGreen.withValues(alpha: 0.18),
+        AppTheme.accentTeal.withValues(alpha: 0.18),
       ],
     ),
     borderRadius: BorderRadius.circular(16),
@@ -852,17 +852,17 @@ class AppDecorations {
 
   /// Badge "Atendido!" dentro do card de doação recebida
   static BoxDecoration dreamFulfilledBadge = BoxDecoration(
-    color: AppTheme.accentGreen.withOpacity(0.12),
+    color: AppTheme.accentGreen.withValues(alpha: 0.12),
     borderRadius: BorderRadius.circular(20),
   );
 
   /// Botão "+ Adicionar" dentro do cabeçalho de seção
   static BoxDecoration dreamAddButton(Color color) => BoxDecoration(
-    gradient: LinearGradient(colors: [color, color.withOpacity(0.75)]),
+    gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.75)]),
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: color.withOpacity(0.3),
+        color: color.withValues(alpha: 0.3),
         blurRadius: 8,
         offset: const Offset(0, 3),
       ),
@@ -873,10 +873,10 @@ class AppDecorations {
   static BoxDecoration dreamEmptyState(Color borderColor) => BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(24),
-    border: Border.all(color: borderColor.withOpacity(0.4), width: 2),
+    border: Border.all(color: borderColor.withValues(alpha: 0.4), width: 2),
     boxShadow: [
       BoxShadow(
-        color: borderColor.withOpacity(0.1),
+        color: borderColor.withValues(alpha: 0.1),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -897,7 +897,7 @@ class AppDecorations {
     border: Border.all(color: AppTheme.donationCardBorder, width: 1.5),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.06),
+        color: AppTheme.kidsPink.withValues(alpha: 0.06),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -916,7 +916,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(8),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.1),
+        color: Colors.black.withValues(alpha: 0.1),
         blurRadius: 8,
         offset: const Offset(0, 2),
       ),
@@ -925,7 +925,7 @@ class AppDecorations {
 
   /// Painel inferior do fullscreen de doação (fundo escuro semitransparente)
   static const BoxDecoration donationFullscreenPanel = BoxDecoration(
-    color: Color(0x99000000), // Colors.black.withOpacity(0.6) — const
+    color: Color(0x99000000), // Colors.black.withValues(alpha: 0.6) — const
     borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
   );
 
@@ -954,19 +954,19 @@ class AppDecorations {
   static BoxDecoration dreamImagePickerEmpty = BoxDecoration(
     color: AppTheme.dreamImagePickerBg,
     borderRadius: BorderRadius.circular(18),
-    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 1.5),
+    border: Border.all(color: AppTheme.kidsPurple.withValues(alpha: 0.3), width: 1.5),
   );
 
   /// Container do ImagePicker do DreamFormSheet — estado com imagem
   /// (mantém mesmas bordas, sem fill colorido para não cobrir a foto)
   static BoxDecoration dreamImagePickerFilled = BoxDecoration(
     borderRadius: BorderRadius.circular(18),
-    border: Border.all(color: AppTheme.kidsPurple.withOpacity(0.3), width: 1.5),
+    border: Border.all(color: AppTheme.kidsPurple.withValues(alpha: 0.3), width: 1.5),
   );
 
   /// Badge de edição sobre a imagem do picker (lápis escuro semitransparente)
   static BoxDecoration dreamImageEditBadge = BoxDecoration(
-    color: Color(0x8C000000), // Colors.black.withOpacity(0.55) — const-friendly
+    color: Color(0x8C000000), // Colors.black.withValues(alpha: 0.55) — const-friendly
     borderRadius: BorderRadius.circular(10),
   );
 
@@ -978,7 +978,7 @@ class AppDecorations {
 
   /// Emoji selecionado no picker de emojis do DreamFormSheet
   static BoxDecoration dreamEmojiSelected = BoxDecoration(
-    color: AppTheme.kidsPurple.withOpacity(0.12),
+    color: AppTheme.kidsPurple.withValues(alpha: 0.12),
     borderRadius: BorderRadius.circular(12),
     border: Border.all(color: AppTheme.kidsPurple, width: 2),
   );
@@ -1015,7 +1015,7 @@ class AppDecorations {
 
   /// Botão "voltar" circular semitransparente sobre o header
   static BoxDecoration editProfileBackButton = BoxDecoration(
-    color: Colors.white.withOpacity(0.25),
+    color: Colors.white.withValues(alpha: 0.25),
     borderRadius: BorderRadius.circular(12),
   );
 
@@ -1025,7 +1025,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(28),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.06),
+        color: Colors.black.withValues(alpha: 0.06),
         blurRadius: 20,
         offset: const Offset(0, 6),
       ),
@@ -1047,7 +1047,7 @@ class AppDecorations {
       border: Border.all(
         color: selected
             ? Colors.transparent
-            : AppTheme.kidsPink.withOpacity(0.2),
+            : AppTheme.kidsPink.withValues(alpha: 0.2),
         width: 1.5,
       ),
     );
@@ -1060,7 +1060,7 @@ class AppDecorations {
       borderRadius: BorderRadius.circular(16),
       borderSide: focused
           ? const BorderSide(color: AppTheme.kidsPink, width: 2)
-          : BorderSide(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+          : BorderSide(color: AppTheme.kidsPink.withValues(alpha: 0.2), width: 1.5),
     );
   }
 
@@ -1082,7 +1082,7 @@ class AppDecorations {
           ? []
           : [
               BoxShadow(
-                color: AppTheme.kidsPink.withOpacity(0.4),
+                color: AppTheme.kidsPink.withValues(alpha: 0.4),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -1097,7 +1097,7 @@ class AppDecorations {
     gradient: AppTheme.childCardGradient,
     borderRadius: BorderRadius.circular(20),
     border: Border.all(
-      color: AppTheme.childCardAccent.withOpacity(0.15),
+      color: AppTheme.childCardAccent.withValues(alpha: 0.15),
       width: 2,
     ),
   );
@@ -1107,7 +1107,7 @@ class AppDecorations {
     color: Colors.white,
     borderRadius: BorderRadius.circular(16),
     border: Border.all(
-      color: AppTheme.childCardAccent.withOpacity(0.2),
+      color: AppTheme.childCardAccent.withValues(alpha: 0.2),
       width: 2,
     ),
   );
@@ -1116,14 +1116,14 @@ class AppDecorations {
   static BoxDecoration addChildButton = BoxDecoration(
     color: AppTheme.surfaceNeutral,
     borderRadius: BorderRadius.circular(18),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.3), width: 2),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.3), width: 2),
   );
 
   /// Emoji picker do formulário de filho — estado selecionado/não selecionado
   static BoxDecoration childEmojiOption({required bool selected}) {
     return BoxDecoration(
       color: selected
-          ? AppTheme.kidsPink.withOpacity(0.15)
+          ? AppTheme.kidsPink.withValues(alpha: 0.15)
           : AppTheme.surfaceNeutral,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(
@@ -1168,24 +1168,24 @@ class AppDecorations {
   static BoxDecoration locationFieldsBox = BoxDecoration(
     color: AppTheme.surfaceBlueTint,
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.2), width: 1.5),
   );
 
   /// Aviso âmbar "selecione o bairro na lista"
   static BoxDecoration locationNeighborhoodWarning = BoxDecoration(
-    color: AppTheme.kidsYellow.withOpacity(0.12),
+    color: AppTheme.kidsYellow.withValues(alpha: 0.12),
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppTheme.kidsYellow.withOpacity(0.5), width: 1.5),
+    border: Border.all(color: AppTheme.kidsYellow.withValues(alpha: 0.5), width: 1.5),
   );
 
   /// Lista de sugestões de bairro (dropdown flutuante)
   static BoxDecoration locationSuggestionsBox = BoxDecoration(
     color: Colors.white,
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2), width: 1.5),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.2), width: 1.5),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.08),
+        color: Colors.black.withValues(alpha: 0.08),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -1196,12 +1196,12 @@ class AppDecorations {
   static BoxDecoration locationAddressPreview = BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        AppTheme.kidsPink.withOpacity(0.08),
-        AppTheme.kidsPurple.withOpacity(0.08),
+        AppTheme.kidsPink.withValues(alpha: 0.08),
+        AppTheme.kidsPurple.withValues(alpha: 0.08),
       ],
     ),
     borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.2)),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.2)),
   );
 
   // ─── ProfilePhotoSection ──────────────────────────────────────────────────────
@@ -1215,7 +1215,7 @@ class AppDecorations {
       border: Border.all(
         color: selected
             ? Colors.transparent
-            : AppTheme.kidsPink.withOpacity(0.2),
+            : AppTheme.kidsPink.withValues(alpha: 0.2),
         width: 1.5,
       ),
     );
@@ -1225,10 +1225,10 @@ class AppDecorations {
   static BoxDecoration photoPreviewCircle = BoxDecoration(
     shape: BoxShape.circle,
     color: Colors.white,
-    border: Border.all(color: AppTheme.kidsPink.withOpacity(0.3), width: 3),
+    border: Border.all(color: AppTheme.kidsPink.withValues(alpha: 0.3), width: 3),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.2),
+        color: AppTheme.kidsPink.withValues(alpha: 0.2),
         blurRadius: 20,
         offset: const Offset(0, 8),
       ),
@@ -1253,7 +1253,7 @@ class AppDecorations {
     return BoxDecoration(
       color: AppTheme.surfaceNeutral,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: color.withOpacity(0.3), width: 2),
+      border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
     );
   }
 
@@ -1266,7 +1266,7 @@ class AppDecorations {
 
   /// Botão de ícone (editar / configurações) no topo do header
   static BoxDecoration profileHeaderIconButton = BoxDecoration(
-    color: Colors.white.withOpacity(0.2),
+    color: Colors.white.withValues(alpha: 0.2),
   );
 
   /// Avatar do header — borda dourada se totalmente verificado
@@ -1281,8 +1281,8 @@ class AppDecorations {
       boxShadow: [
         BoxShadow(
           color: verified
-              ? AppTheme.kidsYellow.withOpacity(0.5)
-              : Colors.black.withOpacity(0.2),
+              ? AppTheme.kidsYellow.withValues(alpha: 0.5)
+              : Colors.black.withValues(alpha: 0.2),
           blurRadius: verified ? 20 : 16,
           offset: const Offset(0, 6),
         ),
@@ -1294,8 +1294,8 @@ class AppDecorations {
   static BoxDecoration verificationChip({required bool verified}) {
     return BoxDecoration(
       color: verified
-          ? AppTheme.kidsGreen.withOpacity(0.2)
-          : Colors.white.withOpacity(0.15),
+          ? AppTheme.kidsGreen.withValues(alpha: 0.2)
+          : Colors.white.withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(
         color: verified ? AppTheme.kidsGreen : Colors.white38,
@@ -1312,7 +1312,7 @@ class AppDecorations {
 
   /// Container da linha de meta-informações (idade, gênero, localização)
   static BoxDecoration profileMetaRow = BoxDecoration(
-    color: Colors.white.withOpacity(0.12),
+    color: Colors.white.withValues(alpha: 0.12),
     borderRadius: BorderRadius.circular(16),
   );
 
@@ -1322,7 +1322,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(16),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.08),
+        color: Colors.black.withValues(alpha: 0.08),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -1344,11 +1344,11 @@ class AppDecorations {
   /// Card de cada etapa (e-mail / perfil completo) — concluída ou pendente
   static BoxDecoration verificationStepCard({required bool done}) {
     return BoxDecoration(
-      color: done ? AppTheme.kidsGreen.withOpacity(0.05) : Colors.white,
+      color: done ? AppTheme.kidsGreen.withValues(alpha: 0.05) : Colors.white,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(
         color: done
-            ? AppTheme.kidsGreen.withOpacity(0.4)
+            ? AppTheme.kidsGreen.withValues(alpha: 0.4)
             : AppTheme.dividerColor,
         width: 1.5,
       ),
@@ -1369,12 +1369,12 @@ class AppDecorations {
   static BoxDecoration verifiedMemberBanner = BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        AppTheme.kidsGreen.withOpacity(0.15),
-        AppTheme.kidsYellow.withOpacity(0.1),
+        AppTheme.kidsGreen.withValues(alpha: 0.15),
+        AppTheme.kidsYellow.withValues(alpha: 0.1),
       ],
     ),
     borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.4), width: 1.5),
+    border: Border.all(color: AppTheme.kidsGreen.withValues(alpha: 0.4), width: 1.5),
   );
 
   // ─── Handles de bottom sheet (genérico) ──────────────────────────────────────
@@ -1396,7 +1396,7 @@ class AppDecorations {
 
   /// Container do ícone de título do header (fundo branco semitransparente)
   static BoxDecoration dreamHeaderIconBox = BoxDecoration(
-    color: Color(0x33FFFFFF), // Colors.white.withOpacity(0.2) — const-friendly
+    color: Color(0x33FFFFFF), // Colors.white.withValues(alpha: 0.2) — const-friendly
     borderRadius: BorderRadius.all(Radius.circular(14)),
   );
 
@@ -1405,7 +1405,7 @@ class AppDecorations {
   /// Chip de contagem de itens em _SectionWrapper (cor dinâmica)
   /// Use assim:  dreamSectionCountChip(color)
   static BoxDecoration dreamSectionCountChip(Color color) => BoxDecoration(
-    color: color.withOpacity(0.15),
+    color: color.withValues(alpha: 0.15),
     borderRadius: BorderRadius.circular(20),
   );
   // ─── Estilos de texto reutilizáveis ──────────────────────────────────────────
@@ -1431,7 +1431,7 @@ class AppDecorations {
 
   /// Container do indicador de notificação no header da HomePage
   static BoxDecoration homeNotificationBadge = BoxDecoration(
-    color: Colors.white.withOpacity(0.2),
+    color: Colors.white.withValues(alpha: 0.2),
     borderRadius: BorderRadius.circular(12),
   );
 
@@ -1445,7 +1445,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: colors[0].withOpacity(0.3),
+        color: colors[0].withValues(alpha: 0.3),
         blurRadius: 15,
         offset: const Offset(0, 8),
       ),
@@ -1464,7 +1464,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.05),
+        color: Colors.black.withValues(alpha: 0.05),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -1484,7 +1484,7 @@ class AppDecorations {
     ),
     borderRadius: BorderRadius.circular(16),
     border: Border.all(
-      color: AppTheme.primaryBlueMid.withOpacity(0.2),
+      color: AppTheme.primaryBlueMid.withValues(alpha: 0.2),
       width: 2,
     ),
   );
@@ -1502,7 +1502,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.3),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.3),
         blurRadius: 10,
         offset: const Offset(0, 4),
       ),
@@ -1522,7 +1522,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.04),
+        color: Colors.black.withValues(alpha: 0.04),
         blurRadius: 12,
         offset: const Offset(0, 4),
       ),
@@ -1561,12 +1561,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(40),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsCyan.withOpacity(0.3),
+        color: AppTheme.kidsCyan.withValues(alpha: 0.3),
         blurRadius: 40,
         offset: const Offset(0, 10),
       ),
       BoxShadow(
-        color: AppTheme.kidsGreen.withOpacity(0.2),
+        color: AppTheme.kidsGreen.withValues(alpha: 0.2),
         blurRadius: 50,
         spreadRadius: 5,
         offset: const Offset(0, 15),
@@ -1588,7 +1588,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.primaryBlueMid.withOpacity(0.3),
+        color: AppTheme.primaryBlueMid.withValues(alpha: 0.3),
         blurRadius: 10,
         offset: const Offset(0, 3),
       ),
@@ -1597,10 +1597,10 @@ class AppDecorations {
 
   /// Container de cada step de instrução (borda azul suave)
   static BoxDecoration emailChangedStepBox = BoxDecoration(
-    color: AppTheme.primaryBlueMid.withOpacity(0.15),
+    color: AppTheme.primaryBlueMid.withValues(alpha: 0.15),
     borderRadius: BorderRadius.circular(10),
     border: Border.all(
-      color: AppTheme.primaryBlueMid.withOpacity(0.3),
+      color: AppTheme.primaryBlueMid.withValues(alpha: 0.3),
       width: 2,
     ),
   );
@@ -1612,7 +1612,7 @@ class AppDecorations {
     border: Border.all(color: AppTheme.alertAmberBorder, width: 2),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsYellow.withOpacity(0.25),
+        color: AppTheme.kidsYellow.withValues(alpha: 0.25),
         blurRadius: 16,
         offset: const Offset(0, 4),
       ),
@@ -1648,7 +1648,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(32),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.45),
+        color: AppTheme.kidsPink.withValues(alpha: 0.45),
         blurRadius: 25,
         offset: const Offset(0, 8),
       ),
@@ -1657,9 +1657,9 @@ class AppDecorations {
 
   /// Badge de sucesso de verificação (verde claro circular)
   static BoxDecoration emailVerifSuccessBadge = BoxDecoration(
-    color: AppTheme.kidsGreen.withOpacity(0.1),
+    color: AppTheme.kidsGreen.withValues(alpha: 0.1),
     shape: BoxShape.circle,
-    border: Border.all(color: AppTheme.kidsGreen.withOpacity(0.4)),
+    border: Border.all(color: AppTheme.kidsGreen.withValues(alpha: 0.4)),
   );
 
   // ─── AccountSettingsPage (verificação de conta) ───────────────────────────────
@@ -1678,8 +1678,8 @@ class AppDecorations {
   static BoxDecoration accountSettingsStatusBadge({required bool verified}) {
     return BoxDecoration(
       color: verified
-          ? AppTheme.kidsGreenDeep.withOpacity(0.1)
-          : AppTheme.kidsPink.withOpacity(0.12),
+          ? AppTheme.kidsGreenDeep.withValues(alpha: 0.1)
+          : AppTheme.kidsPink.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(20),
     );
   }
@@ -1692,12 +1692,12 @@ class AppDecorations {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.5),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.5),
         blurRadius: 40,
         spreadRadius: 8,
       ),
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.35),
+        color: AppTheme.kidsPink.withValues(alpha: 0.35),
         blurRadius: 50,
         spreadRadius: 12,
       ),
@@ -1716,12 +1716,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(40),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.3),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.3),
         blurRadius: 40,
         offset: const Offset(0, 10),
       ),
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.2),
+        color: AppTheme.kidsPink.withValues(alpha: 0.2),
         blurRadius: 50,
         spreadRadius: 5,
         offset: const Offset(0, 15),
@@ -1732,9 +1732,9 @@ class AppDecorations {
   /// Campo de senha (troca) com acent dinâmico
   static BoxDecoration changePasswordField({required Color accentColor}) {
     return BoxDecoration(
-      color: accentColor.withOpacity(0.06),
+      color: accentColor.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: accentColor.withOpacity(0.3), width: 1.5),
+      border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
     );
   }
 
@@ -1744,7 +1744,7 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(32),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.5),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.5),
         blurRadius: 25,
         spreadRadius: 2,
         offset: const Offset(0, 8),
@@ -1767,12 +1767,12 @@ class AppDecorations {
     borderRadius: BorderRadius.circular(28),
     boxShadow: [
       BoxShadow(
-        color: AppTheme.kidsPink.withOpacity(0.18),
+        color: AppTheme.kidsPink.withValues(alpha: 0.18),
         blurRadius: 40,
         offset: const Offset(0, 12),
       ),
       BoxShadow(
-        color: AppTheme.kidsPurple.withOpacity(0.10),
+        color: AppTheme.kidsPurple.withValues(alpha: 0.10),
         blurRadius: 60,
         offset: const Offset(0, 24),
       ),
@@ -1786,7 +1786,7 @@ class AppDecorations {
 
   /// Ícone emoji em badge no VerificationBlockDialog (_InfoRow)
   static BoxDecoration verificationBlockInfoBadge = BoxDecoration(
-    color: AppTheme.kidsPink.withOpacity(0.08),
+    color: AppTheme.kidsPink.withValues(alpha: 0.08),
     borderRadius: BorderRadius.circular(10),
   );
 
