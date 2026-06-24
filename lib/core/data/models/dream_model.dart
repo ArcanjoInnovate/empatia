@@ -1,108 +1,112 @@
 /// 💭 DREAM MODEL
 ///
-/// Representa um sonho/objetivo atrelado a um filho do usuário.
-/// Fica em /Users/{uid}/dreams/{id} no Firebase.
+/// Representa um sonho vinculado ao perfil do usuário (Users/{uid}/dreams).
+/// Diferente de [DreamFeedItem], este modelo é usado nas telas de criação,
+/// edição e exibição privada (perfil do dono).
 class DreamModel {
   final String? id;
   final String? title;
-  final String? emoji;
-
-  /// Data meta — texto livre, ex: "Dez 2025"
   final String? date;
 
-  /// Progresso de 0.0 a 1.0
-  final double? progress;
+  /// Categoria do sonho — mesmo padrão de Donations (inglês minúsculo):
+  ///   'clothes' | 'toys' | 'books' | 'food' | 'furniture' | 'others'
+  final String? category;
 
-  /// URL da imagem de inspiração no Cloudinary (opcional)
+  /// Emoji derivado automaticamente da categoria pelo [DreamService].
+  /// Mantido no banco para compatibilidade com cards e feed existentes.
+  final String? emoji;
+
   final String? imageUrl;
+  final double? progress;
+  final DateTime? createdAt;
 
-  // ── Filho vinculado ──────────────────────────────────────────────────────
+  // ── Filho vinculado ────────────────────────────────────────────────────────
   final String? childId;
   final String? childName;
   final String? childEmoji;
 
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
   const DreamModel({
     this.id,
     this.title,
-    this.emoji,
     this.date,
-    this.progress,
+    this.category,
+    this.emoji,
     this.imageUrl,
+    this.progress,
+    this.createdAt,
     this.childId,
     this.childName,
     this.childEmoji,
-    this.createdAt,
-    this.updatedAt,
   });
 
   factory DreamModel.fromMap(Map<dynamic, dynamic> map, String id) {
+    DateTime? createdAt;
+    final raw = map['createdAt'];
+    if (raw != null) {
+      if (raw is int || raw is double) {
+        createdAt = DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+      } else {
+        createdAt = DateTime.tryParse(raw.toString());
+      }
+    }
+
     return DreamModel(
       id: id,
-      title: map['title']?.toString(),
-      emoji: map['emoji']?.toString(),
-      date: map['date']?.toString(),
-      progress: map['progress'] != null
-          ? double.tryParse(map['progress'].toString())
-          : null,
-      imageUrl: map['imageUrl']?.toString(),
-      childId: map['childId']?.toString(),
-      childName: map['childName']?.toString(),
-      childEmoji: map['childEmoji']?.toString(),
-      createdAt: map['createdAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              int.parse(map['createdAt'].toString()))
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              int.parse(map['updatedAt'].toString()))
-          : null,
+      title: map['title'] as String?,
+      date: map['date'] as String?,
+      category: map['category'] as String?,
+      emoji: map['emoji'] as String?,
+      imageUrl: map['imageUrl'] as String?,
+      progress: (map['progress'] as num?)?.toDouble(),
+      createdAt: createdAt,
+      childId: map['childId'] as String?,
+      childName: map['childName'] as String?,
+      childEmoji: map['childEmoji'] as String?,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       if (title != null) 'title': title,
-      if (emoji != null) 'emoji': emoji,
       if (date != null) 'date': date,
-      if (progress != null) 'progress': progress,
+      if (category != null) 'category': category,
+      if (emoji != null) 'emoji': emoji,
       if (imageUrl != null) 'imageUrl': imageUrl,
+      if (progress != null) 'progress': progress,
+      if (createdAt != null)
+        'createdAt': createdAt!.millisecondsSinceEpoch,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
       if (childId != null) 'childId': childId,
       if (childName != null) 'childName': childName,
       if (childEmoji != null) 'childEmoji': childEmoji,
-      'createdAt': createdAt?.millisecondsSinceEpoch ??
-          DateTime.now().millisecondsSinceEpoch,
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
     };
   }
 
   DreamModel copyWith({
     String? id,
     String? title,
-    String? emoji,
     String? date,
-    double? progress,
+    String? category,
+    String? emoji,
     String? imageUrl,
+    double? progress,
+    DateTime? createdAt,
     String? childId,
     String? childName,
     String? childEmoji,
-    DateTime? createdAt,
-    DateTime? updatedAt,
   }) {
     return DreamModel(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      emoji: emoji ?? this.emoji,
-      date: date ?? this.date,
-      progress: progress ?? this.progress,
-      imageUrl: imageUrl ?? this.imageUrl,
-      childId: childId ?? this.childId,
-      childName: childName ?? this.childName,
+      id:         id         ?? this.id,
+      title:      title      ?? this.title,
+      date:       date       ?? this.date,
+      category:   category   ?? this.category,
+      emoji:      emoji      ?? this.emoji,
+      imageUrl:   imageUrl   ?? this.imageUrl,
+      progress:   progress   ?? this.progress,
+      createdAt:  createdAt  ?? this.createdAt,
+      childId:    childId    ?? this.childId,
+      childName:  childName  ?? this.childName,
       childEmoji: childEmoji ?? this.childEmoji,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

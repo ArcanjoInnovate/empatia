@@ -1,16 +1,115 @@
-import 'package:empatia/core/theme/app_theme.dart';
+import 'dart:ui';
+
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// 📦 DONATION DETAIL PAGE
-///
-/// Exibe todos os dados de uma doação com layout emocional:
-///   - Hero da foto (50% da tela)
-///   - Badges de status e categoria sobrepostos
-///   - Título, localização, descrição
-///   - Avatar + nome do doador (social proof)
-///   - CTA fixo no rodapé: "Tenho Interesse"
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN TOKENS
+// ─────────────────────────────────────────────────────────────────────────────
+
+abstract final class _T {
+  // Brand
+  static const pink       = Color(0xFFFF5C8D);
+  static const pinkDeep   = Color(0xFFE0457A);
+  static const pinkLight  = Color(0xFFFFF0F6);
+  static const pinkBorder = Color(0xFFFFD6E7);
+
+  static const blue       = Color(0xFF2563EB);
+  static const blueLight  = Color(0xFFEFF6FF);
+  static const blueBorder = Color(0xFFBFDBFE);
+
+  // Semantic
+  static const green      = Color(0xFF16A34A);
+  static const greenLight = Color(0xFFDCFCE7);
+  static const amber      = Color(0xFFF59E0B);
+  static const amberLight = Color(0xFFFEF3C7);
+
+  // Text
+  static const navy       = Color(0xFF1E3A5F);
+  static const body       = Color(0xFF374151);
+  static const muted      = Color(0xFF6B7280);
+  static const subtle     = Color(0xFF9CA3AF);
+
+  // Surface
+  static const white      = Colors.white;
+  static const surface    = Color(0xFFF9FAFB);
+  // Creme — carta, acolhimento, autenticidade
+  static const cream      = Color(0xFFFFFBF5);
+  static const creamBorder= Color(0xFFF0E6D3);
+  static const creamDeep  = Color(0xFFE8D5B7);
+
+  static const border     = Color(0xFFE5E7EB);
+
+  // Radius
+  static const r8  = 8.0;
+  static const r12 = 12.0;
+  static const r16 = 16.0;
+  static const r20 = 20.0;
+  static const r24 = 24.0;
+  static const r99 = 99.0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATUS HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum _ItemStatus { available, reserved, donated, fulfilled, unknown }
+
+extension _StatusExt on _ItemStatus {
+  static _ItemStatus parse(String? s) {
+    switch (s) {
+      case 'reserved':  return _ItemStatus.reserved;
+      case 'donated':   return _ItemStatus.donated;
+      case 'fulfilled': return _ItemStatus.fulfilled;
+      case 'available': return _ItemStatus.available;
+      default:          return s == null ? _ItemStatus.available : _ItemStatus.unknown;
+    }
+  }
+
+  bool get isUnavailable =>
+      this == _ItemStatus.reserved ||
+      this == _ItemStatus.donated  ||
+      this == _ItemStatus.fulfilled;
+
+  // Rótulo emocional do hero badge
+  String get heroBadgeLabel {
+    switch (this) {
+      case _ItemStatus.available: return '🎁 Disponível para doação';
+      case _ItemStatus.reserved:  return '✨ Uma família já demonstrou interesse';
+      case _ItemStatus.donated:   return '🎉 Esta doação já encontrou um novo lar';
+      case _ItemStatus.fulfilled: return '❤️ Esta história teve um final feliz';
+      default:                    return '🎁 Item compartilhado';
+    }
+  }
+
+  Color get heroBadgeColor {
+    switch (this) {
+      case _ItemStatus.available: return _T.blue;
+      case _ItemStatus.reserved:  return _T.amber;
+      case _ItemStatus.donated:
+      case _ItemStatus.fulfilled: return _T.green;
+      default:                    return _T.muted;
+    }
+  }
+
+  // Rótulo do CTA
+  String get ctaLabel {
+    switch (this) {
+      case _ItemStatus.available: return '💙 Tenho Interesse Neste Item';
+      case _ItemStatus.reserved:  return '✨ Uma família já demonstrou interesse';
+      case _ItemStatus.donated:   return '🎉 Esta doação já encontrou um lar';
+      case _ItemStatus.fulfilled: return '❤️ Esta história teve um final feliz';
+      default:                    return '💙 Tenho Interesse Neste Item';
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DONATION DETAIL PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
 class DonationDetailPage extends StatelessWidget {
   final SearchResult result;
   final String heroTag;
@@ -26,49 +125,55 @@ class DonationDetailPage extends StatelessWidget {
     required String heroTag,
   }) =>
       MaterialPageRoute(
-        builder: (_) =>
-            DonationDetailPage(result: result, heroTag: heroTag),
+        builder: (_) => DonationDetailPage(result: result, heroTag: heroTag),
       );
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // ── Conteúdo rolável ────────────────────────────────────────
-          CustomScrollView(
-            slivers: [
-              _HeroSliver(result: result, heroTag: heroTag),
-              SliverToBoxAdapter(
-                child: _DonationBody(result: result),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: _T.white,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
-              // Espaço para o CTA fixo não cobrir conteúdo
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          ),
+              slivers: [
+                // 1 — Hero premium
+                _HeroSliver(result: result, heroTag: heroTag),
 
-          // ── Botão voltar flutuante ──────────────────────────────────
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 12,
-            child: _BackButton(),
-          ),
+                // 2+ — Corpo narrativo
+                SliverToBoxAdapter(child: _PageBody(result: result)),
 
-          // ── CTA fixo no rodapé ──────────────────────────────────────
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _CtaBar(result: result),
-          ),
-        ],
+                const SliverToBoxAdapter(child: SizedBox(height: 128)),
+              ],
+            ),
+
+            // Botão voltar com blur
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 12,
+              child: _BackButton(),
+            ),
+
+            // CTA fixo
+            Positioned(
+              left: 0, right: 0, bottom: 0,
+              child: _CtaBar(result: result),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Hero da foto ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SEÇÃO 1 — HERO PREMIUM
+// Foto protagonista com overlay e identidade do item
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _HeroSliver extends StatelessWidget {
   final SearchResult result;
@@ -77,67 +182,116 @@ class _HeroSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenH = MediaQuery.of(context).size.height;
+    final screenH  = MediaQuery.of(context).size.height;
+    final status   = _StatusExt.parse(result.status);
+    final title    = result.title?.trim()    ?? 'Sem título';
+    final category = result.category?.trim() ?? '';
+    final city     = result.city?.trim()     ?? '';
+    final state    = result.state?.trim()    ?? '';
+    final location = [
+      if (city.isNotEmpty)  city,
+      if (state.isNotEmpty) state,
+    ].join(', ');
 
     return SliverToBoxAdapter(
       child: SizedBox(
-        height: screenH * 0.50,
+        height: screenH * 0.52,
         child: Stack(
           fit: StackFit.expand,
           children: [
             // Foto
-            _PhotoBackground(photoUrl: result.photoUrl, heroTag: heroTag),
+            _HeroPhoto(photoUrl: result.photoUrl, heroTag: heroTag),
 
-            // Gradiente inferior
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.50, 1.0],
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.55),
-                    ],
-                  ),
+            // Overlay gradiente em 4 camadas
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.30, 0.65, 1.0],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.10),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.50),
+                    Colors.black.withValues(alpha: 0.88),
+                  ],
                 ),
               ),
             ),
 
-            // Badge de categoria (topo esquerdo)
-            if (result.category != null)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 56,
-                left: 16,
-                child: _CategoryBadge(category: result.category!),
-              ),
+            // Identidade do item no rodapé do hero
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 24,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status badge emocional
+                  _HeroStatusBadge(status: status),
+                  const SizedBox(height: 10),
 
-            // Badge de status (topo direito)
-            if (_showStatus(result.status))
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 56,
-                right: 16,
-                child: _StatusBadge(status: result.status),
+                  // Título grande
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: _T.white,
+                      height: 1.15,
+                      shadows: [
+                        Shadow(color: Colors.black54, blurRadius: 10),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Categoria + localização em linha
+                  Row(
+                    children: [
+                      if (category.isNotEmpty) ...[
+                        _HeroPill(label: category),
+                        const SizedBox(width: 8),
+                      ],
+                      if (location.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on_rounded,
+                                size: 12, color: Colors.white70),
+                            const SizedBox(width: 3),
+                            Text(
+                              location,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),
     );
   }
-
-  bool _showStatus(String? status) =>
-      status != null && status.isNotEmpty && status != 'available';
 }
 
-class _PhotoBackground extends StatelessWidget {
+class _HeroPhoto extends StatelessWidget {
   final String? photoUrl;
   final String heroTag;
-  const _PhotoBackground({required this.photoUrl, required this.heroTag});
+  const _HeroPhoto({required this.photoUrl, required this.heroTag});
 
   @override
   Widget build(BuildContext context) {
-    if (photoUrl != null) {
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
       return Hero(
         tag: heroTag,
         child: Image.network(
@@ -160,181 +314,482 @@ class _PhotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: const Color(0xFFFFF0F6),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF0F6), Color(0xFFEFF6FF)],
+          ),
+        ),
         child: Center(
           child: loading
-              ? CircularProgressIndicator(
-                  strokeWidth: 2, color: AppTheme.kidsPink)
-              : const Text('🎁', style: TextStyle(fontSize: 52)),
+              ? const CircularProgressIndicator(
+                  strokeWidth: 2.5, color: _T.pink)
+              : const Text('🎁', style: TextStyle(fontSize: 72)),
         ),
       );
 }
 
-// ── Corpo da página ───────────────────────────────────────────────────────────
+class _HeroStatusBadge extends StatelessWidget {
+  final _ItemStatus status;
+  const _HeroStatusBadge({required this.status});
 
-class _DonationBody extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: status.heroBadgeColor.withValues(alpha: 0.88),
+          borderRadius: BorderRadius.circular(_T.r99),
+        ),
+        child: Text(
+          status.heroBadgeLabel,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: _T.white,
+          ),
+        ),
+      );
+}
+
+class _HeroPill extends StatelessWidget {
+  final String label;
+  const _HeroPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(_T.r99),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: _T.white,
+          ),
+        ),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BACK BUTTON
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BackButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: ClipOval(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              width: 38,
+              height: 38,
+              color: Colors.black.withValues(alpha: 0.25),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _T.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE BODY — hierarquia narrativa
+//
+//  ① Âncora do item
+//  ② MENSAGEM DO DOADOR ← DESTAQUE MÁXIMO
+//  ③ Quem está doando (card de confiança)
+//  ④ Impacto da doação
+//  ⑤ Localização
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PageBody extends StatelessWidget {
   final SearchResult result;
-  const _DonationBody({required this.result});
+  const _PageBody({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    final city = result.city ?? '';
-    final state = result.state ?? '';
+    final title       = result.title?.trim()       ?? '';
+    final description = result.description?.trim() ?? '';
+    final ownerName   = result.ownerName?.trim()   ?? '';
+    final city        = result.city?.trim()        ?? '';
+    final state       = result.state?.trim()       ?? '';
+    final status      = _StatusExt.parse(result.status);
+
     final location = [
-      if (city.isNotEmpty) city,
+      if (city.isNotEmpty)  city,
       if (state.isNotEmpty) state,
     ].join(', ');
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Título
-          Text(
-            result.title ?? 'Sem título',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: AppTheme.primaryBlue,
-              height: 1.2,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        // ① Âncora — oportunidade / percepção de valor
+        _OpportunityAnchor(title: title, status: status),
+
+        // ② Mensagem do doador — destaque máximo
+        if (description.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _DonorMessageSection(
+            description: description,
+            ownerName: ownerName,
           ),
+        ],
 
-          // Localização
-          if (location.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.location_on_rounded,
-                    size: 14, color: AppTheme.textMuted),
-                const SizedBox(width: 4),
-                Text(
-                  location,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          // Divider
-          const SizedBox(height: 20),
-          Divider(color: Colors.grey.shade100, height: 1),
-          const SizedBox(height: 20),
-
-          // Descrição
-          if (result.description != null &&
-              result.description!.isNotEmpty) ...[
-            const Text(
-              'Sobre o item',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F8FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                result.description!,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.55,
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Doador
-          if (result.ownerName != null) ...[
-            const Text(
-              'Quem está doando',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _OwnerRow(
-              ownerName: result.ownerName!,
+        // ③ Quem está doando
+        if (ownerName.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _DonorCard(
+              ownerName: ownerName,
               ownerPhotoUrl: result.ownerPhotoUrl,
               city: city,
             ),
-          ],
+          ),
+        ],
+
+        // ④ Impacto
+        const SizedBox(height: 28),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const _ImpactSection(),
+        ),
+
+        // ⑤ Localização
+        if (location.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _LocationCard(location: location),
+          ),
+        ],
+
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ① ÂNCORA — OPORTUNIDADE
+// Primeiro texto após o hero — gera percepção de valor, não de descarte
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OpportunityAnchor extends StatelessWidget {
+  final String title;
+  final _ItemStatus status;
+  const _OpportunityAnchor({required this.title, required this.status});
+
+  String get _headline {
+    switch (status) {
+      case _ItemStatus.reserved:
+        return '✨ Uma família já demonstrou interesse';
+      case _ItemStatus.donated:
+      case _ItemStatus.fulfilled:
+        return '🎉 Este item encontrou um novo lar';
+      default:
+        return '✨ Este item pode ganhar uma nova história';
+    }
+  }
+
+  String _subline(String t) {
+    final name = t.isNotEmpty ? t.toLowerCase() : 'este item';
+    return switch (status) {
+      _ItemStatus.reserved  => 'Alguém já viu valor neste presente. Fique atento a outros itens disponíveis.',
+      _ItemStatus.donated   => 'A generosidade desta família criou uma nova memória especial.',
+      _ItemStatus.fulfilled => 'A corrente do bem continua. Este item transformou uma história.',
+      _ItemStatus.available => 'Um $name em bom estado esperando por quem vai criar novas memórias.',
+      // TODO: Handle this case.
+      _ItemStatus.unknown => throw UnimplementedError(),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _T.blueLight,
+        borderRadius: BorderRadius.circular(_T.r20),
+        border: Border.all(color: _T.blueBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _headline,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: _T.navy,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _subline(title),
+            style: const TextStyle(
+              fontSize: 14,
+              color: _T.body,
+              height: 1.55,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Doador ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ② MENSAGEM DO DOADOR — SEÇÃO PRINCIPAL
+// Aparência de carta / depoimento real
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _OwnerRow extends StatelessWidget {
+class _DonorMessageSection extends StatelessWidget {
+  final String description;
   final String ownerName;
-  final String? ownerPhotoUrl;
-  final String city;
-  const _OwnerRow({
+  const _DonorMessageSection({
+    required this.description,
     required this.ownerName,
-    required this.ownerPhotoUrl,
-    required this.city,
   });
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label badge
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+            decoration: BoxDecoration(
+              color: _T.navy,
+              borderRadius: BorderRadius.circular(_T.r99),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('💌', style: TextStyle(fontSize: 12)),
+                SizedBox(width: 5),
+                Text(
+                  'Mensagem do doador',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _T.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Card carta
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _T.cream,
+            borderRadius: BorderRadius.circular(_T.r24),
+            border: Border.all(color: _T.creamBorder, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Faixa tricolor de topo
+              Container(
+                height: 5,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFFFFD6E7),
+                      Color(0xFFBFDBFE),
+                      Color(0xFFBBF7D0),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(_T.r24),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Aspas decorativas
+                    _OpeningQuote(),
+
+                    const SizedBox(height: 10),
+
+                    // Relato do doador — tipografia editorial
+                    Text(
+                      description,
+                      softWrap: true,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        color: _T.body,
+                        height: 1.85,
+                        letterSpacing: 0.15,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Divisor elegante
+                    Row(
+                      children: [
+                        Container(width: 32, height: 1, color: _T.creamDeep),
+                        const SizedBox(width: 10),
+                        const Text('✦',
+                            style: TextStyle(fontSize: 10, color: _T.creamDeep)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Container(height: 1, color: _T.creamDeep),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Assinatura do doador
+                    _DonorSignature(ownerName: ownerName),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Nota de autenticidade
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+          child: Row(
+            children: [
+              const Icon(Icons.verified_rounded, size: 13, color: _T.blue),
+              const SizedBox(width: 5),
+              Text(
+                'Mensagem real escrita pelo doador',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: _T.muted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OpeningQuote extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '"',
+            style: TextStyle(
+              fontSize: 80,
+              height: 0.6,
+              fontWeight: FontWeight.w900,
+              color: _T.blue.withValues(alpha: 0.18),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '"',
+              style: TextStyle(
+                fontSize: 48,
+                height: 0.6,
+                fontWeight: FontWeight.w900,
+                color: _T.blue.withValues(alpha: 0.10),
+              ),
+            ),
+          ),
+        ],
+      );
+}
+
+class _DonorSignature extends StatelessWidget {
+  final String ownerName;
+  const _DonorSignature({required this.ownerName});
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = ownerName.isNotEmpty
+        ? ownerName.trim().split(' ').map((w) => w[0]).take(2).join()
+        : '?';
+    final displayName = ownerName.isNotEmpty ? ownerName : 'o doador';
+
     return Row(
       children: [
-        // Avatar
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: AppTheme.kidsPink.withValues(alpha: 0.15),
-          backgroundImage:
-              ownerPhotoUrl != null ? NetworkImage(ownerPhotoUrl!) : null,
-          child: ownerPhotoUrl == null
-              ? Text(
-                  ownerName.isNotEmpty ? ownerName[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.kidsPink,
-                  ),
-                )
-              : null,
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: _T.blueLight,
+            shape: BoxShape.circle,
+            border: Border.all(color: _T.blueBorder, width: 1.5),
+          ),
+          child: Center(
+            child: Text(
+              initials.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: _T.blue,
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              ownerName,
+              displayName,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.primaryBlue,
+                color: _T.navy,
               ),
             ),
-            if (city.isNotEmpty)
-              Text(
-                city,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.w500,
+            Row(
+              children: [
+                const Icon(Icons.volunteer_activism_rounded,
+                    size: 11, color: _T.pink),
+                const SizedBox(width: 4),
+                const Text(
+                  'Compartilhando com carinho',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _T.muted,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-              ),
+              ],
+            ),
           ],
         ),
       ],
@@ -342,177 +797,454 @@ class _OwnerRow extends StatelessWidget {
   }
 }
 
-// ── Badges ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ③ QUEM ESTÁ DOANDO — card de confiança
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _CategoryBadge extends StatelessWidget {
-  final String category;
-  const _CategoryBadge({required this.category});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          category,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.primaryBlue,
-          ),
-        ),
-      );
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String? status;
-  const _StatusBadge({required this.status});
-
-  Color get _color {
-    switch (status) {
-      case 'reserved':
-        return AppTheme.donationReservedColor;
-      case 'donated':
-      case 'fulfilled':
-        return AppTheme.kidsGreenDeep;
-      default:
-        return Colors.black54;
-    }
-  }
-
-  String get _label {
-    switch (status) {
-      case 'reserved':
-        return 'Reservado';
-      case 'donated':
-        return 'Doado';
-      case 'fulfilled':
-        return 'Realizado';
-      default:
-        return status ?? '';
-    }
-  }
+class _DonorCard extends StatelessWidget {
+  final String ownerName;
+  final String? ownerPhotoUrl;
+  final String city;
+  const _DonorCard({
+    required this.ownerName,
+    required this.ownerPhotoUrl,
+    required this.city,
+  });
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: _color.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          _label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-      );
-}
-
-// ── Botão voltar ──────────────────────────────────────────────────────────────
-
-class _BackButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Container(
-          width: 38,
-          height: 38,
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(emoji: '🤝', label: 'Quem está doando'),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
-            shape: BoxShape.circle,
+            color: _T.surface,
+            borderRadius: BorderRadius.circular(_T.r20),
+            border: Border.all(color: _T.border),
           ),
-          child: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: 16,
+          child: Row(
+            children: [
+              // Avatar com foto ou inicial
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: _T.pinkLight,
+                backgroundImage: ownerPhotoUrl != null
+                    ? NetworkImage(ownerPhotoUrl!)
+                    : null,
+                child: ownerPhotoUrl == null
+                    ? Text(
+                        ownerName.isNotEmpty
+                            ? ownerName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: _T.pink,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ownerName,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: _T.navy,
+                      ),
+                    ),
+                    if (city.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded,
+                              size: 12, color: _T.subtle),
+                          const SizedBox(width: 3),
+                          Text(
+                            city,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: _T.muted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    // Selo de confiança
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _T.pinkLight,
+                        borderRadius: BorderRadius.circular(_T.r99),
+                        border: Border.all(color: _T.pinkBorder),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('❤️', style: TextStyle(fontSize: 11)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Membro da comunidade Empatia',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: _T.pinkDeep,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ④ IMPACTO
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ImpactSection extends StatelessWidget {
+  const _ImpactSection();
+
+  static const _items = [
+    _ImpactItem(emoji: '🎮', text: 'Brincar e criar novas memórias'),
+    _ImpactItem(emoji: '📚', text: 'Aprender e se desenvolver'),
+    _ImpactItem(emoji: '🌟', text: 'Ganhar algo especial'),
+    _ImpactItem(emoji: '❤️', text: 'Sentir o calor da generosidade'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(
+          emoji: '🎁',
+          label: 'Esta doação pode ajudar outra criança a:',
+        ),
+        const SizedBox(height: 14),
+        ..._items.map((item) => _ImpactRow(item: item)),
+      ],
+    );
+  }
+}
+
+class _ImpactItem {
+  final String emoji;
+  final String text;
+  const _ImpactItem({required this.emoji, required this.text});
+}
+
+class _ImpactRow extends StatelessWidget {
+  final _ImpactItem item;
+  const _ImpactRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _T.blueLight,
+                borderRadius: BorderRadius.circular(_T.r12),
+                border: Border.all(color: _T.blueBorder),
+              ),
+              child: Center(
+                child: Text(item.emoji,
+                    style: const TextStyle(fontSize: 18)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.text,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _T.body,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
         ),
       );
 }
 
-// ── CTA fixo ──────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑤ LOCALIZAÇÃO
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LocationCard extends StatelessWidget {
+  final String location;
+  const _LocationCard({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(emoji: '📍', label: 'Onde está o item'),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _T.surface,
+            borderRadius: BorderRadius.circular(_T.r16),
+            border: Border.all(color: _T.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: _T.blueLight,
+                  borderRadius: BorderRadius.circular(_T.r12),
+                  border: Border.all(color: _T.blueBorder),
+                ),
+                child: const Center(
+                  child: Text('🗺️', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Localização',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _T.subtle,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      location,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: _T.navy,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: SECTION HEADER
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String emoji;
+  final String label;
+  const _SectionHeader({required this.emoji, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: _T.navy,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CTA BAR — acolhedor, não comercial
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _CtaBar extends StatelessWidget {
   final SearchResult result;
   const _CtaBar({required this.result});
 
-  bool get _isUnavailable =>
-      result.status == 'donated' ||
-      result.status == 'fulfilled' ||
-      result.status == 'reserved';
-
   @override
   Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    final status    = _StatusExt.parse(result.status);
+
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        12 + MediaQuery.of(context).padding.bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + bottomPad),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _T.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 24,
+            offset: const Offset(0, -8),
           ),
         ],
       ),
-      child: SizedBox(
-        height: 52,
-        child: ElevatedButton(
-          onPressed: _isUnavailable ? null : () => _onInterest(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.kidsPink,
-            disabledBackgroundColor: Colors.grey.shade200,
-            foregroundColor: Colors.white,
-            disabledForegroundColor: AppTheme.textMuted,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!status.isUnavailable)
+            Text(
+              'Você pode ser a próxima parte desta história.',
+              style: const TextStyle(
+                fontSize: 12,
+                color: _T.muted,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
-            elevation: 0,
-          ),
-          child: Text(
-            _isUnavailable
-                ? _unavailableLabel
-                : '❤️ Tenho Interesse',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          if (!status.isUnavailable) const SizedBox(height: 10),
+          _CtaButton(status: status, result: result),
+        ],
+      ),
+    );
+  }
+}
+
+class _CtaButton extends StatefulWidget {
+  final _ItemStatus status;
+  final SearchResult result;
+  const _CtaButton({required this.status, required this.result});
+
+  @override
+  State<_CtaButton> createState() => _CtaButtonState();
+}
+
+class _CtaButtonState extends State<_CtaButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 90),
+      lowerBound: 0.96,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _down(TapDownDetails _) {
+    if (!widget.status.isUnavailable) _ctrl.reverse();
+  }
+
+  void _up(TapUpDetails _) {
+    _ctrl.forward();
+    if (widget.status.isUnavailable) return;
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+            'Em breve você poderá entrar em contato com o doador!'),
+        backgroundColor: _T.navy,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_T.r12),
         ),
       ),
     );
   }
 
-  String get _unavailableLabel {
-    switch (result.status) {
-      case 'reserved':
-        return 'Item Reservado';
-      case 'donated':
-      case 'fulfilled':
-        return 'Item já Doado';
-      default:
-        return 'Indisponível';
-    }
+  void _cancel() => _ctrl.forward();
+
+  Color get _bgColor {
+    if (widget.status.isUnavailable) return const Color(0xFFE5E7EB);
+    return _T.blue;
   }
 
-  void _onInterest(BuildContext context) {
-    // TODO: implementar fluxo de interesse (chat / reserva)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Em breve você poderá entrar em contato com o doador!'),
-        backgroundColor: AppTheme.kidsPink,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Color get _fgColor {
+    if (widget.status.isUnavailable) return _T.muted;
+    return _T.white;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _down,
+      onTapUp: _up,
+      onTapCancel: _cancel,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, child) =>
+            Transform.scale(scale: _ctrl.value, child: child),
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: widget.status.isUnavailable ? null : null,
+            gradient: widget.status.isUnavailable
+                ? null
+                : const LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(_T.r16),
+            boxShadow: widget.status.isUnavailable
+                ? null
+                : [
+                    BoxShadow(
+                      color: _T.blue.withValues(alpha: 0.32),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+          ),
+          child: Center(
+            child: Text(
+              widget.status.ctaLabel,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: _fgColor,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

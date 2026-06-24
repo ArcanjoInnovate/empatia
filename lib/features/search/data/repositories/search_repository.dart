@@ -22,14 +22,14 @@ class SearchResult {
   final String? dreamDate;
   final double? dreamProgress;
 
-  // ── Campos exclusivos de Donation ──────────────────────────────────────
-  /// Categoria do item (ex: "Roupas", "Brinquedos")
+  // ── Campos compartilhados (Donation e Dream) ────────────────────────────
+  /// Categoria do item / sonho (ex: "Roupas", "Brinquedos", "Livros").
+  /// Presente tanto em Donations quanto em Dreams — permite filtrar
+  /// os dois tipos com um único campo.
   final String? category;
 
-  /// Nome do doador
+  // ── Campos exclusivos de Donation ──────────────────────────────────────
   final String? ownerName;
-
-  /// Foto do doador (avatar)
   final String? ownerPhotoUrl;
 
   const SearchResult({
@@ -44,13 +44,11 @@ class SearchResult {
     this.createdAt,
     this.latitude,
     this.longitude,
-    // dream-only
     this.childName,
     this.childEmoji,
     this.dreamEmoji,
     this.dreamDate,
     this.dreamProgress,
-    // donation-only
     this.category,
     this.ownerName,
     this.ownerPhotoUrl,
@@ -103,13 +101,13 @@ class SearchResult {
       createdAt: createdAt,
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
-      // dream-only
       childName: map['childName'] as String?,
       childEmoji: map['childEmoji'] as String?,
       dreamEmoji: map['emoji'] as String?,
       dreamDate: map['date'] as String?,
       dreamProgress: dreamProgress,
-      // donation-only
+      // category é lido para ambos os tipos — se o nó Dreams tiver o campo
+      // 'category' no Firebase, ele será filtrado normalmente.
       category: map['category'] as String?,
       ownerName: map['ownerName'] as String?,
       ownerPhotoUrl: map['ownerPhotoUrl'] as String?,
@@ -120,7 +118,14 @@ class SearchResult {
 /// 🔍 SEARCH REPOSITORY
 ///
 /// Busca unificada em /Donations e /Dreams.
-/// Filtros: texto livre, cidade, estado, tipo.
+/// Filtros aplicados client-side após o fetch do Firebase:
+///   - texto livre (título, descrição, nome da criança)
+///   - estado (dupla verificação — Firebase + local)
+///   - categoria (comparação case-insensitive no campo `category`)
+///
+/// O filtro de categoria NÃO adiciona consultas separadas ao Firebase.
+/// Ele percorre os resultados já carregados e descarta os que não
+/// correspondem, mantendo uma única requisição por nó.
 class SearchRepository {
   SearchRepository({
     DatabaseReference? donationsRef,
@@ -137,6 +142,7 @@ class SearchRepository {
     String? city,
     String? state,
     String? type,
+    String? category, // ← NOVO: filtro de categoria
     int limit = 60,
     double? userLat,
     double? userLng,
@@ -150,6 +156,7 @@ class SearchRepository {
         query: query,
         city: city,
         state: state,
+        category: category,
         limit: limit,
       ));
     }
@@ -161,6 +168,7 @@ class SearchRepository {
         query: query,
         city: city,
         state: state,
+        category: category,
         limit: limit,
       ));
     }
@@ -180,8 +188,10 @@ class SearchRepository {
     String? query,
     String? city,
     String? state,
+    String? category, // ← NOVO
     required int limit,
   }) async {
+    // ── Consulta Firebase (não muda com categoria) ─────────────────────────
     Query dbQuery;
     if (city != null && city.isNotEmpty) {
       dbQuery = ref.orderByChild('city').equalTo(city);
@@ -206,21 +216,69 @@ class SearchRepository {
         type,
       );
 
+      // ── Filtro de estado (dupla verificação) ───────────────────────────
       if (state != null &&
           state.isNotEmpty &&
           (item.state ?? '').toLowerCase() != state.toLowerCase()) continue;
 
+      // ── Filtro de texto livre ──────────────────────────────────────────
       if (query != null && query.isNotEmpty) {
         final q = query.toLowerCase();
         final inTitle = item.title?.toLowerCase().contains(q) ?? false;
-        final inDesc = item.description?.toLowerCase().contains(q) ?? false;
+        final inDesc  = item.description?.toLowerCase().contains(q) ?? false;
         final inChild = item.childName?.toLowerCase().contains(q) ?? false;
         if (!inTitle && !inDesc && !inChild) continue;
+      }
+
+      // ── Filtro de categoria ────────────────────────────────────────────────
+      //
+      // Donations têm campo `category` gravado em inglês minúsculo:
+      //   "clothes" | "toys" | "books" | "food" | "furniture" | "others"
+      //
+      // Dreams novos (após a atualização do DreamService) também têm
+      // `category` gravado com o mesmo padrão — match direto funciona.
+      //
+      // Dreams antigos (antes da atualização) não têm `category` — só
+      // têm `emoji`. Para esses, usamos fallback por emoji como abaixo.
+      //
+      // Fluxo:
+      //   item.category preenchido → match direto (case-insensitive)
+      //   item.category ausente    → fallback por emoji
+      //   emoji também não bate   → excluído do resultado
+      if (category != null && category.isNotEmpty) {
+        final itemCat   = (item.category ?? '').toLowerCase().trim();
+        final filterCat = category.toLowerCase().trim();
+
+        if (itemCat.isNotEmpty) {
+          // Donations: comparação direta no campo category
+          if (itemCat != filterCat) continue;
+        } else {
+          // Dreams: fallback por emoji
+          final emoji = item.dreamEmoji ?? '';
+          if (!_categoryMatchesEmoji(filterCat, emoji)) continue;
+        }
       }
 
       results.add(item);
     }
 
     return results;
+  }
+
+  /// Verifica se o [emoji] de um Dream corresponde à [category] filtrada.
+  ///
+  /// Usado como fallback quando o nó não tem campo `category` (Dreams).
+  /// O conjunto de emojis reflete AppTheme.dreamEmojiOptions — adicione
+  /// aqui se novas opções forem incluídas no formulário de sonhos.
+  static bool _categoryMatchesEmoji(String category, String emoji) {
+    const map = <String, List<String>>{
+      'books':     ['📚', '📖', '📕', '📗', '📘', '📙'],
+      'clothes':   ['👕', '👗', '🧥', '👟', '👠', '🎽', '🧣', '🧤', '🩳', '👒', '👚', '👔'],
+      'toys':      ['🧸', '🚗', '🎮', '🎯', '🎲', '🪀', '🪁', '🎠', '🚀', '✈️', '⚽', '🏀', '⚾', '🎸', '🎨', '🪆'],
+      'food':      ['🍎', '🍕', '🍔', '🥗', '🍱', '🥤', '🍰', '🍜', '🍦', '🍩', '🍫', '🧃', '🥛'],
+      'furniture': ['🛋️', '🛏️', '🪑', '🚿', '🪞', '🖥️', '📺', '🖼️'],
+      // 'others' sem emojis definidos — Dreams sem match ficam fora do filtro
+    };
+    return map[category]?.contains(emoji) ?? false;
   }
 }

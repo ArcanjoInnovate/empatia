@@ -11,52 +11,66 @@ enum SearchState { idle, loading, success, empty, error }
 /// 🔍 SEARCH CONTROLLER
 ///
 /// Gerencia estado da busca unificada (donations + dreams).
-/// Filtros de localização: estado, cidade e proximidade por raio.
 ///
-/// Quando "Próximo de mim" está ativo:
-///   1. O repositório busca itens sem filtro geográfico fixo (traz ampla base)
-///   2. Este controller filtra localmente via Haversine os itens que possuem
-///      lat/lng e estão dentro do raio definido pelo usuário
-///   3. Ordena o resultado por distância crescente (mais próximo primeiro)
+/// Filtros disponíveis:
+///   - Texto livre (query)
+///   - Tipo (donation / dream / null = todos)
+///   - Categoria (Roupas / Brinquedos / Livros / Alimentos / Móveis / Outros)
+///   - Estado, Cidade, Proximidade (Haversine)
 ///
-/// A localização exata do usuário NUNCA é exibida na UI; apenas a distância
-/// calculada (em km inteiros) pode ser usada para ordenação.
+/// O filtro de categoria é passado ao repositório, que o aplica client-side
+/// após o fetch do Firebase — sem consultas extras à rede.
 class SearchController extends ChangeNotifier {
   final SearchRepository _repository;
 
   SearchController(this._repository);
 
-  SearchState _state = SearchState.idle;
+  SearchState _state     = SearchState.idle;
   List<SearchResult> _results = [];
   String? _errorMessage;
 
-  String _query = '';
+  String  _query           = '';
   String? _selectedType;
+  String? _selectedCategory; // ← NOVO
   String? _selectedState;
   String? _selectedCity;
   double? _userLatitude;
   double? _userLongitude;
-  double _radiusKm = 10.0;
+  double  _radiusKm        = 10.0;
+
+  bool _initialLoaded = false;
 
   Timer? _debounce;
 
-  SearchState get state => _state;
-  List<SearchResult> get results => _results;
-  String? get errorMessage => _errorMessage;
-  String get query => _query;
-  String? get selectedType => _selectedType;
-  String? get selectedState => _selectedState;
-  String? get selectedCity => _selectedCity;
-  double get radiusKm => _radiusKm;
+  // ── Getters ────────────────────────────────────────────────────────────────
+
+  SearchState        get state            => _state;
+  List<SearchResult> get results          => _results;
+  String?            get errorMessage     => _errorMessage;
+  String             get query            => _query;
+  String?            get selectedType     => _selectedType;
+  String?            get selectedCategory => _selectedCategory; // ← NOVO
+  String?            get selectedState    => _selectedState;
+  String?            get selectedCity     => _selectedCity;
+  double             get radiusKm         => _radiusKm;
 
   bool get hasActiveFilters =>
-      _query.isNotEmpty ||
-      _selectedState != null ||
-      _selectedCity != null ||
-      _selectedType != null ||
-      _userLatitude != null;
+      _query.isNotEmpty      ||
+      _selectedState    != null ||
+      _selectedCity     != null ||
+      _selectedType     != null ||
+      _selectedCategory != null || // ← NOVO
+      _userLatitude     != null;
 
   bool get isProximityMode => _userLatitude != null && _userLongitude != null;
+
+  // ── Carga inicial ──────────────────────────────────────────────────────────
+
+  Future<void> loadInitial() async {
+    if (_initialLoaded) return;
+    _initialLoaded = true;
+    await _runSearch(force: true);
+  }
 
   // ── Filtros de texto ───────────────────────────────────────────────────────
 
@@ -67,16 +81,25 @@ class SearchController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Seleciona o tipo de item a filtrar.
-  ///
-  /// [type] == null significa "Todos" — ainda dispara busca (force: true)
-  /// para garantir que o filtro "Todos" sempre exiba resultados, mesmo que
-  /// não haja nenhum outro filtro ativo no momento.
+  // ── Filtro de tipo ─────────────────────────────────────────────────────────
+
   void selectType(String? type) {
     _selectedType = type;
     notifyListeners();
-    // force: true garante que "Todos" (type == null) dispara busca
-    // mesmo sem outros filtros ativos — evita ficar preso no estado idle.
+    _runSearch(force: true);
+  }
+
+  // ── Filtro de categoria ────────────────────────────────────────────────────
+
+  /// Seleciona uma categoria para filtrar os resultados.
+  ///
+  /// [category] == null significa "Todos" — remove o filtro de categoria.
+  /// Dispara nova busca imediatamente (force: true) para atualizar a lista.
+  /// Funciona em conjunto com todos os outros filtros ativos.
+  void selectCategory(String? category) {
+    if (_selectedCategory == category) return; // sem mudança, sem busca extra
+    _selectedCategory = category;
+    notifyListeners();
     _runSearch(force: true);
   }
 
@@ -89,70 +112,65 @@ class SearchController extends ChangeNotifier {
     double? userLng,
     double radiusKm = 10.0,
   }) {
-    _selectedState = stateSigla;
-    _selectedCity = cityName;
-    _userLatitude = userLat;
-    _userLongitude = userLng;
-    _radiusKm = radiusKm;
+    _selectedState  = stateSigla;
+    _selectedCity   = cityName;
+    _userLatitude   = userLat;
+    _userLongitude  = userLng;
+    _radiusKm       = radiusKm;
     notifyListeners();
-    _runSearch();
+    _runSearch(force: true);
   }
 
-  /// Atualiza apenas o raio e re-filtra os resultados já carregados,
-  /// sem disparar nova chamada à rede — apenas re-aplica Haversine local.
   void updateRadius(double radiusKm) {
     _radiusKm = radiusKm;
     notifyListeners();
-    if (isProximityMode) {
-      _runSearch();
-    }
+    if (isProximityMode) _runSearch(force: true);
   }
 
+  // ── Limpar filtros ─────────────────────────────────────────────────────────
+
+  /// Limpa todos os filtros e recarrega a lista completa.
+  /// Nunca retorna ao estado idle — o usuário sempre vê conteúdo.
   void clearFilters() {
-    _query = '';
-    _selectedState = null;
-    _selectedCity = null;
-    _selectedType = null;
-    _userLatitude = null;
-    _userLongitude = null;
-    _radiusKm = 10.0;
-    _results = [];
-    _state = SearchState.idle;
+    _query            = '';
+    _selectedState    = null;
+    _selectedCity     = null;
+    _selectedType     = null;
+    _selectedCategory = null; // ← NOVO
+    _userLatitude     = null;
+    _userLongitude    = null;
+    _radiusKm         = 10.0;
     _debounce?.cancel();
-    notifyListeners();
+    _initialLoaded    = false;
+    loadInitial();
   }
 
   // ── Busca ──────────────────────────────────────────────────────────────────
 
-  /// [force] == true ignora a checagem de hasActiveFilters.
-  /// Usado por selectType para garantir que "Todos" sempre busca.
   Future<void> _runSearch({bool force = false}) async {
-    if (!force && !hasActiveFilters) {
-      _results = [];
-      _state = SearchState.idle;
-      notifyListeners();
-      return;
-    }
+    if (!force && !hasActiveFilters) return;
 
-    _state = SearchState.loading;
+    _state        = SearchState.loading;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       final items = await _repository.search(
-        query: _query.isEmpty ? null : _query,
-        city: isProximityMode ? null : _selectedCity,
-        state: isProximityMode ? null : _selectedState,
-        type: _selectedType,
+        query:    _query.isEmpty ? null : _query,
+        city:     isProximityMode ? null : _selectedCity,
+        state:    isProximityMode ? null : _selectedState,
+        type:     _selectedType,
+        category: _selectedCategory, // ← NOVO
       );
 
       final filtered =
           isProximityMode ? _filterAndSortByProximity(items) : items;
 
       _results = filtered;
-      _state = filtered.isEmpty ? SearchState.empty : SearchState.success;
+      _state   = filtered.isEmpty ? SearchState.empty : SearchState.success;
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      _state = SearchState.error;
+      _state        = SearchState.error;
     }
 
     notifyListeners();
@@ -168,12 +186,10 @@ class SearchController extends ChangeNotifier {
 
     for (final item in items) {
       if (item.latitude == null || item.longitude == null) continue;
-
       final dist = _haversineKm(
         userLat, userLng,
         item.latitude!, item.longitude!,
       );
-
       if (dist <= _radiusKm) {
         withDistance.add(_ItemWithDistance(item: item, distanceKm: dist));
       }

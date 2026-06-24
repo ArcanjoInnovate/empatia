@@ -7,23 +7,38 @@ import 'package:empatia/features/search/presentation/widgets/search_result_card.
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:provider/provider.dart';
 
-// ── Opções de tipo ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTES DE FILTRO
+// ─────────────────────────────────────────────────────────────────────────────
 
+/// Filtro de tipo: determina qual nó do Firebase é consultado.
 const _types = [
-  (null, '🔍', 'Todos'),
+  (null,       '🔍', 'Todos'),
   ('donation', '🎁', 'Doações'),
-  ('dream', '⭐', 'Sonhos'),
+  ('dream',    '⭐', 'Sonhos'),
 ];
 
-/// 🔍 SEARCH PAGE
+/// Filtro de categoria: aplicado client-side após o fetch.
+/// O valor null representa "Todos" (sem filtro de categoria).
 ///
-/// Layout via CustomScrollView com slivers:
-///   - SliverToBoxAdapter  → header fixo (busca + filtros + chips + tipo)
-///   - SliverPadding/Grid  → resultados roláveis que sempre ficam visíveis
-///
-/// Quando os filtros estão expandidos o usuário rola a tela para baixo
-/// e chega nos cards normalmente — sem nada ser cortado ou empurrado
-/// para fora da viewport.
+/// IMPORTANTE — os valores devem bater exatamente com o campo `category`
+/// gravado no Firebase. O padrão do app é inglês minúsculo:
+///   Donations: "books" | "clothes" | "toys" | "food" | "furniture" | "others"
+///   Dreams:    não têm campo `category` — o filtro usa fallback por emoji.
+const _categories = [
+  (null,        '✨', 'Todos'),
+  ('clothes',   '👕', 'Roupas'),
+  ('toys',      '🧸', 'Brinquedos'),
+  ('books',     '📚', 'Livros'),
+  ('food',      '🍎', 'Alimentos'),
+  ('furniture', '🛋️', 'Móveis'),
+  ('others',    '📦', 'Outros'),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEARCH PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
 class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
 
@@ -40,18 +55,27 @@ class _SearchPageState extends State<SearchPage> {
   void initState() {
     super.initState();
     _searchCtrl = TextEditingController();
-    _focusNode = FocusNode();
+    _focusNode  = FocusNode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final user = context.read<UserModel?>();
-      final fc = context.read<SearchFilterController>();
+      if (!mounted) return;
 
+      final user = context.read<UserModel?>();
+      final fc   = context.read<SearchFilterController>();
+      final sc   = context.read<SearchController>();
+
+      // ① Carga inicial imediata (fire-and-forget)
+      sc.loadInitial();
+
+      // ② Carrega dropdowns de estado em paralelo
       await fc.loadEstados();
 
+      // ③ Prefill de localização do perfil (opcional)
+      if (!mounted) return;
       if (user?.state != null || user?.city != null) {
         await fc.prefillFromUser(
           stateSigla: user?.state,
-          cityName: user?.city,
+          cityName:   user?.city,
         );
         if (mounted) _onFiltersChanged();
       }
@@ -69,10 +93,10 @@ class _SearchPageState extends State<SearchPage> {
     final fc = context.read<SearchFilterController>();
     context.read<SearchController>().applyLocationFilters(
           stateSigla: fc.selectedEstado?.sigla,
-          cityName: fc.selectedCidade?.nome,
-          userLat: fc.userLocation?.latitude,
-          userLng: fc.userLocation?.longitude,
-          radiusKm: fc.radiusKm,
+          cityName:   fc.selectedCidade?.nome,
+          userLat:    fc.userLocation?.latitude,
+          userLng:    fc.userLocation?.longitude,
+          radiusKm:   fc.radiusKm,
         );
   }
 
@@ -90,13 +114,13 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: AppTheme.profileBackground,
         body: SafeArea(
           child: _SearchScrollView(
-            searchCtrl: _searchCtrl,
-            focusNode: _focusNode,
+            searchCtrl:     _searchCtrl,
+            focusNode:      _focusNode,
             filtersExpanded: _filtersExpanded,
             onToggleFilters: () =>
                 setState(() => _filtersExpanded = !_filtersExpanded),
             onFiltersChanged: _onFiltersChanged,
-            onClearAll: _clearAll,
+            onClearAll:      _clearAll,
           ),
         ),
       ),
@@ -104,14 +128,9 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-// ── ScrollView principal ──────────────────────────────────────────────────────
-//
-// Toda a tela vive num único CustomScrollView.
-// - Header (busca, filtros, chips, tipo) → SliverToBoxAdapter
-// - Resultados → SliverPadding + SliverGrid  OU  SliverFillRemaining
-//
-// Isso garante que, não importa o tamanho do header, os resultados
-// sempre ficam acessíveis via scroll — nunca cortados.
+// ─────────────────────────────────────────────────────────────────────────────
+// SCROLL VIEW PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SearchScrollView extends StatelessWidget {
   final TextEditingController searchCtrl;
@@ -137,40 +156,43 @@ class _SearchScrollView extends StatelessWidget {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        // ── Header: tudo acima dos resultados ────────────────────────
         SliverToBoxAdapter(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Barra de busca + botão de filtros
+              // Barra de busca + botão de filtros de localização
               _SearchBar(
-                searchCtrl: searchCtrl,
-                focusNode: focusNode,
+                searchCtrl:      searchCtrl,
+                focusNode:       focusNode,
                 filtersExpanded: filtersExpanded,
                 onToggleFilters: onToggleFilters,
-                onClearAll: onClearAll,
+                onClearAll:      onClearAll,
               ),
 
-              // Painel de filtros de localização (colapsável)
+              // Painel de localização (colapsável)
               AnimatedSize(
                 duration: const Duration(milliseconds: 240),
                 curve: Curves.easeInOut,
                 child: filtersExpanded
                     ? LocationFilterSection(
-                        onFiltersChanged: onFiltersChanged,
-                      )
+                        onFiltersChanged: onFiltersChanged)
                     : const SizedBox.shrink(),
               ),
 
-              // Chips de filtros ativos (aparecem independente do painel)
+              // Chips de filtros ativos (localização + categoria)
               const _ActiveFilterChips(),
-              SizedBox(height: 8),
+              const SizedBox(height: 6),
 
-              // Barra de tipo (Todos / Doações / Sonhos)
+              // Linha 1: Tipo (Todos / Doações / Sonhos)
               const _TypeFilterBar(),
+              const SizedBox(height: 6),
 
-              // Contador de resultados — fica no header para não rolar sozinho
+              // Linha 2: Categoria (Todos / Roupas / Brinquedos / …)
+              const _CategoryFilterBar(),
+              const SizedBox(height: 2),
+
+              // Contador de resultados
               if (ctrl.state == SearchState.success)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
@@ -188,15 +210,19 @@ class _SearchScrollView extends StatelessWidget {
           ),
         ),
 
-        // ── Resultados ────────────────────────────────────────────────
-        _ResultsSliver(state: ctrl.state, results: ctrl.results,
-            errorMessage: ctrl.errorMessage),
+        _ResultsSliver(
+          state:        ctrl.state,
+          results:      ctrl.results,
+          errorMessage: ctrl.errorMessage,
+        ),
       ],
     );
   }
 }
 
-// ── Barra de busca ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// BARRA DE BUSCA
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
   final TextEditingController searchCtrl;
@@ -224,7 +250,6 @@ class _SearchBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título
           const Text(
             'Buscar',
             style: TextStyle(
@@ -239,26 +264,22 @@ class _SearchBar extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 12),
-
-          // Campo de texto + botão de filtros lado a lado
           Row(
             children: [
               Expanded(
                 child: _SearchTextField(
                   searchCtrl: searchCtrl,
-                  focusNode: focusNode,
+                  focusNode:  focusNode,
                 ),
               ),
               const SizedBox(width: 10),
               _FilterToggleButton(
-                expanded: filtersExpanded,
+                expanded:   filtersExpanded,
                 hasFilters: fc.hasAnyLocationFilter,
-                onTap: onToggleFilters,
+                onTap:      onToggleFilters,
               ),
             ],
           ),
-
-          // Botão limpar tudo — aparece compacto abaixo do campo
           if (hasAnything) ...[
             const SizedBox(height: 6),
             Align(
@@ -317,8 +338,8 @@ class _SearchTextField extends StatelessWidget {
       ),
       child: TextField(
         controller: searchCtrl,
-        focusNode: focusNode,
-        onChanged: context.read<SearchController>().onQueryChanged,
+        focusNode:  focusNode,
+        onChanged:  context.read<SearchController>().onQueryChanged,
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -344,8 +365,8 @@ class _SearchTextField extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 13),
         ),
       ),
     );
@@ -356,10 +377,11 @@ class _FilterToggleButton extends StatelessWidget {
   final bool expanded;
   final bool hasFilters;
   final VoidCallback onTap;
-  const _FilterToggleButton(
-      {required this.expanded,
-      required this.hasFilters,
-      required this.onTap});
+  const _FilterToggleButton({
+    required this.expanded,
+    required this.hasFilters,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -414,14 +436,18 @@ class _FilterToggleButton extends StatelessWidget {
   }
 }
 
-// ── Chips de filtros ativos ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CHIPS DE FILTROS ATIVOS
+// Exibe localização + categoria quando ativos
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _ActiveFilterChips extends StatelessWidget {
   const _ActiveFilterChips();
 
   @override
   Widget build(BuildContext context) {
-    final fc = context.watch<SearchFilterController>();
+    final fc   = context.watch<SearchFilterController>();
+    final sc   = context.watch<SearchController>();
     final chips = <_ChipData>[];
 
     if (fc.selectedEstado != null) {
@@ -450,7 +476,7 @@ class _ActiveFilterChips extends StatelessWidget {
     }
 
     if (fc.isProximityActive) {
-      final sig = fc.selectedEstado?.sigla;
+      final sig  = fc.selectedEstado?.sigla;
       final city = fc.selectedCidade?.nome;
       chips.add(_ChipData(
         icon: '📍',
@@ -461,6 +487,21 @@ class _ActiveFilterChips extends StatelessWidget {
           context.read<SearchController>().applyLocationFilters(
               stateSigla: sig, cityName: city);
         },
+      ));
+    }
+
+    // Chip de categoria ativa
+    if (sc.selectedCategory != null) {
+      final cat = _categories.firstWhere(
+        (c) => c.$1 == sc.selectedCategory,
+        orElse: () => (sc.selectedCategory, '🏷️', sc.selectedCategory!),
+      );
+      chips.add(_ChipData(
+        icon: cat.$2,
+        label: cat.$3,
+        isCategory: true,
+        onRemove: () =>
+            context.read<SearchController>().selectCategory(null),
       ));
     }
 
@@ -484,11 +525,14 @@ class _ChipData {
   final String label;
   final VoidCallback onRemove;
   final bool isSpecial;
-  const _ChipData(
-      {required this.icon,
-      required this.label,
-      required this.onRemove,
-      this.isSpecial = false});
+  final bool isCategory;
+  const _ChipData({
+    required this.icon,
+    required this.label,
+    required this.onRemove,
+    this.isSpecial  = false,
+    this.isCategory = false,
+  });
 }
 
 class _Chip extends StatelessWidget {
@@ -497,11 +541,24 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = data.isSpecial
-        ? AppTheme.kidsGreen.withValues(alpha: 0.13)
-        : AppTheme.kidsPink;
-    final fg = data.isSpecial ? AppTheme.kidsGreenDark : Colors.white;
-    final border = data.isSpecial ? AppTheme.kidsGreen : AppTheme.kidsPink;
+    // Categoria: roxo suave; proximidade: verde; padrão: rosa
+    final Color bg;
+    final Color fg;
+    final Color border;
+
+    if (data.isCategory) {
+      bg     = const Color(0xFFF3F0FF);
+      fg     = const Color(0xFF6D28D9);
+      border = const Color(0xFFDDD6FE);
+    } else if (data.isSpecial) {
+      bg     = AppTheme.kidsGreen.withValues(alpha: 0.13);
+      fg     = AppTheme.kidsGreenDark;
+      border = AppTheme.kidsGreen;
+    } else {
+      bg     = AppTheme.kidsPink;
+      fg     = Colors.white;
+      border = AppTheme.kidsPink;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -524,8 +581,7 @@ class _Chip extends StatelessWidget {
           GestureDetector(
             onTap: data.onRemove,
             child: Icon(Icons.close_rounded,
-                size: 12,
-                color: data.isSpecial ? AppTheme.kidsGreenDark : Colors.white70),
+                size: 12, color: fg.withValues(alpha: 0.70)),
           ),
         ],
       ),
@@ -533,7 +589,9 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ── Barra de tipo ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// BARRA DE TIPO — Todos / Doações / Sonhos
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _TypeFilterBar extends StatelessWidget {
   const _TypeFilterBar();
@@ -543,60 +601,23 @@ class _TypeFilterBar extends StatelessWidget {
     final ctrl = context.watch<SearchController>();
 
     return SizedBox(
-      height: 42,
+      height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _types.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
-          final t = _types[i];
+          final t        = _types[i];
           final selected = ctrl.selectedType == t.$1;
-          return GestureDetector(
-            onTap: () => context
+          return _FilterPill(
+            emoji:    t.$2,
+            label:    t.$3,
+            selected: selected,
+            color:    AppTheme.kidsPink,
+            onTap:    () => context
                 .read<SearchController>()
                 .selectType(selected ? null : t.$1),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: selected ? AppTheme.kidsPink : AppTheme.cardBackground,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: selected
-                      ? AppTheme.kidsPink
-                      : AppTheme.kidsPink.withValues(alpha: 0.25),
-                  width: 1.5,
-                ),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.kidsPink.withValues(alpha: 0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        )
-                      ]
-                    : [],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(t.$2, style: const TextStyle(fontSize: 13)),
-                  const SizedBox(width: 5),
-                  Text(
-                    t.$3,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: selected
-                          ? Colors.white
-                          : AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),
@@ -604,11 +625,110 @@ class _TypeFilterBar extends StatelessWidget {
   }
 }
 
-// ── Resultados como Slivers ───────────────────────────────────────────────────
-//
-// Usa SliverFillRemaining para estados vazios/idle/loading/error
-// (ocupa o resto da tela sem encolher).
-// Usa SliverGrid para resultados reais (rola naturalmente junto com o header).
+// ─────────────────────────────────────────────────────────────────────────────
+// BARRA DE CATEGORIA — Todos / Roupas / Brinquedos / …
+// Visual distinto da barra de tipo para hierarquia visual clara.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CategoryFilterBar extends StatelessWidget {
+  const _CategoryFilterBar();
+
+  // Roxo — cor semântica de "categoria", diferente do rosa de "tipo"
+  static const _color = Color(0xFF7C3AED);
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.watch<SearchController>();
+
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final c        = _categories[i];
+          final selected = ctrl.selectedCategory == c.$1;
+          return _FilterPill(
+            emoji:    c.$2,
+            label:    c.$3,
+            selected: selected,
+            color:    _color,
+            onTap:    () => context
+                .read<SearchController>()
+                .selectCategory(selected ? null : c.$1),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Pill reutilizável para as duas barras de filtro.
+/// [color] define a cor de destaque quando selecionado.
+class _FilterPill extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _FilterPill({
+    required this.emoji,
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? color : AppTheme.cardBackground,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: selected ? color : color.withValues(alpha: 0.22),
+            width: 1.5,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.22),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESULTADOS COMO SLIVERS
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _ResultsSliver extends StatelessWidget {
   final SearchState state;
@@ -625,12 +745,11 @@ class _ResultsSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (state) {
       case SearchState.idle:
-        return const SliverFillRemaining(
-            hasScrollBody: false, child: _IdleState());
-
       case SearchState.loading:
-        return const SliverFillRemaining(
-            hasScrollBody: false, child: _LoadingState());
+        return const SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 32),
+          sliver: _SkeletonGrid(),
+        );
 
       case SearchState.empty:
         return const SliverFillRemaining(
@@ -650,7 +769,7 @@ class _ResultsSliver extends StatelessWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.72,
+              mainAxisExtent: 220,
             ),
             delegate: SliverChildBuilderDelegate(
               (_, i) => SearchResultCard(result: results[i]),
@@ -662,57 +781,112 @@ class _ResultsSliver extends StatelessWidget {
   }
 }
 
-// ── Estados ───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SKELETON GRID — loading state
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _IdleState extends StatelessWidget {
-  const _IdleState();
+class _SkeletonGrid extends StatelessWidget {
+  const _SkeletonGrid();
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppTheme.kidsPink.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-                child: Text('🔍', style: TextStyle(fontSize: 32))),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'O que você procura?',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primaryBlue,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            'Digite algo ou use os filtros de localização',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-          ),
-        ],
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 220,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (_, __) => const _SkeletonCard(),
+        childCount: 6,
       ),
     );
   }
 }
 
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
+class _SkeletonCard extends StatefulWidget {
+  const _SkeletonCard();
+
+  @override
+  State<_SkeletonCard> createState() => _SkeletonCardState();
+}
+
+class _SkeletonCardState extends State<_SkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(
-          color: AppTheme.kidsPink, strokeWidth: 2.5),
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final opacity = 0.06 + (_anim.value * 0.10);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.kidsPink.withValues(alpha: opacity),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0, left: 0, right: 0, height: 140,
+                  child: Container(
+                    color:
+                        AppTheme.kidsPink.withValues(alpha: opacity + 0.04),
+                  ),
+                ),
+                Positioned(
+                  left: 12, right: 30, bottom: 42, height: 12,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.kidsPink
+                          .withValues(alpha: opacity + 0.06),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 12, right: 60, bottom: 22, height: 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.kidsPink
+                          .withValues(alpha: opacity + 0.03),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTADOS VAZIOS / ERRO
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -723,8 +897,7 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 72, height: 72,
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               shape: BoxShape.circle,
@@ -745,7 +918,8 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Tente outro termo ou ajuste os filtros',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            style: TextStyle(
+                fontSize: 13, color: AppTheme.textSecondary),
           ),
         ],
       ),

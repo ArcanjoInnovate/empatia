@@ -9,6 +9,8 @@ enum DreamSaveState { idle, loading, success, error }
 /// 💭 DREAM CONTROLLER
 ///
 /// Gerencia estado de UI para CRUD de sonhos.
+/// O parâmetro [emoji] foi removido das operações — o emoji é
+/// derivado automaticamente da [category] pelo [DreamService].
 class DreamController extends ChangeNotifier {
   final DreamService _service;
 
@@ -26,13 +28,11 @@ class DreamController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Stream dos sonhos do usuário
   Stream<List<DreamModel>> watchDreams() => _service.watchDreams();
 
-  /// Adiciona um sonho
   Future<bool> addDream({
     required String? title,
-    required String emoji,
+    required String category,   // ← substituiu emoji
     required UserModel currentUser,
     required String childId,
     required String childName,
@@ -46,15 +46,15 @@ class DreamController extends ChangeNotifier {
 
     try {
       await _service.addDream(
-        title: title,
-        emoji: emoji,
+        title:       title,
+        category:    category,
         currentUser: currentUser,
-        childId: childId,
-        childName: childName,
-        childEmoji: childEmoji,
-        date: date,
-        progress: progress,
-        photo: photo,
+        childId:     childId,
+        childName:   childName,
+        childEmoji:  childEmoji,
+        date:        date,
+        progress:    progress,
+        photo:       photo,
       );
       _state = DreamSaveState.success;
       notifyListeners();
@@ -67,12 +67,10 @@ class DreamController extends ChangeNotifier {
     }
   }
 
-  /// Edita um sonho
-  /// Edita um sonho
   Future<bool> updateDream({
     required String dreamId,
     required String? title,
-    required String emoji,
+    required String category,   // ← substituiu emoji
     required String childId,
     required String childName,
     required String childEmoji,
@@ -88,18 +86,18 @@ class DreamController extends ChangeNotifier {
 
     try {
       await _service.updateDream(
-        dreamId: dreamId,
-        title: title,
-        emoji: emoji,
-        childId: childId,
-        childName: childName,
-        childEmoji: childEmoji,
-        currentUser: currentUser,
-        date: date,
-        progress: progress,
-        currentImageUrl: currentImageUrl,
-        newPhoto: newPhoto,
-        removeImage: removeImage,
+        dreamId:          dreamId,
+        title:            title,
+        category:         category,
+        childId:          childId,
+        childName:        childName,
+        childEmoji:       childEmoji,
+        currentUser:      currentUser,
+        date:             date,
+        progress:         progress,
+        currentImageUrl:  currentImageUrl,
+        newPhoto:         newPhoto,
+        removeImage:      removeImage,
       );
       _state = DreamSaveState.success;
       notifyListeners();
@@ -112,7 +110,6 @@ class DreamController extends ChangeNotifier {
     }
   }
 
-  /// Atualiza só o progresso (chamado pelo slider no card)
   Future<void> updateProgress(String dreamId, double progress) async {
     try {
       await _service.updateProgress(dreamId, progress);
@@ -122,7 +119,6 @@ class DreamController extends ChangeNotifier {
     }
   }
 
-  /// Remove um sonho (e sua imagem, se houver)
   Future<void> deleteDream(String dreamId, {String? imageUrl}) async {
     try {
       await _service.deleteDream(dreamId, imageUrl: imageUrl);

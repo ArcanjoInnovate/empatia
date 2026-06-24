@@ -18,7 +18,7 @@ class FeedFilter {
   bool get hasAny => type != null || stateCode != null || city != null;
 
   FeedFilter copyWith({
-    FeedItemType? type,
+    Object? type = _sentinel,
     Object? stateCode = _sentinel,
     Object? stateName = _sentinel,
     Object? city = _sentinel,
