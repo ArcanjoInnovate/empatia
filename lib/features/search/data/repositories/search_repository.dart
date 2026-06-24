@@ -4,7 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 /// Resultado unificado de busca (donation ou dream).
 class SearchResult {
   final String id;
-  final String type; // 'donation' | 'dream'
+  final String type;
   final String? title;
   final String? description;
   final String? photoUrl;
@@ -12,6 +12,25 @@ class SearchResult {
   final String? state;
   final String? status;
   final DateTime? createdAt;
+  final double? latitude;
+  final double? longitude;
+
+  // ── Campos exclusivos de Dream ──────────────────────────────────────────
+  final String? childName;
+  final String? childEmoji;
+  final String? dreamEmoji;
+  final String? dreamDate;
+  final double? dreamProgress;
+
+  // ── Campos exclusivos de Donation ──────────────────────────────────────
+  /// Categoria do item (ex: "Roupas", "Brinquedos")
+  final String? category;
+
+  /// Nome do doador
+  final String? ownerName;
+
+  /// Foto do doador (avatar)
+  final String? ownerPhotoUrl;
 
   const SearchResult({
     required this.id,
@@ -23,6 +42,18 @@ class SearchResult {
     this.state,
     this.status,
     this.createdAt,
+    this.latitude,
+    this.longitude,
+    // dream-only
+    this.childName,
+    this.childEmoji,
+    this.dreamEmoji,
+    this.dreamDate,
+    this.dreamProgress,
+    // donation-only
+    this.category,
+    this.ownerName,
+    this.ownerPhotoUrl,
   });
 
   factory SearchResult.fromDonation(DonationModel d) => SearchResult(
@@ -37,29 +68,59 @@ class SearchResult {
         createdAt: d.createdAt,
       );
 
-  factory SearchResult.fromMap(Map map, String id, String type) => SearchResult(
-        id: id,
-        type: type,
-        title: map['title'] as String?,
-        description: map['description'] as String?,
-        photoUrl: map['photoUrl'] as String?,
-        city: map['city'] as String?,
-        state: map['state'] as String?,
-        status: map['status'] as String?,
-        createdAt: map['createdAt'] != null
-            ? DateTime.tryParse(map['createdAt'].toString())
-            : null,
-      );
+  factory SearchResult.fromMap(Map map, String id, String type) {
+    final photo = (map['photoUrl'] as String?)?.isNotEmpty == true
+        ? map['photoUrl'] as String
+        : (map['imageUrl'] as String?)?.isNotEmpty == true
+            ? map['imageUrl'] as String
+            : null;
+
+    DateTime? createdAt;
+    final raw = map['createdAt'];
+    if (raw != null) {
+      if (raw is int || raw is double) {
+        createdAt = DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+      } else {
+        createdAt = DateTime.tryParse(raw.toString());
+      }
+    }
+
+    double? dreamProgress;
+    final prog = map['progress'];
+    if (prog != null) {
+      dreamProgress = double.tryParse(prog.toString());
+    }
+
+    return SearchResult(
+      id: id,
+      type: type,
+      title: map['title'] as String?,
+      description: map['description'] as String?,
+      photoUrl: photo,
+      city: map['city'] as String?,
+      state: map['state'] as String?,
+      status: map['status'] as String?,
+      createdAt: createdAt,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
+      // dream-only
+      childName: map['childName'] as String?,
+      childEmoji: map['childEmoji'] as String?,
+      dreamEmoji: map['emoji'] as String?,
+      dreamDate: map['date'] as String?,
+      dreamProgress: dreamProgress,
+      // donation-only
+      category: map['category'] as String?,
+      ownerName: map['ownerName'] as String?,
+      ownerPhotoUrl: map['ownerPhotoUrl'] as String?,
+    );
+  }
 }
 
 /// 🔍 SEARCH REPOSITORY
 ///
 /// Busca unificada em /Donations e /Dreams.
-/// Filtros: texto livre, cidade, estado, tipo (donation | dream).
-///
-/// Índices recomendados no firebase.json:
-///   "Donations": { ".indexOn": ["city", "state"] }
-///   "Dreams":    { ".indexOn": ["city", "state"] }
+/// Filtros: texto livre, cidade, estado, tipo.
 class SearchRepository {
   SearchRepository({
     DatabaseReference? donationsRef,
@@ -71,18 +132,14 @@ class SearchRepository {
   final DatabaseReference _donationsRef;
   final DatabaseReference _dreamsRef;
 
-  /// Busca unificada.
-  ///
-  /// [query]  → texto livre em title + description
-  /// [city]   → filtra por cidade exata
-  /// [state]  → filtra por estado
-  /// [type]   → 'donation' | 'dream' | null (ambos)
   Future<List<SearchResult>> search({
     String? query,
     String? city,
     String? state,
     String? type,
     int limit = 60,
+    double? userLat,
+    double? userLng,
   }) async {
     final futures = <Future<List<SearchResult>>>[];
 
@@ -125,7 +182,6 @@ class SearchRepository {
     String? state,
     required int limit,
   }) async {
-    // Prioridade de filtro no servidor: city > state > recentes
     Query dbQuery;
     if (city != null && city.isNotEmpty) {
       dbQuery = ref.orderByChild('city').equalTo(city);
@@ -150,17 +206,16 @@ class SearchRepository {
         type,
       );
 
-      // Filtro de estado no cliente (quando servidor filtrou por city)
       if (state != null &&
           state.isNotEmpty &&
           (item.state ?? '').toLowerCase() != state.toLowerCase()) continue;
 
-      // Filtro de texto no cliente
       if (query != null && query.isNotEmpty) {
         final q = query.toLowerCase();
         final inTitle = item.title?.toLowerCase().contains(q) ?? false;
         final inDesc = item.description?.toLowerCase().contains(q) ?? false;
-        if (!inTitle && !inDesc) continue;
+        final inChild = item.childName?.toLowerCase().contains(q) ?? false;
+        if (!inTitle && !inDesc && !inChild) continue;
       }
 
       results.add(item);

@@ -4,7 +4,7 @@ import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/donation/controller/donation_controller.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
-import 'package:empatia/features/donation/widgets/donation_item_form_sheet.dart';
+import 'package:empatia/features/donation/presentation/widgets/donation_item_form_sheet.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/dream/presentation/widgets/donation_card_widget.dart';

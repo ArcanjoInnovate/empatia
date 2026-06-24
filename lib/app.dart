@@ -20,6 +20,8 @@ import 'package:empatia/features/request/controller/request_controller.dart';
 import 'package:empatia/features/request/data/repository/request_repository.dart';
 import 'package:empatia/features/request/data/service/request_service.dart';
 import 'package:empatia/features/search/controller/search_controller.dart';
+import 'package:empatia/features/search/controller/search_filter_controller.dart';
+import 'package:empatia/features/search/data/repositories/search_location_repository.dart';
 import 'package:empatia/features/search/data/repositories/search_repository.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -43,6 +45,8 @@ class MyApp extends StatelessWidget {
         Provider<DreamsFeedRepository>(create: (_) => DreamsFeedRepository()),
         Provider<UserRepository>(create: (_) => UserRepository()),
         Provider<SearchRepository>(create: (_) => SearchRepository()),
+        Provider<SearchLocationRepository>(
+            create: (_) => SearchLocationRepository()),
 
         // ── 2. Services ──────────────────────────────────────
         ProxyProvider<CloudinaryRepository, CloudinaryService>(
@@ -118,6 +122,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<SearchRepository, SearchController>(
           create: (_) => SearchController(SearchRepository()),
           update: (_, repo, __) => SearchController(repo),
+        ),
+        ChangeNotifierProxyProvider<SearchLocationRepository,
+            SearchFilterController>(
+          create: (_) => SearchFilterController(SearchLocationRepository()),
+          update: (_, repo, __) => SearchFilterController(repo),
         ),
       ],
       child: MaterialApp(

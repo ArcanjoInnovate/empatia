@@ -1,6 +1,8 @@
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/search/controller/search_controller.dart';
+import 'package:empatia/features/search/controller/search_filter_controller.dart';
+import 'package:empatia/features/search/presentation/widgets/location_filter_section.dart';
 import 'package:empatia/features/search/presentation/widgets/search_result_card.dart';
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:provider/provider.dart';
@@ -8,16 +10,20 @@ import 'package:provider/provider.dart';
 // ── Opções de tipo ─────────────────────────────────────────────────────────────
 
 const _types = [
-  (null,       '🔍', 'Todos'),
+  (null, '🔍', 'Todos'),
   ('donation', '🎁', 'Doações'),
-  ('dream',    '⭐', 'Sonhos'),
+  ('dream', '⭐', 'Sonhos'),
 ];
 
 /// 🔍 SEARCH PAGE
 ///
-/// Tela de busca unificada (donations + dreams).
-/// Filtros: texto livre, estado, cidade, tipo.
-/// Cidade e estado são pré-preenchidos com os dados do usuário logado.
+/// Layout via CustomScrollView com slivers:
+///   - SliverToBoxAdapter  → header fixo (busca + filtros + chips + tipo)
+///   - SliverPadding/Grid  → resultados roláveis que sempre ficam visíveis
+///
+/// Quando os filtros estão expandidos o usuário rola a tela para baixo
+/// e chega nos cards normalmente — sem nada ser cortado ou empurrado
+/// para fora da viewport.
 class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
 
@@ -28,6 +34,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   late final TextEditingController _searchCtrl;
   late final FocusNode _focusNode;
+  bool _filtersExpanded = false;
 
   @override
   void initState() {
@@ -35,12 +42,19 @@ class _SearchPageState extends State<SearchPage> {
     _searchCtrl = TextEditingController();
     _focusNode = FocusNode();
 
-    // Pré-seleciona estado e cidade do usuário logado
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final user = context.read<UserModel?>();
-      final ctrl = context.read<SearchController>();
-      if (user?.state != null) ctrl.selectState(user!.state);
-      if (user?.city != null) ctrl.selectCity(user!.city);
+      final fc = context.read<SearchFilterController>();
+
+      await fc.loadEstados();
+
+      if (user?.state != null || user?.city != null) {
+        await fc.prefillFromUser(
+          stateSigla: user?.state,
+          cityName: user?.city,
+        );
+        if (mounted) _onFiltersChanged();
+      }
     });
   }
 
@@ -51,14 +65,21 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
+  void _onFiltersChanged() {
+    final fc = context.read<SearchFilterController>();
+    context.read<SearchController>().applyLocationFilters(
+          stateSigla: fc.selectedEstado?.sigla,
+          cityName: fc.selectedCidade?.nome,
+          userLat: fc.userLocation?.latitude,
+          userLng: fc.userLocation?.longitude,
+          radiusKm: fc.radiusKm,
+        );
+  }
+
   void _clearAll() {
     _searchCtrl.clear();
     context.read<SearchController>().clearFilters();
-    // Repõe localização do usuário após limpar
-    final user = context.read<UserModel?>();
-    final ctrl = context.read<SearchController>();
-    if (user?.state != null) ctrl.selectState(user!.state);
-    if (user?.city != null) ctrl.selectCity(user!.city);
+    context.read<SearchFilterController>().clearAll();
   }
 
   @override
@@ -68,17 +89,14 @@ class _SearchPageState extends State<SearchPage> {
       child: Scaffold(
         backgroundColor: AppTheme.profileBackground,
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SearchHeader(
-                searchCtrl: _searchCtrl,
-                focusNode: _focusNode,
-                onClearAll: _clearAll,
-              ),
-              const _TypeFilterBar(),
-              const Expanded(child: _ResultsArea()),
-            ],
+          child: _SearchScrollView(
+            searchCtrl: _searchCtrl,
+            focusNode: _focusNode,
+            filtersExpanded: _filtersExpanded,
+            onToggleFilters: () =>
+                setState(() => _filtersExpanded = !_filtersExpanded),
+            onFiltersChanged: _onFiltersChanged,
+            onClearAll: _clearAll,
           ),
         ),
       ),
@@ -86,27 +104,123 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
+// ── ScrollView principal ──────────────────────────────────────────────────────
+//
+// Toda a tela vive num único CustomScrollView.
+// - Header (busca, filtros, chips, tipo) → SliverToBoxAdapter
+// - Resultados → SliverPadding + SliverGrid  OU  SliverFillRemaining
+//
+// Isso garante que, não importa o tamanho do header, os resultados
+// sempre ficam acessíveis via scroll — nunca cortados.
 
-class _SearchHeader extends StatelessWidget {
+class _SearchScrollView extends StatelessWidget {
   final TextEditingController searchCtrl;
   final FocusNode focusNode;
+  final bool filtersExpanded;
+  final VoidCallback onToggleFilters;
+  final VoidCallback onFiltersChanged;
   final VoidCallback onClearAll;
 
-  const _SearchHeader({
+  const _SearchScrollView({
     required this.searchCtrl,
     required this.focusNode,
+    required this.filtersExpanded,
+    required this.onToggleFilters,
+    required this.onFiltersChanged,
     required this.onClearAll,
   });
 
   @override
   Widget build(BuildContext context) {
     final ctrl = context.watch<SearchController>();
-    final user = context.watch<UserModel?>();
 
-    return Container(
-      color: AppTheme.profileBackground,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        // ── Header: tudo acima dos resultados ────────────────────────
+        SliverToBoxAdapter(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Barra de busca + botão de filtros
+              _SearchBar(
+                searchCtrl: searchCtrl,
+                focusNode: focusNode,
+                filtersExpanded: filtersExpanded,
+                onToggleFilters: onToggleFilters,
+                onClearAll: onClearAll,
+              ),
+
+              // Painel de filtros de localização (colapsável)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeInOut,
+                child: filtersExpanded
+                    ? LocationFilterSection(
+                        onFiltersChanged: onFiltersChanged,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+
+              // Chips de filtros ativos (aparecem independente do painel)
+              const _ActiveFilterChips(),
+              SizedBox(height: 8),
+
+              // Barra de tipo (Todos / Doações / Sonhos)
+              const _TypeFilterBar(),
+
+              // Contador de resultados — fica no header para não rolar sozinho
+              if (ctrl.state == SearchState.success)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                  child: Text(
+                    '${ctrl.results.length} '
+                    '${ctrl.results.length == 1 ? 'resultado' : 'resultados'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // ── Resultados ────────────────────────────────────────────────
+        _ResultsSliver(state: ctrl.state, results: ctrl.results,
+            errorMessage: ctrl.errorMessage),
+      ],
+    );
+  }
+}
+
+// ── Barra de busca ────────────────────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController searchCtrl;
+  final FocusNode focusNode;
+  final bool filtersExpanded;
+  final VoidCallback onToggleFilters;
+  final VoidCallback onClearAll;
+
+  const _SearchBar({
+    required this.searchCtrl,
+    required this.focusNode,
+    required this.filtersExpanded,
+    required this.onToggleFilters,
+    required this.onClearAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.watch<SearchController>();
+    final fc = context.watch<SearchFilterController>();
+    final hasAnything = sc.hasActiveFilters || fc.hasAnyLocationFilter;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -119,187 +233,180 @@ class _SearchHeader extends StatelessWidget {
               color: AppTheme.primaryBlue,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Encontre doações e sonhos perto de você',
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Barra de busca
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.cardBackground,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.kidsPink.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.kidsPink.withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: searchCtrl,
-              focusNode: focusNode,
-              onChanged: context.read<SearchController>().onQueryChanged,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryBlue,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Buscar item ou sonho...',
-                hintStyle: TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppTheme.kidsPink,
-                  size: 22,
-                ),
-                suffixIcon: ctrl.query.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.close_rounded,
-                            color: Colors.grey.shade400, size: 18),
-                        onPressed: () {
-                          searchCtrl.clear();
-                          context.read<SearchController>().onQueryChanged('');
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Chips: estado · cidade · limpar
+          // Campo de texto + botão de filtros lado a lado
           Row(
             children: [
-              // Chip estado
-              _LocationChip(
-                icon: Icons.map_rounded,
-                label: ctrl.selectedState ?? (user?.state ?? 'Estado'),
-                isActive: ctrl.selectedState != null,
-                onTap: () {
-                  final isActive = ctrl.selectedState != null;
-                  context.read<SearchController>().selectState(
-                        isActive ? null : user?.state,
-                      );
-                },
-              ),
-              const SizedBox(width: 8),
-
-              // Chip cidade
-              _LocationChip(
-                icon: Icons.location_on_rounded,
-                label: ctrl.selectedCity ?? (user?.city ?? 'Cidade'),
-                isActive: ctrl.selectedCity != null,
-                onTap: () {
-                  final isActive = ctrl.selectedCity != null;
-                  context.read<SearchController>().selectCity(
-                        isActive ? null : user?.city,
-                      );
-                },
-              ),
-
-              const Spacer(),
-
-              // Limpar filtros
-              if (ctrl.hasActiveFilters)
-                GestureDetector(
-                  onTap: onClearAll,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.kidsPink.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.filter_alt_off_rounded,
-                            size: 13, color: AppTheme.kidsPink),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Limpar',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.kidsPink,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              Expanded(
+                child: _SearchTextField(
+                  searchCtrl: searchCtrl,
+                  focusNode: focusNode,
                 ),
+              ),
+              const SizedBox(width: 10),
+              _FilterToggleButton(
+                expanded: filtersExpanded,
+                hasFilters: fc.hasAnyLocationFilter,
+                onTap: onToggleFilters,
+              ),
             ],
           ),
+
+          // Botão limpar tudo — aparece compacto abaixo do campo
+          if (hasAnything) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: onClearAll,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.filter_alt_off_rounded,
+                        size: 13, color: AppTheme.kidsPink),
+                    const SizedBox(width: 3),
+                    Text(
+                      'Limpar tudo',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.kidsPink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ── Chip de localização (estado / cidade) ─────────────────────────────────────
+class _SearchTextField extends StatelessWidget {
+  final TextEditingController searchCtrl;
+  final FocusNode focusNode;
+  const _SearchTextField(
+      {required this.searchCtrl, required this.focusNode});
 
-class _LocationChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.watch<SearchController>();
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.kidsPink.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.kidsPink.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: searchCtrl,
+        focusNode: focusNode,
+        onChanged: context.read<SearchController>().onQueryChanged,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.primaryBlue,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Buscar item ou sonho...',
+          hintStyle: TextStyle(
+            fontSize: 13,
+            color: AppTheme.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: const Icon(Icons.search_rounded,
+              color: AppTheme.kidsPink, size: 20),
+          suffixIcon: sc.query.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.close_rounded,
+                      color: Colors.grey.shade400, size: 17),
+                  onPressed: () {
+                    searchCtrl.clear();
+                    context.read<SearchController>().onQueryChanged('');
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterToggleButton extends StatelessWidget {
+  final bool expanded;
+  final bool hasFilters;
   final VoidCallback onTap;
-
-  const _LocationChip({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
+  const _FilterToggleButton(
+      {required this.expanded,
+      required this.hasFilters,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        duration: const Duration(milliseconds: 200),
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.kidsPink : AppTheme.cardBackground,
-          borderRadius: BorderRadius.circular(20),
+          color: expanded ? AppTheme.kidsPink : AppTheme.cardBackground,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isActive
-                ? AppTheme.kidsPink
-                : AppTheme.kidsPink.withValues(alpha: 0.3),
+            color: AppTheme.kidsPink
+                .withValues(alpha: expanded ? 1 : 0.35),
             width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.kidsPink
+                  .withValues(alpha: expanded ? 0.28 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
             Icon(
-              icon,
-              size: 12,
-              color: isActive ? Colors.white : AppTheme.kidsPink,
+              Icons.tune_rounded,
+              color: expanded ? Colors.white : AppTheme.kidsPink,
+              size: 21,
             ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: isActive ? Colors.white : AppTheme.textSecondary,
+            if (hasFilters && !expanded)
+              Positioned(
+                top: 9,
+                right: 9,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.kidsGreen,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -307,7 +414,126 @@ class _LocationChip extends StatelessWidget {
   }
 }
 
-// ── Barra de filtro de tipo ───────────────────────────────────────────────────
+// ── Chips de filtros ativos ───────────────────────────────────────────────────
+
+class _ActiveFilterChips extends StatelessWidget {
+  const _ActiveFilterChips();
+
+  @override
+  Widget build(BuildContext context) {
+    final fc = context.watch<SearchFilterController>();
+    final chips = <_ChipData>[];
+
+    if (fc.selectedEstado != null) {
+      chips.add(_ChipData(
+        icon: '🗺️',
+        label: fc.selectedEstado!.sigla,
+        onRemove: () {
+          fc.selectEstado(null);
+          context.read<SearchController>().applyLocationFilters();
+        },
+      ));
+    }
+
+    if (fc.selectedCidade != null) {
+      final sig = fc.selectedEstado?.sigla;
+      chips.add(_ChipData(
+        icon: '🏙️',
+        label: fc.selectedCidade!.nome,
+        onRemove: () {
+          fc.selectCidade(null);
+          context
+              .read<SearchController>()
+              .applyLocationFilters(stateSigla: sig);
+        },
+      ));
+    }
+
+    if (fc.isProximityActive) {
+      final sig = fc.selectedEstado?.sigla;
+      final city = fc.selectedCidade?.nome;
+      chips.add(_ChipData(
+        icon: '📍',
+        label: 'Próximo de mim · ${fc.radiusKm.round()} km',
+        isSpecial: true,
+        onRemove: () {
+          fc.toggleProximity();
+          context.read<SearchController>().applyLocationFilters(
+              stateSigla: sig, cityName: city);
+        },
+      ));
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: chips.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (_, i) => _Chip(data: chips[i]),
+      ),
+    );
+  }
+}
+
+class _ChipData {
+  final String icon;
+  final String label;
+  final VoidCallback onRemove;
+  final bool isSpecial;
+  const _ChipData(
+      {required this.icon,
+      required this.label,
+      required this.onRemove,
+      this.isSpecial = false});
+}
+
+class _Chip extends StatelessWidget {
+  final _ChipData data;
+  const _Chip({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = data.isSpecial
+        ? AppTheme.kidsGreen.withValues(alpha: 0.13)
+        : AppTheme.kidsPink;
+    final fg = data.isSpecial ? AppTheme.kidsGreenDark : Colors.white;
+    final border = data.isSpecial ? AppTheme.kidsGreen : AppTheme.kidsPink;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(data.icon, style: const TextStyle(fontSize: 11)),
+          const SizedBox(width: 4),
+          Text(
+            data.label,
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700, color: fg),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: data.onRemove,
+            child: Icon(Icons.close_rounded,
+                size: 12,
+                color: data.isSpecial ? AppTheme.kidsGreenDark : Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Barra de tipo ─────────────────────────────────────────────────────────────
 
 class _TypeFilterBar extends StatelessWidget {
   const _TypeFilterBar();
@@ -316,37 +542,34 @@ class _TypeFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = context.watch<SearchController>();
 
-    return Container(
-      height: 44,
-      color: AppTheme.profileBackground,
-      padding: const EdgeInsets.only(bottom: 8),
+    return SizedBox(
+      height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         itemCount: _types.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final t = _types[i];
-          final isSelected = ctrl.selectedType == t.$1;
-
+          final selected = ctrl.selectedType == t.$1;
           return GestureDetector(
             onTap: () => context
                 .read<SearchController>()
-                .selectType(isSelected ? null : t.$1),
+                .selectType(selected ? null : t.$1),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.kidsPink : AppTheme.cardBackground,
+                color: selected ? AppTheme.kidsPink : AppTheme.cardBackground,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: isSelected
+                  color: selected
                       ? AppTheme.kidsPink
                       : AppTheme.kidsPink.withValues(alpha: 0.25),
                   width: 1.5,
                 ),
-                boxShadow: isSelected
+                boxShadow: selected
                     ? [
                         BoxShadow(
                           color: AppTheme.kidsPink.withValues(alpha: 0.25),
@@ -359,15 +582,15 @@ class _TypeFilterBar extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(t.$2, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 6),
+                  Text(t.$2, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 5),
                   Text(
                     t.$3,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: isSelected
-                          ? AppTheme.backgroundColor
+                      color: selected
+                          ? Colors.white
                           : AppTheme.textSecondary,
                     ),
                   ),
@@ -381,69 +604,65 @@ class _TypeFilterBar extends StatelessWidget {
   }
 }
 
-// ── Área de resultados ────────────────────────────────────────────────────────
+// ── Resultados como Slivers ───────────────────────────────────────────────────
+//
+// Usa SliverFillRemaining para estados vazios/idle/loading/error
+// (ocupa o resto da tela sem encolher).
+// Usa SliverGrid para resultados reais (rola naturalmente junto com o header).
 
-class _ResultsArea extends StatelessWidget {
-  const _ResultsArea();
-
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = context.watch<SearchController>();
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: switch (ctrl.state) {
-        SearchState.idle    => const _IdleState(),
-        SearchState.loading => const _LoadingState(),
-        SearchState.empty   => const _EmptyState(),
-        SearchState.error   => _ErrorState(message: ctrl.errorMessage),
-        SearchState.success => _ResultsGrid(results: ctrl.results),
-      },
-    );
-  }
-}
-
-// ── Grid de resultados ────────────────────────────────────────────────────────
-
-class _ResultsGrid extends StatelessWidget {
+class _ResultsSliver extends StatelessWidget {
+  final SearchState state;
   final List<SearchResult> results;
-  const _ResultsGrid({required this.results});
+  final String? errorMessage;
+
+  const _ResultsSliver({
+    required this.state,
+    required this.results,
+    required this.errorMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-          child: Text(
-            '${results.length} ${results.length == 1 ? 'resultado' : 'resultados'}',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    switch (state) {
+      case SearchState.idle:
+        return const SliverFillRemaining(
+            hasScrollBody: false, child: _IdleState());
+
+      case SearchState.loading:
+        return const SliverFillRemaining(
+            hasScrollBody: false, child: _LoadingState());
+
+      case SearchState.empty:
+        return const SliverFillRemaining(
+            hasScrollBody: false, child: _EmptyState());
+
+      case SearchState.error:
+        return SliverFillRemaining(
+            hasScrollBody: false,
+            child: _ErrorState(message: errorMessage));
+
+      case SearchState.success:
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+          sliver: SliverGrid(
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 0.72,
             ),
-            itemCount: results.length,
-            itemBuilder: (_, i) => SearchResultCard(result: results[i]),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => SearchResultCard(result: results[i]),
+              childCount: results.length,
+            ),
           ),
-        ),
-      ],
-    );
+        );
+    }
   }
 }
 
-// ── Estados vazios / loading / erro / idle ────────────────────────────────────
+// ── Estados ───────────────────────────────────────────────────────────────────
 
 class _IdleState extends StatelessWidget {
   const _IdleState();
@@ -454,17 +673,16 @@ class _IdleState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               color: AppTheme.kidsPink.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Text('🔍', style: TextStyle(fontSize: 36)),
-            ),
+                child: Text('🔍', style: TextStyle(fontSize: 32))),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           const Text(
             'O que você procura?',
             style: TextStyle(
@@ -473,9 +691,10 @@ class _IdleState extends StatelessWidget {
               color: AppTheme.primaryBlue,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
-            'Digite um item, sonho ou use os filtros',
+            'Digite algo ou use os filtros de localização',
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
         ],
@@ -490,9 +709,7 @@ class _LoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: CircularProgressIndicator(
-        color: AppTheme.kidsPink,
-        strokeWidth: 2.5,
-      ),
+          color: AppTheme.kidsPink, strokeWidth: 2.5),
     );
   }
 }
@@ -506,17 +723,16 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Text('📭', style: TextStyle(fontSize: 36)),
-            ),
+                child: Text('📭', style: TextStyle(fontSize: 32))),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           const Text(
             'Nenhum resultado encontrado',
             style: TextStyle(
@@ -525,9 +741,10 @@ class _EmptyState extends StatelessWidget {
               color: AppTheme.primaryBlue,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             'Tente outro termo ou ajuste os filtros',
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
         ],
@@ -547,8 +764,8 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('⚠️', style: TextStyle(fontSize: 36)),
-            const SizedBox(height: 12),
+            const Text('⚠️', style: TextStyle(fontSize: 34)),
+            const SizedBox(height: 10),
             Text(
               message ?? 'Erro ao buscar itens',
               textAlign: TextAlign.center,
