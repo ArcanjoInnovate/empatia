@@ -1,7 +1,11 @@
 import 'dart:ui';
 
+import 'package:empatia/features/chat/data/models/chat_model.dart';
+import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
+import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -113,19 +117,26 @@ extension _StatusExt on _ItemStatus {
 class DonationDetailPage extends StatelessWidget {
   final SearchResult result;
   final String heroTag;
+  final bool hideCta;
 
   const DonationDetailPage({
     Key? key,
     required this.result,
     required this.heroTag,
+    this.hideCta = false,
   }) : super(key: key);
 
   static Route<void> route({
     required SearchResult result,
     required String heroTag,
+    bool hideCta = false,
   }) =>
       MaterialPageRoute(
-        builder: (_) => DonationDetailPage(result: result, heroTag: heroTag),
+        builder: (_) => DonationDetailPage(
+          result: result,
+          heroTag: heroTag,
+          hideCta: hideCta,
+        ),
       );
 
   @override
@@ -147,7 +158,7 @@ class DonationDetailPage extends StatelessWidget {
                 // 2+ — Corpo narrativo
                 SliverToBoxAdapter(child: _PageBody(result: result)),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 128)),
+                SliverToBoxAdapter(child: SizedBox(height: hideCta ? 32 : 128)),
               ],
             ),
 
@@ -158,11 +169,12 @@ class DonationDetailPage extends StatelessWidget {
               child: _BackButton(),
             ),
 
-            // CTA fixo
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: _CtaBar(result: result),
-            ),
+            // CTA fixo — oculto quando aberto via contexto do chat
+            if (!hideCta)
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: _CtaBar(result: result),
+              ),
           ],
         ),
       ),
@@ -1176,20 +1188,55 @@ class _CtaButtonState extends State<_CtaButton>
     _ctrl.forward();
     if (widget.status.isUnavailable) return;
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-            'Em breve você poderá entrar em contato com o doador!'),
-        backgroundColor: _T.navy,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_T.r12),
-        ),
-      ),
-    );
+    _openChat();
   }
 
   void _cancel() => _ctrl.forward();
+
+  Future<void> _openChat() async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final ownerId = widget.result.ownerId ?? '';
+
+    if (ownerId.isEmpty || ownerId == myUid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ownerId.isEmpty
+                ? 'Não foi possível identificar o doador.'
+                : 'Esta é a sua própria doação!',
+          ),
+          backgroundColor: _T.navy,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_T.r12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Busca dados do perfil do doador antes de abrir o chat
+    final userInfo = await ChatRepository.instance.fetchUserInfo(ownerId);
+    if (!mounted) return;
+
+    final chatId = ChatModel.buildId(myUid, ownerId);
+    final sorted  = ([myUid, ownerId]..sort());
+    final chat = ChatModel(
+      chatId: chatId,
+      user1:  sorted[0],
+      user2:  sorted[1],
+      otherUid: ownerId,
+      origin: ChatOrigin.donation,
+      itemId: widget.result.id,
+      itemTitle: widget.result.title,
+      itemType: 'donation',
+      otherName: userInfo['name'] ?? widget.result.ownerName,
+      otherAvatar: userInfo['profileImage'] ?? widget.result.ownerPhotoUrl,
+      otherEmoji: userInfo['profileEmoji'],
+    );
+
+    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat));
+  }
 
   Color get _bgColor {
     if (widget.status.isUnavailable) return const Color(0xFFE5E7EB);

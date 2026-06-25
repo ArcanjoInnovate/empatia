@@ -31,6 +31,8 @@ class SearchResult {
   // ── Campos exclusivos de Donation ──────────────────────────────────────
   final String? ownerName;
   final String? ownerPhotoUrl;
+  /// UID do dono do item (sonho ou doação). Usado para abrir o chat.
+  final String? ownerId;
 
   const SearchResult({
     required this.id,
@@ -52,6 +54,7 @@ class SearchResult {
     this.category,
     this.ownerName,
     this.ownerPhotoUrl,
+    this.ownerId,
   });
 
   factory SearchResult.fromDonation(DonationModel d) => SearchResult(
@@ -64,6 +67,7 @@ class SearchResult {
         state: d.state,
         status: d.status,
         createdAt: d.createdAt,
+        ownerId: d.userId,
       );
 
   factory SearchResult.fromMap(Map map, String id, String type) {
@@ -111,6 +115,7 @@ class SearchResult {
       category: map['category'] as String?,
       ownerName: map['ownerName'] as String?,
       ownerPhotoUrl: map['ownerPhotoUrl'] as String?,
+      ownerId: map['userId'] as String?,
     );
   }
 }

@@ -1,7 +1,11 @@
 import 'dart:ui';
 
+import 'package:empatia/features/chat/data/models/chat_model.dart';
+import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
+import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -57,19 +61,26 @@ abstract final class _T {
 class DreamDetailPage extends StatelessWidget {
   final SearchResult result;
   final String heroTag;
+  final bool hideCta;
 
   const DreamDetailPage({
     Key? key,
     required this.result,
     required this.heroTag,
+    this.hideCta = false,
   }) : super(key: key);
 
   static Route<void> route({
     required SearchResult result,
     required String heroTag,
+    bool hideCta = false,
   }) =>
       MaterialPageRoute(
-        builder: (_) => DreamDetailPage(result: result, heroTag: heroTag),
+        builder: (_) => DreamDetailPage(
+          result: result,
+          heroTag: heroTag,
+          hideCta: hideCta,
+        ),
       );
 
   @override
@@ -92,15 +103,16 @@ class DreamDetailPage extends StatelessWidget {
                 SliverToBoxAdapter(child: _PageBody(result: result)),
 
                 // Espaço para CTA não cobrir conteúdo
-                const SliverToBoxAdapter(child: SizedBox(height: 128)),
+                SliverToBoxAdapter(child: SizedBox(height: hideCta ? 32 : 128)),
               ],
             ),
 
-            // CTA fixo
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: _CtaBar(childName: result.childName?.trim() ?? ''),
-            ),
+            // CTA fixo — oculto quando aberto via contexto do chat
+            if (!hideCta)
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: _CtaBar(childName: result.childName?.trim() ?? '', result: result),
+              ),
           ],
         ),
       ),
@@ -388,12 +400,6 @@ class _PageBody extends StatelessWidget {
           ),
         ],
 
-        // ③ Impacto do sonho
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _ImpactSection(childName: childName),
-        ),
 
         // ④ Progresso inspirador
         if (progress != null && progress > 0) ...[
@@ -406,10 +412,6 @@ class _PageBody extends StatelessWidget {
             ),
           ),
         ],
-
-        // ⑤ Prova social
-        const SizedBox(height: 24),
-        const _SocialProofSection(),
 
         // ⑥ Informações complementares
         if (location.isNotEmpty) ...[
@@ -788,76 +790,6 @@ class _FamilySignature extends StatelessWidget {
 // ③ IMPACTO — o que a ação gera
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ImpactSection extends StatelessWidget {
-  final String childName;
-  const _ImpactSection({required this.childName});
-
-  static const _items = [
-    _ImpactItem(emoji: '🌟', text: 'Realizar um sonho especial'),
-    _ImpactItem(emoji: '👫', text: 'Criar memórias afetivas únicas'),
-    _ImpactItem(emoji: '💪', text: 'Desenvolver confiança e autonomia'),
-    _ImpactItem(emoji: '❤️', text: 'Sentir que alguém se importa'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final name = childName.isNotEmpty ? childName : 'essa criança';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(emoji: '🎁', label: 'Seu apoio pode ajudar $name a:'),
-        const SizedBox(height: 14),
-        ..._items.map((item) => _ImpactRow(item: item)),
-      ],
-    );
-  }
-}
-
-class _ImpactItem {
-  final String emoji;
-  final String text;
-  const _ImpactItem({required this.emoji, required this.text});
-}
-
-class _ImpactRow extends StatelessWidget {
-  final _ImpactItem item;
-  const _ImpactRow({required this.item});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _T.pinkLight,
-                borderRadius: BorderRadius.circular(_T.r12),
-                border: Border.all(color: _T.pinkBorder),
-              ),
-              child: Center(
-                child: Text(item.emoji,
-                    style: const TextStyle(fontSize: 18)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.text,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _T.body,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ④ PROGRESSO INSPIRADOR
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1026,143 +958,7 @@ class _InspiringProgressState extends State<_InspiringProgress>
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
-// ⑤ PROVA SOCIAL
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SocialProofSection extends StatelessWidget {
-  const _SocialProofSection();
-
-  static const _avatarColors = [
-    Color(0xFFFF5C8D),
-    Color(0xFF2563EB),
-    Color(0xFF16A34A),
-    Color(0xFFF59E0B),
-    Color(0xFF7C3AED),
-  ];
-  static const _initials = ['M', 'J', 'A', 'R', 'C'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E3A5F), Color(0xFF2D5A8E)],
-        ),
-        borderRadius: BorderRadius.circular(_T.r20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('✨', style: TextStyle(fontSize: 18)),
-              SizedBox(width: 8),
-              Text(
-                'Este sonho já tocou corações',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: _T.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              SizedBox(
-                width: 5 * 24.0 + 12,
-                height: 38,
-                child: Stack(
-                  children: List.generate(5, (i) => Positioned(
-                    left: i * 24.0,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: _avatarColors[i],
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF1E3A5F), width: 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _initials[i],
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: _T.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'pessoas demonstraram interesse neste sonho',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white70,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _SocialBadge(emoji: '💜', label: 'Sonho verificado'),
-              _SocialBadge(emoji: '🔒', label: 'Família segura'),
-              _SocialBadge(emoji: '⭐', label: 'Muito aguardado'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SocialBadge extends StatelessWidget {
-  final String emoji;
-  final String label;
-  const _SocialBadge({required this.emoji, required this.label});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(_T.r99),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 12)),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: _T.white,
-              ),
-            ),
-          ],
-        ),
-      );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ⑥ INFORMAÇÕES COMPLEMENTARES — grid 2 colunas
@@ -1324,7 +1120,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _CtaBar extends StatelessWidget {
   final String childName;
-  const _CtaBar({required this.childName});
+  final SearchResult result;
+  const _CtaBar({required this.childName, required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -1356,7 +1153,7 @@ class _CtaBar extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          _CtaButton(childName: name),
+          _CtaButton(childName: name, result: result),
         ],
       ),
     );
@@ -1365,7 +1162,8 @@ class _CtaBar extends StatelessWidget {
 
 class _CtaButton extends StatefulWidget {
   final String childName;
-  const _CtaButton({required this.childName});
+  final SearchResult result;
+  const _CtaButton({required this.childName, required this.result});
 
   @override
   State<_CtaButton> createState() => _CtaButtonState();
@@ -1394,22 +1192,59 @@ class _CtaButtonState extends State<_CtaButton>
   }
 
   void _down(TapDownDetails _) => _ctrl.reverse();
+
   void _up(TapUpDetails _) {
     _ctrl.forward();
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Em breve você poderá ajudar ${widget.childName}!'),
-        backgroundColor: _T.navy,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_T.r12),
-        ),
-      ),
-    );
+    _openChat();
   }
 
   void _cancel() => _ctrl.forward();
+
+  Future<void> _openChat() async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final ownerId = widget.result.ownerId ?? '';
+
+    if (ownerId.isEmpty || ownerId == myUid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ownerId.isEmpty
+                ? 'Não foi possível identificar o responsável pelo sonho.'
+                : 'Este é o seu próprio sonho!',
+          ),
+          backgroundColor: _T.navy,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_T.r12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Busca dados do perfil do dono antes de abrir o chat
+    final userInfo = await ChatRepository.instance.fetchUserInfo(ownerId);
+    if (!mounted) return;
+
+    final chatId = ChatModel.buildId(myUid, ownerId);
+    final sorted  = ([myUid, ownerId]..sort());
+    final chat = ChatModel(
+      chatId: chatId,
+      user1:  sorted[0],
+      user2:  sorted[1],
+      otherUid: ownerId,
+      origin: ChatOrigin.dream,
+      itemId: widget.result.id,
+      itemTitle: widget.result.title,
+      itemType: 'dream',
+      otherName: userInfo['name'] ?? widget.result.ownerName,
+      otherAvatar: userInfo['profileImage'] ?? widget.result.ownerPhotoUrl,
+      otherEmoji: userInfo['profileEmoji'],
+    );
+
+    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat));
+  }
 
   @override
   Widget build(BuildContext context) {

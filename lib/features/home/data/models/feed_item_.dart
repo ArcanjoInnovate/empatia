@@ -1,3 +1,5 @@
+import 'package:empatia/features/search/data/repositories/search_repository.dart';
+
 /// Item unificado do feed — pode ser um sonho ou uma doação.
 ///
 /// Carrega apenas os campos necessários para renderizar o card no feed.
@@ -106,6 +108,32 @@ class FeedItem {
       description: map['description']?.toString(),
       category: map['category']?.toString(),
       status: map['status']?.toString() ?? 'available',
+    );
+  }
+
+  /// Converte este [FeedItem] em um [SearchResult] compatível com as páginas
+  /// de detalhe [DreamDetailPage] e [DonationDetailPage].
+  ///
+  /// Reutiliza os dados já carregados no feed — sem nova chamada de rede.
+  SearchResult toSearchResult() {
+    return SearchResult(
+      id: id,
+      type: type == FeedItemType.dream ? 'dream' : 'donation',
+      title: title,
+      description: description,
+      photoUrl: imageUrl,
+      city: city,
+      state: state,
+      status: status,
+      createdAt: createdAt > 0
+          ? DateTime.fromMillisecondsSinceEpoch(createdAt)
+          : null,
+      childName: childName,
+      childEmoji: childEmoji,
+      dreamEmoji: type == FeedItemType.dream ? emoji : null,
+      dreamDate: date,
+      dreamProgress: progress,
+      category: category,
     );
   }
 }

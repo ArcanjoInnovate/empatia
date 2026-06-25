@@ -1,19 +1,58 @@
-// lib/features/home/presentation/widgets/feed_cards.dart
+// lib/features/home/presentation/widgets/feeds_card.dart
 //
-// Cards do feed: sonhos, doações, blocos de destaque (Insight)
-// e todos os widgets auxiliares (badges, avatar, interações...).
-// ─────────────────────────────────────────────────────────────
+// Cards do feed — DreamCard, DonationCard, InsightBlock e auxiliares.
+// Reestruturação completa: hierarquia emocional, narrativa, conversão.
+// ─────────────────────────────────────────────────────────────────────
 
-import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
+import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
+import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
 import 'package:empatia/features/home/data/models/feed_item_.dart';
-import 'package:empatia/features/home/presentation/constants/home_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// FEED CARD — wrapper que decide qual card renderizar
+// DESIGN TOKENS — internos ao arquivo
+// ═══════════════════════════════════════════════════════════════
+
+abstract final class _K {
+  // Dream
+  static const purple      = Color(0xFF7C3AED);
+  static const purpleDeep  = Color(0xFF5B21B6);
+  static const purpleLight = Color(0xFFF5F0FF);
+  static const purpleSoft  = Color(0xFFEDE9FE);
+
+  // Donation
+  static const pink      = Color(0xFFFF5C8D);
+  static const pinkDeep  = Color(0xFFE0457A);
+  static const pinkLight = Color(0xFFFFF0F6);
+  static const pinkSoft  = Color(0xFFFFE4F0);
+
+  // Shared
+  static const navy    = Color(0xFF1E3A5F);
+  static const body    = Color(0xFF374151);
+  static const muted   = Color(0xFF6B7280);
+  static const subtle  = Color(0xFF9CA3AF);
+  static const white   = Colors.white;
+  static const surface = Color(0xFFF9FAFB);
+  static const green   = Color(0xFF16A34A);
+  static const greenBg = Color(0xFFDCFCE7);
+  static const amber   = Color(0xFFF59E0B);
+
+  // Radius
+  static const r4  = 4.0;
+  static const r8  = 8.0;
+  static const r12 = 12.0;
+  static const r16 = 16.0;
+  static const r20 = 20.0;
+  static const r28 = 28.0;
+  static const r99 = 99.0;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FEED CARD — router
 // ═══════════════════════════════════════════════════════════════
 
 class FeedCard extends StatelessWidget {
@@ -29,183 +68,390 @@ class FeedCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CARD DE SONHO
+// DREAM CARD — hierarquia emocional completa
 // ═══════════════════════════════════════════════════════════════
 
-class DreamCard extends StatelessWidget {
+class DreamCard extends StatefulWidget {
   final FeedItem item;
   const DreamCard({super.key, required this.item});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: kPurpleSoft, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.kidsPurple.withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
+  State<DreamCard> createState() => _DreamCardState();
+}
+
+class _DreamCardState extends State<DreamCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      lowerBound: 0.97,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+    _scale = _ctrl;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) => _ctrl.reverse();
+  void _onTapUp(TapUpDetails _) {
+    _ctrl.forward();
+    HapticFeedback.lightImpact();
+    final heroTag = 'feed_dream_${widget.item.id}';
+    Navigator.push(
+      context,
+      DreamDetailPage.route(
+        result: widget.item.toSearchResult(),
+        heroTag: heroTag,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Imagem ────────────────────────────────────────────
-          if (item.imageUrl != null)
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                FullscreenImagePage.route(
-                  imageUrl: item.imageUrl!,
-                  heroTag: 'dream_img_${item.id}',
-                  title: item.title,
+    );
+  }
+  void _onTapCancel() => _ctrl.forward();
+
+  // Microcopy emocional rotativo por ID
+  static const _copies = [
+    '✨ Um sonho esperando acontecer',
+    '💛 Cada apoio transforma uma vida',
+    '🌟 Uma criança real por trás desta história',
+    '❤️ Conheça esta família',
+    '🎯 Seu gesto pode mudar tudo',
+  ];
+  String _microcopy(String id) {
+    final idx = (id.codeUnits.fold(0, (a, b) => a + b) + 2) % _copies.length;
+    return _copies[idx];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final heroTag = 'feed_dream_${item.id}';
+    final hasImage = item.imageUrl != null && item.imageUrl!.isNotEmpty;
+    final hasStory = item.date != null && item.date!.isNotEmpty;
+    final hasChild = item.childName != null && item.childName!.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _K.white,
+              borderRadius: BorderRadius.circular(_K.r28),
+              border: Border.all(color: _K.purpleSoft, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: _K.purple.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
                 ),
-              ),
-              child: Hero(
-                tag: 'dream_img_${item.id}',
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(23)),
-                  child: AspectRatio(
-                    aspectRatio: 4 / 3,
-                    child: Image.network(
-                      item.imageUrl!,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) =>
-                          progress == null
-                              ? child
-                              : Container(
-                                  color: const Color(0xFFF5F0FF),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      value: progress.expectedTotalBytes != null
-                                          ? progress.cumulativeBytesLoaded /
-                                              progress.expectedTotalBytes!
-                                          : null,
-                                      color: AppTheme.kidsPurple,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                ),
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFF5F0FF),
-                        child: Center(
-                          child: Text(
-                            item.emoji,
-                            style: const TextStyle(fontSize: 60),
-                          ),
+                BoxShadow(
+                  color: _K.purple.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // ── 1. HERO VISUAL ─────────────────────────────────────
+                _DreamHero(item: item, heroTag: heroTag, hasImage: hasImage),
+
+                // ── 2. CORPO ───────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      // 2a. Identificação compacta
+                      Row(
+                        children: [
+                          _DreamBadge(),
+                          const SizedBox(width: 8),
+                          if (hasChild)
+                            _ChildPill(
+                              emoji: item.childEmoji ?? '👶',
+                              name: item.childName!,
+                            ),
+                          const Spacer(),
+                          if (item.city != null)
+                            _LocationPill(
+                              city: item.city!,
+                              state: item.state,
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // 2b. HEADLINE — elemento mais importante
+                      Text(
+                        item.title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: _K.navy,
+                          height: 1.25,
+                          letterSpacing: -0.3,
                         ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      // 2c. RELATO DA FAMÍLIA — segunda informação mais importante
+                      if (hasStory) ...[
+                        const SizedBox(height: 12),
+                        _FamilyStorySnippet(story: item.date!),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // 2d. BLOCO DE IMPACTO EMOCIONAL
+                      _ImpactBlock(
+                        copy: _microcopy(item.id),
+                        color: _K.purple,
+                        bg: _K.purpleLight,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 2e. RODAPÉ — autor + social
+                      _DreamFooter(item: item),
+
+                      const SizedBox(height: 18),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Hero visual do DreamCard ──────────────────────────────────
+
+class _DreamHero extends StatelessWidget {
+  final FeedItem item;
+  final String heroTag;
+  final bool hasImage;
+  const _DreamHero({
+    required this.item,
+    required this.heroTag,
+    required this.hasImage,
+  });
+
+  // Gradientes afetivos por ID
+  static const _grads = [
+    [Color(0xFF667EEA), Color(0xFF764BA2)],
+    [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+    [Color(0xFF2563EB), Color(0xFF1E3A5F)],
+    [Color(0xFFEC4899), Color(0xFF8B5CF6)],
+    [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+  ];
+
+  List<Color> _gradient(String id) {
+    final idx = id.codeUnits.fold(0, (a, b) => a + b) % _grads.length;
+    return _grads[idx];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _gradient(item.id);
+
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fundo: imagem ou gradiente
+          if (hasImage)
+            Hero(
+              tag: heroTag,
+              child: Image.network(
+                item.imageUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (_, child, p) => p == null
+                    ? child
+                    : _GradientPlaceholder(
+                        colors: colors, emoji: item.emoji),
+                errorBuilder: (_, __, ___) =>
+                    _GradientPlaceholder(colors: colors, emoji: item.emoji),
+              ),
+            )
+          else
+            _GradientPlaceholder(colors: colors, emoji: item.emoji),
+
+          // Scrim narrativo
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.5, 1.0],
+                colors: [
+                  Colors.black.withValues(alpha: 0.05),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.60),
+                ],
+              ),
+            ),
+          ),
+
+          // Nome da criança sobre a imagem
+          if (item.childName != null && item.childName!.isNotEmpty)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 14,
+              child: Row(
+                children: [
+                  Text(
+                    item.childEmoji ?? '⭐',
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      item.childName!,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.1,
+                        shadows: [
+                          Shadow(color: Colors.black54, blurRadius: 8),
+                        ],
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Botão de imagem fullscreen (canto superior direito)
+          if (hasImage)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  FullscreenImagePage.route(
+                    imageUrl: item.imageUrl!,
+                    heroTag: 'dream_fullscreen_${item.id}',
+                    title: item.title,
+                  ),
+                ),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.fullscreen_rounded,
+                    color: Colors.white,
+                    size: 18,
                   ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Badges: tipo + filho + local ──────────────
-                Row(
-                  children: [
-                    FeedTypeBadge(
-                      label: 'Sonho',
-                      emoji: '💭',
-                      color: AppTheme.kidsPurple,
-                    ),
-                    const SizedBox(width: 8),
-                    if (item.childName != null)
-                      ChildChip(
-                        emoji: item.childEmoji ?? '👶',
-                        name: item.childName!,
-                      ),
-                    const Spacer(),
-                    if (item.city != null)
-                      LocationBadge(city: item.city!, state: item.state),
-                  ],
-                ),
+class _GradientPlaceholder extends StatelessWidget {
+  final List<Color> colors;
+  final String emoji;
+  const _GradientPlaceholder({required this.colors, required this.emoji});
 
-                const SizedBox(height: 12),
-
-                // ── Autor + título ────────────────────────────
-                Row(
-                  children: [
-                    UserAvatar(
-                      emoji: item.userProfileEmoji,
-                      imageUrl: item.userProfileImage,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.userName ?? 'Alguém',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            item.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.primaryBlue,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(item.emoji, style: const TextStyle(fontSize: 34)),
-                  ],
-                ),
-
-                if (item.date != null && item.date!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    item.date!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: AppTheme.textSecondary.withValues(alpha: 0.85),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
+        ),
+        child: Center(
+          child: Text(emoji,
+              style: TextStyle(
+                fontSize: 64,
+                shadows: [
+                  Shadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 12),
                 ],
+              )),
+        ),
+      );
+}
 
-                const SizedBox(height: 14),
+// ── Relato da família ─────────────────────────────────────────
 
-                // ── Interações ────────────────────────────────
-                Row(
-                  children: [
-                    InteractionBtn(
-                      icon: AppIcons.favorite,
-                      count: item.likesCount,
-                      color: AppTheme.kidsPink,
-                    ),
-                    const SizedBox(width: 16),
-                    InteractionBtn(
-                      icon: AppIcons.chat,
-                      count: item.commentsCount,
-                      color: AppTheme.primaryBlueMid,
-                    ),
-                  ],
-                ),
-              ],
+class _FamilyStorySnippet extends StatelessWidget {
+  final String story;
+  const _FamilyStorySnippet({required this.story});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF5),
+        borderRadius: BorderRadius.circular(_K.r12),
+        border: Border.all(color: const Color(0xFFF0E6D3), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '"',
+            style: TextStyle(
+              fontSize: 36,
+              height: 0.75,
+              fontWeight: FontWeight.w900,
+              color: _K.purple.withValues(alpha: 0.25),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              story,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: _K.body,
+                height: 1.6,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
         ],
@@ -214,238 +460,486 @@ class DreamCard extends StatelessWidget {
   }
 }
 
+// ── Bloco de impacto emocional (compartilhado) ────────────────
+
+class _ImpactBlock extends StatelessWidget {
+  final String copy;
+  final Color color;
+  final Color bg;
+  const _ImpactBlock({
+    required this.copy,
+    required this.color,
+    required this.bg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(_K.r12),
+        border: Border.all(color: color.withValues(alpha: 0.18), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                size: 16,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              copy,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: color,
+                height: 1.35,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 11,
+            color: color.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Rodapé do DreamCard ───────────────────────────────────────
+
+class _DreamFooter extends StatelessWidget {
+  final FeedItem item;
+  const _DreamFooter({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Avatar do autor
+        _AuthorAvatar(
+          emoji: item.userProfileEmoji,
+          imageUrl: item.userProfileImage,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.userName ?? 'Família',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: _K.navy,
+                ),
+              ),
+              if (item.likesCount > 0 || item.commentsCount > 0)
+                Text(
+                  _socialText(item.likesCount, item.commentsCount),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _K.muted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // CTA sutil
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              DreamDetailPage.route(
+                result: item.toSearchResult(),
+                heroTag: 'feed_dream_${item.id}',
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+              ),
+              borderRadius: BorderRadius.circular(_K.r99),
+              boxShadow: [
+                BoxShadow(
+                  color: _K.purple.withValues(alpha: 0.30),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Text(
+              'Ver história',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _socialText(int likes, int comments) {
+    final parts = <String>[];
+    if (likes > 0) parts.add('❤️ $likes ${likes == 1 ? "pessoa sensibilizada" : "pessoas sensibilizadas"}');
+    if (comments > 0) parts.add('💬 $comments ${comments == 1 ? "interesse" : "interesses"}');
+    return parts.join('  ·  ');
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
-// CARD DE DOAÇÃO
+// DONATION CARD — oportunidade valiosa, não classificado
 // ═══════════════════════════════════════════════════════════════
 
-class DonationCard extends StatelessWidget {
+class DonationCard extends StatefulWidget {
   final FeedItem item;
   const DonationCard({super.key, required this.item});
 
   @override
-  Widget build(BuildContext context) {
-    final catLabel = DonationModel.categoryLabel(item.category);
+  State<DonationCard> createState() => _DonationCardState();
+}
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: kPinkSoft, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.kidsPink.withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
+class _DonationCardState extends State<DonationCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      lowerBound: 0.97,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) => _ctrl.reverse();
+  void _onTapUp(TapUpDetails _) {
+    _ctrl.forward();
+    HapticFeedback.lightImpact();
+    final heroTag = 'feed_donation_${widget.item.id}';
+    Navigator.push(
+      context,
+      DonationDetailPage.route(
+        result: widget.item.toSearchResult(),
+        heroTag: heroTag,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Imagem ────────────────────────────────────────────
-          if (item.imageUrl != null)
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(23)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  item.imageUrl!,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) =>
-                      progress == null
-                          ? child
-                          : Container(
-                              color: const Color(0xFFFFF0F7),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                          progress.expectedTotalBytes!
-                                      : null,
-                                  color: AppTheme.kidsPink,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                  errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFFFFF0F7),
-                    child: Center(
-                      child: Text(
-                        item.emoji,
-                        style: const TextStyle(fontSize: 60),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+    );
+  }
+  void _onTapCancel() => _ctrl.forward();
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+  static const _valueCopies = [
+    '♻️ Este item pode ganhar uma nova história',
+    '💝 Sua retirada ajuda outra família agora',
+    '🌎 Reutilizar também é um ato de empatia',
+    '✨ Um gesto simples que transforma vidas',
+    '🤝 Compartilhar é a maior forma de amor',
+  ];
+
+  String _valueCopy(String id) {
+    final idx = (id.codeUnits.fold(0, (a, b) => a + b) + 1) % _valueCopies.length;
+    return _valueCopies[idx];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final heroTag = 'feed_donation_${item.id}';
+    final catLabel = DonationModel.categoryLabel(item.category);
+    final hasImage = item.imageUrl != null && item.imageUrl!.isNotEmpty;
+    final hasDesc = item.description != null && item.description!.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, child) =>
+            Transform.scale(scale: _ctrl.value, child: child),
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _K.white,
+              borderRadius: BorderRadius.circular(_K.r28),
+              border: Border.all(color: _K.pinkSoft, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: _K.pink.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: _K.pink.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.hardEdge,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Linha topo ────────────────────────────────
-                Row(
-                  children: [
-                    FeedTypeBadge(
-                      label: 'Doação',
-                      emoji: '🎁',
-                      color: AppTheme.kidsPink,
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.kidsPink.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
+
+                // ── 1. HERO COM BADGE SOBREPOSTO ───────────────────────
+                _DonationHero(
+                  item: item,
+                  heroTag: heroTag,
+                  hasImage: hasImage,
+                  catLabel: catLabel,
+                ),
+
+                // ── 2. CORPO ───────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      // 2a. Categoria + localização
+                      Row(
+                        children: [
+                          _CatPill(label: catLabel),
+                          const Spacer(),
+                          if (item.city != null)
+                            _LocationPill(
+                              city: item.city!,
+                              state: item.state,
+                            ),
+                        ],
                       ),
-                      child: Text(
-                        catLabel,
+
+                      const SizedBox(height: 14),
+
+                      // 2b. HEADLINE
+                      Text(
+                        item.title,
                         style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.kidsPink,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: _K.navy,
+                          height: 1.25,
+                          letterSpacing: -0.3,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const Spacer(),
-                    if (item.city != null)
-                      LocationBadge(city: item.city!, state: item.state),
-                  ],
-                ),
 
-                const SizedBox(height: 14),
+                      // 2c. DESCRIÇÃO
+                      if (hasDesc) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          item.description!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            color: _K.body,
+                            height: 1.55,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
 
-                // ── Emoji + título + descrição ─────────────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppTheme.kidsPink, Color(0xFFFF8FB3)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.kidsPink.withValues(alpha: 0.25),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          item.emoji,
-                          style: const TextStyle(fontSize: 26),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.primaryBlue,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (item.description != null &&
-                              item.description!.isNotEmpty) ...[
-                            const SizedBox(height: 5),
-                            Text(
-                              item.description!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: AppTheme.textSecondary
-                                    .withValues(alpha: 0.85),
-                                fontWeight: FontWeight.w500,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 16),
 
-                const SizedBox(height: 14),
+                      // 2d. BLOCO DE VALOR EMOCIONAL
+                      _ImpactBlock(
+                        copy: _valueCopy(item.id),
+                        color: _K.pink,
+                        bg: _K.pinkLight,
+                      ),
 
-                // ── Status + botão interesse ───────────────────
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppTheme.kidsGreen.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.circle,
-                              size: 7, color: AppTheme.kidsGreenDeep),
-                          SizedBox(width: 5),
-                          Text(
-                            'Disponível',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.kidsGreenDeep,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () {/* TODO: interesse */},
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.kidsPink, Color(0xFFFF8FB3)],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.kidsPink.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          'Tenho interesse',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+
+                      // 2e. RODAPÉ — status + CTA
+                      _DonationFooter(item: item),
+
+                      const SizedBox(height: 18),
+                    ],
+                  ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Hero do DonationCard ──────────────────────────────────────
+
+class _DonationHero extends StatelessWidget {
+  final FeedItem item;
+  final String heroTag;
+  final bool hasImage;
+  final String catLabel;
+  const _DonationHero({
+    required this.item,
+    required this.heroTag,
+    required this.hasImage,
+    required this.catLabel,
+  });
+
+  bool get _isUnavailable =>
+      item.status == 'donated' ||
+      item.status == 'fulfilled' ||
+      item.status == 'reserved';
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fundo
+          if (hasImage)
+            Hero(
+              tag: heroTag,
+              child: Image.network(
+                item.imageUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (_, child, p) => p == null
+                    ? child
+                    : _DonationPlaceholder(emoji: item.emoji),
+                errorBuilder: (_, __, ___) =>
+                    _DonationPlaceholder(emoji: item.emoji),
+              ),
+            )
+          else
+            _DonationPlaceholder(emoji: item.emoji),
+
+          // Scrim
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.04),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.55),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
+
+          // Badge de status no topo esquerdo
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _StatusBadge(status: item.status),
+          ),
+
+          // Badge indisponível no topo direito
+          if (_isUnavailable)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: _UnavailableBadge(status: item.status),
+            ),
+
+          // Emoji grande no rodapé
+          Positioned(
+            right: 16,
+            bottom: 12,
+            child: Text(item.emoji,
+                style: const TextStyle(
+                    fontSize: 42,
+                    shadows: [
+                      Shadow(color: Colors.black38, blurRadius: 8)
+                    ])),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DonationPlaceholder extends StatelessWidget {
+  final String emoji;
+  const _DonationPlaceholder({required this.emoji});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF0F6), Color(0xFFEFF6FF)],
+          ),
+        ),
+        child: Center(
+          child: Text(emoji, style: const TextStyle(fontSize: 64)),
+        ),
+      );
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String? status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final available = status == null || status!.isEmpty || status == 'available';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: available
+            ? const Color(0xFF2563EB).withValues(alpha: 0.88)
+            : Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(_K.r99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            available ? '🎁' : '📦',
+            style: const TextStyle(fontSize: 11),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            available ? 'Disponível' : 'Doação',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
         ],
@@ -454,8 +948,140 @@ class DonationCard extends StatelessWidget {
   }
 }
 
+class _UnavailableBadge extends StatelessWidget {
+  final String? status;
+  const _UnavailableBadge({required this.status});
+
+  Color get _color {
+    if (status == 'reserved') return _K.amber;
+    return _K.green;
+  }
+
+  String get _label {
+    switch (status) {
+      case 'reserved':  return '✨ Reservado';
+      case 'donated':   return '🎉 Doado';
+      case 'fulfilled': return '❤️ Realizado';
+      default:          return status ?? '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: _color.withValues(alpha: 0.90),
+          borderRadius: BorderRadius.circular(_K.r99),
+        ),
+        child: Text(
+          _label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
+}
+
+// ── Rodapé do DonationCard ────────────────────────────────────
+
+class _DonationFooter extends StatelessWidget {
+  final FeedItem item;
+  const _DonationFooter({required this.item});
+
+  bool get _available =>
+      item.status == null ||
+      item.status!.isEmpty ||
+      item.status == 'available';
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Status pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: _available
+                ? _K.greenBg
+                : _K.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(_K.r99),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.circle,
+                size: 7,
+                color: _available ? _K.green : _K.amber,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                _available ? 'Disponível' : 'Reservado',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _available ? _K.green : _K.amber,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Spacer(),
+
+        // CTA primário
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              DonationDetailPage.route(
+                result: item.toSearchResult(),
+                heroTag: 'feed_donation_${item.id}',
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFF5C8D), Color(0xFFE0457A)],
+              ),
+              borderRadius: BorderRadius.circular(_K.r99),
+              boxShadow: [
+                BoxShadow(
+                  color: _K.pink.withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('❤️', style: TextStyle(fontSize: 13)),
+                SizedBox(width: 6),
+                Text(
+                  'Tenho Interesse',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
-// BLOCO DE DESTAQUE (Insight Block)
+// INSIGHT BLOCK
 // ═══════════════════════════════════════════════════════════════
 
 class InsightBlock extends StatelessWidget {
@@ -467,7 +1093,7 @@ class InsightBlock extends StatelessWidget {
     final colors = data['gradient'] as List<Color>;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -475,12 +1101,12 @@ class InsightBlock extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(_K.r28),
         boxShadow: [
           BoxShadow(
-            color: colors.first.withValues(alpha: 0.3),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+            color: colors.first.withValues(alpha: 0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -491,7 +1117,7 @@ class InsightBlock extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(_K.r16),
             ),
             child: Center(
               child: Text(
@@ -520,7 +1146,7 @@ class InsightBlock extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withValues(alpha: 0.82),
                   ),
                 ),
               ],
@@ -539,8 +1165,156 @@ class InsightBlock extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// WIDGETS AUXILIARES
+// WIDGETS AUXILIARES COMPARTILHADOS
 // ═══════════════════════════════════════════════════════════════
+
+class _DreamBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _K.purple.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(_K.r99),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('💭', style: TextStyle(fontSize: 11)),
+            SizedBox(width: 4),
+            Text(
+              'Sonho',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: _K.purple,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ChildPill extends StatelessWidget {
+  final String emoji;
+  final String name;
+  const _ChildPill({required this.emoji, required this.name});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE0F2FE),
+          borderRadius: BorderRadius.circular(_K.r99),
+          border: Border.all(
+            color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 11)),
+            const SizedBox(width: 4),
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _CatPill extends StatelessWidget {
+  final String label;
+  const _CatPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _K.pink.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(_K.r99),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: _K.pink,
+          ),
+        ),
+      );
+}
+
+class _LocationPill extends StatelessWidget {
+  final String city;
+  final String? state;
+  const _LocationPill({required this.city, this.state});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.location_on_rounded,
+            size: 12,
+            color: _K.muted.withValues(alpha: 0.7),
+          ),
+          const SizedBox(width: 2),
+          Text(
+            state != null ? '$city, $state' : city,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _K.muted.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      );
+}
+
+class _AuthorAvatar extends StatelessWidget {
+  final String? emoji;
+  final String? imageUrl;
+  const _AuthorAvatar({this.emoji, this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.network(
+          imageUrl!,
+          width: 38,
+          height: 38,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _fallback(),
+        ),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() => Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: _K.purple.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Text(emoji ?? '👤', style: const TextStyle(fontSize: 18)),
+        ),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Manter estes aliases públicos para não quebrar outros arquivos
+// ─────────────────────────────────────────────────────────────
 
 class FeedTypeBadge extends StatelessWidget {
   final String label;
@@ -554,27 +1328,25 @@ class FeedTypeBadge extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 11)),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700, color: color),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 11)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: color),
+            ),
+          ],
+        ),
+      );
 }
 
 class ChildChip extends StatelessWidget {
@@ -583,34 +1355,7 @@ class ChildChip extends StatelessWidget {
   const ChildChip({super.key, required this.emoji, required this.name});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.childCardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.childCardAccent.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 4),
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.childCardAccent,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _ChildPill(emoji: emoji, name: name);
 }
 
 class LocationBadge extends StatelessWidget {
@@ -619,27 +1364,8 @@ class LocationBadge extends StatelessWidget {
   const LocationBadge({super.key, required this.city, this.state});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.location_on_rounded,
-          size: 12,
-          color: AppTheme.textSecondary.withValues(alpha: 0.6),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          state != null ? '$city, $state' : city,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textSecondary.withValues(alpha: 0.7),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      _LocationPill(city: city, state: state);
 }
 
 class UserAvatar extends StatelessWidget {
@@ -648,35 +1374,8 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({super.key, this.emoji, this.imageUrl});
 
   @override
-  Widget build(BuildContext context) {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Image.network(
-          imageUrl!,
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _emojiAvatar(),
-        ),
-      );
-    }
-    return _emojiAvatar();
-  }
-
-  Widget _emojiAvatar() {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppTheme.kidsPurple.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Center(
-        child: Text(emoji ?? '👤', style: const TextStyle(fontSize: 20)),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      _AuthorAvatar(emoji: emoji, imageUrl: imageUrl);
 }
 
 class InteractionBtn extends StatelessWidget {
@@ -691,23 +1390,21 @@ class InteractionBtn extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: color.withValues(alpha: 0.8)),
-        const SizedBox(width: 5),
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: color.withValues(alpha: 0.8),
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color.withValues(alpha: 0.8)),
+          const SizedBox(width: 5),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color.withValues(alpha: 0.8),
+            ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
 }
 
 class ActiveFilterChip extends StatelessWidget {
@@ -720,34 +1417,32 @@ class ActiveFilterChip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppTheme.kidsPurple.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppTheme.kidsPurple.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.kidsPurple,
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppTheme.kidsPurple.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: AppTheme.kidsPurple.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.kidsPurple,
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: onRemove,
-            child: const Icon(Icons.close_rounded,
-                size: 12, color: AppTheme.kidsPurple),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: onRemove,
+              child: const Icon(Icons.close_rounded,
+                  size: 12, color: AppTheme.kidsPurple),
+            ),
+          ],
+        ),
+      );
 }

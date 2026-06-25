@@ -31,11 +31,24 @@ class ProfileRepository {
     });
   }
 
-  /// 💾 Salva dados do perfil (merge)
+  /// 💾 Salva dados do perfil (merge) e espelha dados públicos em UsersPublic
   Future<void> updateProfile(UserModel user) async {
     final map = user.toMap();
     debugPrint('📦 Salvando perfil: $map');
+
+    // Grava dados completos em Users (privado)
     await _userRef.update(map);
+
+    // Espelha campos públicos em UsersPublic (legível por qualquer autenticado)
+    final publicData = <String, dynamic>{
+      'uid': _uid,
+      if (user.name != null) 'name': user.name,
+      if (user.profileEmoji != null) 'profileEmoji': user.profileEmoji,
+      if (user.profileImage != null) 'profileImage': user.profileImage,
+      if (user.city != null) 'city': user.city,
+      if (user.state != null) 'state': user.state,
+    };
+    await _db.ref('UsersPublic/$_uid').update(publicData);
   }
 
   /// 🔄 ALTERNA MODO: "donor" ↔ "receiver"
