@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'empatia-34400',
     databaseURL: 'https://empatia-34400-default-rtdb.firebaseio.com',
     storageBucket: 'empatia-34400.firebasestorage.app',
-    iosBundleId: 'com.example.empatia',
+    iosBundleId: 'com.empatia.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -77,7 +77,7 @@ class DefaultFirebaseOptions {
     projectId: 'empatia-34400',
     databaseURL: 'https://empatia-34400-default-rtdb.firebaseio.com',
     storageBucket: 'empatia-34400.firebasestorage.app',
-    iosBundleId: 'com.example.empatia',
+    iosBundleId: 'com.empatia.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

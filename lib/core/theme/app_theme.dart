@@ -25,6 +25,8 @@ class AppTheme {
   static const Color kidsPurpleIndigo = Color(0xFF6366F1); // <<NOVO>> índigo (email_verification sweep)
   static const Color kidsCyan = Color(0xFF06B6D4);
   static const Color kidsCyanLight = Color(0xFF0EA5E9);
+  static const Color kidsOrange = Color(0xFFFB923C);           // entrega pendente
+  static const Color kidsRed    = Color(0xFFF87171);           // entrega negada
   static const Color kidsGreen = Color(0xFF4ADE80);
   static const Color kidsGreenDeep = Color(0xFF22C55E);
   static const Color kidsGreenDark = Color(0xFF16A34A);    // <<NOVO>> verde escuro de sucesso (change_password snackbar)

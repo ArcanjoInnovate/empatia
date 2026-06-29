@@ -35,9 +35,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late final FeedController      _feed;
-  late final UserStatsController _userStats;
-  late final RankingController   _ranking;
+  late final FeedController            _feed;
+  late final UserStatsController       _userStats;
+  late final RankingController         _ranking;
+  late final NotificationController    _notifications;
   final _scrollController = ScrollController();
 
   @override
@@ -55,6 +56,9 @@ class _HomePageState extends State<HomePage> {
 
     _ranking = RankingController()..load();
     _ranking.addListener(() { if (mounted) setState(() {}); });
+
+    _notifications = NotificationController(uid: widget.user.id ?? '')..init();
+    _notifications.addListener(() { if (mounted) setState(() {}); });
 
     _scrollController.addListener(_onScroll);
   }
@@ -80,6 +84,7 @@ class _HomePageState extends State<HomePage> {
     _feed.dispose();
     _userStats.dispose();
     _ranking.dispose();
+    _notifications.dispose();
     super.dispose();
   }
 
@@ -105,16 +110,15 @@ class _HomePageState extends State<HomePage> {
                   user: widget.user,
                   stats: _userStats.stats,
                   statsLoading: _userStats.loading,
+                  unreadNotifications: _notifications.unreadCount,
                   onNotifications: () {
                     Navigator.push(
-                      context, 
+                      context,
                       MaterialPageRoute(
-                        builder: (context) => NotificationsPage(
-                          controller: NotificationController(
-                            uid: widget.user.id!
-                          ),
-                        )
-                      )
+                        builder: (_) => NotificationsPage(
+                          controller: _notifications,
+                        ),
+                      ),
                     );
                   },
                   onProfile: () {/* TODO */},
@@ -380,6 +384,7 @@ class _HeroHeader extends StatelessWidget {
   final UserModel user;
   final UserStats stats;
   final bool statsLoading;
+  final int unreadNotifications;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
 
@@ -387,6 +392,7 @@ class _HeroHeader extends StatelessWidget {
     required this.user,
     required this.stats,
     required this.statsLoading,
+    required this.unreadNotifications,
     required this.onNotifications,
     required this.onProfile,
   });
@@ -412,7 +418,6 @@ class _HeroHeader extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      // Mesmo gradiente do profileHeaderGradient: pink → magenta → purple
       decoration: const BoxDecoration(
         gradient: AppTheme.profileHeaderGradient,
       ),
@@ -485,6 +490,7 @@ class _HeroHeader extends StatelessWidget {
                     const Spacer(),
                     _HeaderIconBtn(
                       icon: AppIcons.notificationsOutline,
+                      badge: unreadNotifications,
                       onTap: onNotifications,
                     ),
                     const SizedBox(width: 10),
@@ -621,26 +627,62 @@ class _EmojiAvatar extends StatelessWidget {
       );
 }
 
-// ── Botão ícone do header ─────────────────────────────────────
+// ── Botão ícone do header com badge opcional ─────────────────
 
 class _HeaderIconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _HeaderIconBtn({required this.icon, required this.onTap});
+  final int badge;
+
+  const _HeaderIconBtn({
+    required this.icon,
+    required this.onTap,
+    this.badge = 0,
+  });
 
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(13),
-            border:
-                Border.all(color: Colors.white.withValues(alpha: 0.25)),
-          ),
-          child: Icon(icon, color: Colors.white, size: 20),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25)),
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            if (badge > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.kidsRed,
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  child: Text(
+                    badge > 99 ? '99+' : '$badge',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
         ),
       );
 }
@@ -719,7 +761,6 @@ class _RankPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Loading ou sem posição — pill translúcido branco
     if (loading || position == null) {
       return Container(
         padding:
@@ -741,7 +782,6 @@ class _RankPill extends StatelessWidget {
       );
     }
 
-    // Com posição — destaque dourado
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(

@@ -627,6 +627,67 @@ class ChatRepository {
     }
   }
 
+  /// Busca um [ChatModel] completo pelo [chatId] e [myUid].
+  /// Retorna null se o chat não existir ou o usuário não tiver acesso.
+  Future<ChatModel?> fetchChatModel(String chatId, String myUid) async {
+    try {
+      // Verifica acesso
+      final access = await _userChats(myUid, chatId).get();
+      if (!access.exists) return null;
+
+      // Dados do preview (last message, unread, other_uid...)
+      final previewSnap = await _preview(myUid, chatId).get();
+      if (!previewSnap.exists || previewSnap.value is! Map) return null;
+      final preview = previewSnap.value as Map;
+
+      final otherUid = preview['other_uid']?.toString() ?? '';
+
+      // Info pública do outro usuário
+      String? name, avatar, emoji;
+      try {
+        final uSnap = await _usersPublic(otherUid).get();
+        if (uSnap.exists && uSnap.value is Map) {
+          final u = uSnap.value as Map;
+          name   = u['name']?.toString();
+          avatar = u['profileImage']?.toString();
+          emoji  = u['profileEmoji']?.toString();
+        }
+      } catch (_) {}
+
+      // Contexto do chat principal
+      String? itemId, itemTitle, itemType, itemPhotoUrl;
+      bool completed = false;
+      try {
+        final cSnap = await _chats(chatId).get();
+        if (cSnap.exists && cSnap.value is Map) {
+          final c      = cSnap.value as Map;
+          itemId       = c['item_id']?.toString();
+          itemTitle    = c['item_title']?.toString();
+          itemType     = c['item_type']?.toString();
+          itemPhotoUrl = c['item_photo_url']?.toString();
+          final done            = c['completed'] == true;
+          final completedItemId = c['completed_item_id']?.toString();
+          final effectiveItemId = completedItemId ?? itemId;
+          completed = done && (itemId == null || effectiveItemId == itemId);
+        }
+      } catch (_) {}
+
+      return ChatModel.fromPreviewMap(
+        preview, chatId, myUid,
+        otherName:    name,
+        otherAvatar:  avatar,
+        otherEmoji:   emoji,
+        itemId:       itemId,
+        itemTitle:    itemTitle,
+        itemType:     itemType,
+        itemPhotoUrl: itemPhotoUrl,
+        completed:    completed,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Retorna o [item_id] atualmente gravado no nó do chat.
   /// Usado para detectar troca de contexto ao abrir pelo detail page.
   Future<String?> fetchChatItemId(String chatId) async {

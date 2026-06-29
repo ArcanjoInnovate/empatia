@@ -1,6 +1,8 @@
 // lib/features/notifications/presentation/pages/notifications_page.dart
 
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
+import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
 import 'package:empatia/features/notification/controller/notification_controller.dart';
 import 'package:empatia/features/notification/data/model/notification_model.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void initState() {
     super.initState();
     widget.controller.addListener(_rebuild);
+    // Marca todas como lidas assim que a tela abre
+    widget.controller.markAllAsRead();
   }
 
   void _rebuild() {
@@ -57,20 +61,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     color: Colors.white, size: 18),
                 onPressed: () => Navigator.pop(context),
               ),
-              actions: [
-                if (widget.controller.unreadCount > 0)
-                  TextButton(
-                    onPressed: widget.controller.markAllAsRead,
-                    child: const Text(
-                      'Marcar todas lidas',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-              ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: const BoxDecoration(
@@ -134,12 +124,53 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  void _onTap(AppNotification n) {
+  Future<void> _onTap(AppNotification n) async {
     widget.controller.markAsRead(n);
-    // Navegar para o chat se houver chatId
-    if (n.chatId != null) {
-      // TODO: Navigator.push para ChatPage com chatId
+
+    // Só notificações de delivery_request navegam para o chat,
+    // e somente se a confirmação ainda estiver pendente.
+    if (n.type != NotificationType.deliveryRequest) return;
+    final chatId = n.chatId;
+    if (chatId == null) return;
+
+    final repo = ChatRepository.instance;
+
+    // Verifica se a confirmação ainda está pendente antes de navegar
+    final isPending = await repo.hasPendingDeliveryRequest(chatId);
+    if (!isPending) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Esta confirmação já foi respondida.'),
+          backgroundColor: AppTheme.textSecondary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
     }
+
+    // Busca o ChatModel completo para abrir a tela
+    final chat = await repo.fetchChatModel(chatId, widget.controller.uid);
+    if (!mounted) return;
+    if (chat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Não foi possível abrir o chat.'),
+          backgroundColor: AppTheme.textSecondary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      ChatPage.route(myUid: widget.controller.uid, chat: chat),
+    );
   }
 }
 
@@ -156,10 +187,13 @@ class _NotificationTile extends StatelessWidget {
 
   Color _accentColor() {
     switch (notification.type) {
-      case NotificationType.firstMessage:  return AppTheme.kidsPink;
-      case NotificationType.message:       return AppTheme.kidsPurple;
-      case NotificationType.donationDone:  return AppTheme.kidsGreen;
-      case NotificationType.rankingReset:  return AppTheme.kidsYellowGold;
+      case NotificationType.firstMessage:      return AppTheme.kidsPink;
+      case NotificationType.message:           return AppTheme.kidsPurple;
+      case NotificationType.donationDone:      return AppTheme.kidsGreen;
+      case NotificationType.rankingReset:      return AppTheme.kidsYellowGold;
+      case NotificationType.deliveryRequest:   return AppTheme.kidsOrange;
+      case NotificationType.deliveryConfirmed: return AppTheme.kidsGreen;
+      case NotificationType.deliveryDenied:    return AppTheme.kidsRed;
     }
   }
 
@@ -310,7 +344,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Quando alguém se interessar por\numa das suas publicações, você verá aqui.',
+              'Quando alguém realizar ou confirmar\numa doação, você verá aqui.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

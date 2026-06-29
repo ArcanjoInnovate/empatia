@@ -42,4 +42,5 @@ export {
   onNewChatMessage,
   onDonationCompleted,
   weeklyRankingReset,
+  weeklyNotificationCleanup,
 } from './notifications';

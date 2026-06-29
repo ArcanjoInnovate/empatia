@@ -22,7 +22,9 @@ class NotificationRepository {
   // STREAMS
   // ════════════════════════════════════════════════════════════════
 
-  /// Stream das notificações pessoais do usuário (últimas 50, recentes primeiro)
+  /// Stream das notificações relevantes do usuário (últimas 50, recentes primeiro).
+  /// Exclui notificações de chat puro (message / first_message) — essas o
+  /// usuário já acompanha dentro do próprio chat.
   Stream<List<AppNotification>> userNotificationsStream(String uid) {
     return _userNotifs(uid)
         .orderByChild('timestamp')
@@ -31,8 +33,8 @@ class NotificationRepository {
         .map((event) => _parseNotifications(event.snapshot));
   }
 
-  /// Stream da notificação de broadcast (ranking reset)
-  /// Emite null quando não há broadcast recente (< 7 dias)
+  /// Stream da notificação de broadcast (ranking reset).
+  /// Emite null quando não há broadcast recente (< 7 dias).
   Stream<AppNotification?> broadcastStream() {
     return _broadcast().onValue.map((event) {
       if (!event.snapshot.exists || event.snapshot.value is! Map) return null;
@@ -92,7 +94,11 @@ class NotificationRepository {
     final list = <AppNotification>[];
     (snapshot.value as Map).forEach((key, val) {
       if (val is Map) {
-        list.add(AppNotification.fromMap(val, key.toString()));
+        final n = AppNotification.fromMap(val, key.toString());
+        // Filtra notificações de chat puro — não relevantes nesta tela
+        if (!n.type.isChatOnly) {
+          list.add(n);
+        }
       }
     });
     // Mais recentes primeiro

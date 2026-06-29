@@ -1,4 +1,4 @@
-package com.example.empatia
+package com.empatia.app
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

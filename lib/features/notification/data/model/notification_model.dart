@@ -1,37 +1,61 @@
 // lib/features/notifications/data/models/notification_model.dart
 
 enum NotificationType {
-  firstMessage,   // primeira mensagem de interesse numa doação/sonho
-  message,        // mensagem normal de chat
-  donationDone,   // doação concluída (donor + receiver)
-  rankingReset,   // reset semanal do ranking (broadcast)
+  firstMessage,     // primeira mensagem de interesse numa doação/sonho
+  message,          // mensagem normal de chat
+  donationDone,     // doação concluída (donor + receiver)
+  rankingReset,     // reset semanal do ranking (broadcast)
+  deliveryRequest,  // confirmação de entrega pendente (um lado confirmou)
+  deliveryConfirmed,// entrega confirmada por ambos
+  deliveryDenied,   // entrega negada (item ainda não chegou)
 }
 
 extension NotificationTypeExt on NotificationType {
   String get value {
     switch (this) {
-      case NotificationType.firstMessage:  return 'first_message';
-      case NotificationType.message:       return 'message';
-      case NotificationType.donationDone:  return 'donation_done';
-      case NotificationType.rankingReset:  return 'ranking_reset';
+      case NotificationType.firstMessage:      return 'first_message';
+      case NotificationType.message:           return 'message';
+      case NotificationType.donationDone:      return 'donation_done';
+      case NotificationType.rankingReset:      return 'ranking_reset';
+      case NotificationType.deliveryRequest:   return 'delivery_request';
+      case NotificationType.deliveryConfirmed: return 'delivery_confirmed';
+      case NotificationType.deliveryDenied:    return 'delivery_denied';
     }
   }
 
   static NotificationType fromString(String? s) {
     switch (s) {
-      case 'first_message':  return NotificationType.firstMessage;
-      case 'donation_done':  return NotificationType.donationDone;
-      case 'ranking_reset':  return NotificationType.rankingReset;
-      default:               return NotificationType.message;
+      case 'first_message':      return NotificationType.firstMessage;
+      case 'donation_done':      return NotificationType.donationDone;
+      case 'ranking_reset':      return NotificationType.rankingReset;
+      case 'delivery_request':   return NotificationType.deliveryRequest;
+      case 'delivery_confirmed': return NotificationType.deliveryConfirmed;
+      case 'delivery_denied':    return NotificationType.deliveryDenied;
+      default:                   return NotificationType.message;
     }
   }
 
   String get emoji {
     switch (this) {
-      case NotificationType.firstMessage: return '🎁';
-      case NotificationType.message:      return '💬';
-      case NotificationType.donationDone: return '🎉';
-      case NotificationType.rankingReset: return '🏆';
+      case NotificationType.firstMessage:      return '🎁';
+      case NotificationType.message:           return '💬';
+      case NotificationType.donationDone:      return '🎉';
+      case NotificationType.rankingReset:      return '🏆';
+      case NotificationType.deliveryRequest:   return '📦';
+      case NotificationType.deliveryConfirmed: return '✅';
+      case NotificationType.deliveryDenied:    return '❌';
+    }
+  }
+
+  /// Notificações de chat puro — não aparecem na tela de notificações,
+  /// pois o usuário já vê essas mensagens dentro do próprio chat.
+  bool get isChatOnly {
+    switch (this) {
+      case NotificationType.message:
+      case NotificationType.firstMessage:
+        return true;
+      default:
+        return false;
     }
   }
 }

@@ -20,7 +20,7 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) { flutterVersionName = '1.0' }
 
 android {
-    namespace "com.example.empatia"
+    namespace "com.empatia.app"
     compileSdk 36
     ndkVersion "28.2.13676358"
 
@@ -33,7 +33,7 @@ android {
     kotlinOptions { jvmTarget = '17' }
 
     defaultConfig {
-        applicationId "com.example.empatia"
+        applicationId "com.empatia.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()

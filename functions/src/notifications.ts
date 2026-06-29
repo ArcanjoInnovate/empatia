@@ -61,6 +61,16 @@ async function writeNotification(
 
     if (!token) return;
 
+    // Conta notificações não lidas para o badge real no iOS
+    const notifsSnap = await db.ref(`Notifications/${uid}`).get();
+    let unreadCount = 0;
+    if (notifsSnap.exists()) {
+      const notifs = notifsSnap.val() as Record<string, any>;
+      unreadCount = Object.values(notifs).filter(
+        (n: any) => n && n.read === false
+      ).length;
+    }
+
     const result = await getMessaging().send({
       token,
       notification: {
@@ -72,7 +82,7 @@ async function writeNotification(
         notification: { sound: 'default' },
       },
       apns: {
-        payload: { aps: { sound: 'default', badge: 1 } },
+        payload: { aps: { sound: 'default', badge: unreadCount } },
       },
       data: {
         type:         String(payload['type']   ?? ''),
@@ -415,5 +425,89 @@ export const weeklyRankingReset = onSchedule(
     });
 
     logger.info(`[weeklyRankingReset] done. Top: ${podium}`);
+  }
+);
+
+// ══════════════════════════════════════════════════════════════
+// 4. LIMPEZA SEMANAL DE NOTIFICAÇÕES
+//
+// Roda toda segunda-feira às 03:30 (BRT), 20 min após o reset
+// do ranking para não disputar I/O com ele.
+//
+// Regras de retenção:
+//   • Notificações lidas   → removidas após 7 dias
+//   • Notificações não lidas → removidas após 30 dias (failsafe)
+//   • Broadcast            → não mexe (já tem TTL de 7 dias no
+//                            broadcastStream do Flutter)
+// ══════════════════════════════════════════════════════════════
+
+export const weeklyNotificationCleanup = onSchedule(
+  {
+    schedule:       'every monday 03:30',
+    timeZone:       'America/Sao_Paulo',
+    region:         'southamerica-east1',
+    timeoutSeconds: 300,
+    memory:         '256MiB',
+  },
+  async () => {
+    const db  = getDB();
+    const now = Date.now();
+
+    const READ_TTL   = 7  * 24 * 60 * 60 * 1000; // 7 dias
+    const UNREAD_TTL = 30 * 24 * 60 * 60 * 1000; // 30 dias
+
+    logger.info('[weeklyNotificationCleanup] iniciando limpeza');
+
+    try {
+      // Lista todos os UIDs com notificações (exclui o nó broadcast)
+      const rootSnap = await db.ref('Notifications').get();
+      if (!rootSnap.exists()) {
+        logger.info('[weeklyNotificationCleanup] nenhuma notificação encontrada');
+        return;
+      }
+
+      const rootData = rootSnap.val() as Record<string, any>;
+      const uids     = Object.keys(rootData).filter((k) => k !== 'broadcast');
+
+      let totalRemoved = 0;
+      const batchUpdates: Record<string, null> = {};
+
+      for (const uid of uids) {
+        const userNotifs = rootData[uid];
+        if (!userNotifs || typeof userNotifs !== 'object') continue;
+
+        for (const [notifId, notif] of Object.entries(userNotifs)) {
+          if (!notif || typeof notif !== 'object') continue;
+
+          const n         = notif as Record<string, any>;
+          const timestamp = (n['timestamp'] as number) ?? 0;
+          const isRead    = n['read'] === true;
+          const age       = now - timestamp;
+          const ttl       = isRead ? READ_TTL : UNREAD_TTL;
+
+          if (age > ttl) {
+            batchUpdates[`Notifications/${uid}/${notifId}`] = null;
+            totalRemoved++;
+          }
+        }
+      }
+
+      if (Object.keys(batchUpdates).length > 0) {
+        // Firebase limita multi-path updates a ~1000 nós por chamada
+        const entries = Object.entries(batchUpdates);
+        const CHUNK   = 500;
+        for (let i = 0; i < entries.length; i += CHUNK) {
+          const chunk = Object.fromEntries(entries.slice(i, i + CHUNK));
+          await db.ref().update(chunk);
+        }
+      }
+
+      logger.info('[weeklyNotificationCleanup] concluído', {
+        usersProcessed: uids.length,
+        totalRemoved,
+      });
+    } catch (err) {
+      logger.error('[weeklyNotificationCleanup] erro', { err });
+    }
   }
 );
