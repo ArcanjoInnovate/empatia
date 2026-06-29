@@ -738,7 +738,234 @@ class AppDecorations {
   static BoxDecoration bubble(Color color) {
     return BoxDecoration(shape: BoxShape.circle, color: color);
   }
+  // ════════════════════════════════════════════════════════════════════════════
+// SUBSTITUA o bloco "─── Ranking ───" dentro de class AppDecorations { ... }
+// pelo conteúdo abaixo. Nenhuma outra parte do arquivo muda.
+// ════════════════════════════════════════════════════════════════════════════
 
+  // ─── Ranking ─────────────────────────────────────────────────────────────────
+
+  /// Fundo do Scaffold da RankingPage
+  static const BoxDecoration rankingScaffold = BoxDecoration(
+    color: AppTheme.rankingBackground, // bgPastelPurple — leve, não navy
+  );
+
+  /// Header / SliverAppBar da RankingPage
+  static const BoxDecoration rankingHeader = BoxDecoration(
+    gradient: AppTheme.rankingHeaderGradient, // pink → yellow → purple
+  );
+
+  /// Slide do carrossel — gradiente dinâmico por posição.
+  /// Uso: AppDecorations.rankingSlide(position)
+  static BoxDecoration rankingSlide(int pos) => BoxDecoration(
+        gradient: AppTheme.rankingSlideGradient(pos),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.rankingMedalColor(pos)
+                .withValues(alpha: pos == 1 ? 0.35 : 0.20),
+            blurRadius: pos == 1 ? 20 : 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      );
+
+  /// Pill de contagem regressiva no cabeçalho do WeeklyRankingWidget
+  static BoxDecoration rankingCountdownPill = BoxDecoration(
+    color: AppTheme.kidsPurple.withValues(alpha: 0.08),
+    borderRadius: BorderRadius.circular(20),
+  );
+
+  /// Pill de contagem regressiva dentro do hero da RankingPage
+  static BoxDecoration rankingCountdownPillHero = BoxDecoration(
+    color: Colors.white.withValues(alpha: 0.18),
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+  );
+
+  /// Card do pódio "Hall dos Guardiões" — fundo branco com borda lilás suave
+  static BoxDecoration rankingPodiumCard = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(28),
+    border: Border.all(
+      color: AppTheme.kidsPurpleLight.withValues(alpha: 0.25),
+      width: 1.5,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withValues(alpha: 0.08),
+        blurRadius: 20,
+        offset: const Offset(0, 6),
+      ),
+    ],
+  );
+
+  /// Bloco de pódio — slot vazio
+  static BoxDecoration rankingPodiumEmpty(int pos) => BoxDecoration(
+        color: AppTheme.rankingMedalColor(pos).withValues(alpha: 0.08),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      );
+
+  /// Bloco de pódio preenchido — gradiente da cor da medalha
+  static BoxDecoration rankingPodiumFilled(int pos) {
+    final c = AppTheme.rankingMedalColor(pos);
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [c.withValues(alpha: 0.50), c.withValues(alpha: 0.22)],
+      ),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+    );
+  }
+
+  /// Pílula de score/count dentro do pódio
+  static BoxDecoration rankingPodiumScorePill(int pos) => BoxDecoration(
+        color: AppTheme.rankingMedalColor(pos).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+      );
+
+  /// Banner motivacional do usuário logado
+  static BoxDecoration rankingUserBanner = BoxDecoration(
+    gradient: AppTheme.rankingUserBannerGradient, // purple → pink
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: AppTheme.kidsPink.withValues(alpha: 0.35),
+    ),
+  );
+
+  /// Linha runner-up (4°–100°) — versão normal
+  static BoxDecoration rankingRunnerUpRow = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(18),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.04),
+        blurRadius: 10,
+        offset: const Offset(0, 3),
+      ),
+    ],
+  );
+
+  /// Linha runner-up — versão usuário logado (destaque pink/dourado)
+  static BoxDecoration rankingRunnerUpRowSelf = BoxDecoration(
+    color: AppTheme.bgPastelPink,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(
+      color: AppTheme.kidsPink.withValues(alpha: 0.50),
+      width: 1.5,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: AppTheme.kidsPink.withValues(alpha: 0.12),
+        blurRadius: 14,
+        offset: const Offset(0, 3),
+      ),
+    ],
+  );
+
+  /// Box de posição numérica na linha runner-up
+  static BoxDecoration rankingPositionBox({required bool isSelf}) =>
+      BoxDecoration(
+        color: isSelf
+            ? AppTheme.kidsPink.withValues(alpha: 0.12)
+            : const Color(0xFFF4F6FB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isSelf
+              ? AppTheme.kidsPink.withValues(alpha: 0.40)
+              : Colors.grey.withValues(alpha: 0.15),
+        ),
+      );
+
+  /// Pill de título do usuário logado na linha runner-up
+  static BoxDecoration rankingSelfTitlePill = BoxDecoration(
+    color: AppTheme.kidsPink.withValues(alpha: 0.15),
+    borderRadius: BorderRadius.circular(8),
+  );
+
+  /// Container de gap motivacional abaixo da linha do usuário
+  static BoxDecoration rankingGapBox = BoxDecoration(
+    color: AppTheme.kidsPurple.withValues(alpha: 0.06),
+    borderRadius: BorderRadius.circular(10),
+  );
+
+  /// Badge do gap no slide 2°/3° do carrossel
+  static BoxDecoration rankingSlideGapBadge = BoxDecoration(
+    color: Colors.white.withValues(alpha: 0.15),
+    borderRadius: BorderRadius.circular(20),
+  );
+
+  /// Badge lateral girado no slide do carrossel (_VerticalBadge)
+  static BoxDecoration rankingVerticalBadge(int pos) {
+    final c = AppTheme.rankingMedalColor(pos);
+    return BoxDecoration(
+      color: c.withValues(alpha: 0.18),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: c.withValues(alpha: 0.40)),
+    );
+  }
+
+  /// Fundo do carrossel em estado de loading ou erro
+  static BoxDecoration rankingCarouselSkeleton = BoxDecoration(
+    gradient: AppTheme.rankingSlide2Gradient, // roxo → pink suave
+    borderRadius: BorderRadius.circular(22),
+  );
+
+  /// Fundo do carrossel vazio (nenhum doador ainda)
+  static BoxDecoration rankingCarouselEmpty = BoxDecoration(
+    gradient: AppTheme.rankingHeaderGradient, // pink → yellow → purple
+    borderRadius: BorderRadius.circular(22),
+  );
+
+  /// Botão "Tentar novamente" dentro do carrossel (fundo escuro)
+  static BoxDecoration rankingRetryButton = BoxDecoration(
+    color: AppTheme.kidsPurple,
+    borderRadius: BorderRadius.circular(20),
+  );
+
+  /// Botão "Tentar novamente" na RankingPage (tela cheia)
+  static BoxDecoration rankingPageRetryButton = BoxDecoration(
+    gradient: AppTheme.rankingHeaderGradient, // pink → yellow → purple
+    borderRadius: BorderRadius.circular(22),
+  );
+
+  /// Dot ativo do indicador de página — cor da medalha da posição atual
+  static BoxDecoration rankingPageDotActive(int pos) => BoxDecoration(
+        color: AppTheme.rankingMedalColor(pos),
+        borderRadius: BorderRadius.circular(99),
+      );
+
+  /// Dot inativo do indicador de página
+  static BoxDecoration rankingPageDotInactive = BoxDecoration(
+    color: AppTheme.kidsPurple.withValues(alpha: 0.18),
+    borderRadius: BorderRadius.circular(99),
+  );
+
+  /// Avatar do ranking — borda de medalha com glow opcional
+  static BoxDecoration rankingAvatar({
+    required int pos,
+    required bool glow,
+  }) {
+    final c = AppTheme.rankingMedalColor(pos);
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      color: c.withValues(alpha: 0.15),
+      border: Border.all(
+        color: c.withValues(alpha: glow ? 0.90 : 0.60),
+        width: glow ? 2.5 : 2.0,
+      ),
+      boxShadow: glow
+          ? [
+              BoxShadow(
+                color: c.withValues(alpha: 0.45),
+                blurRadius: 18,
+                spreadRadius: 2,
+              ),
+            ]
+          : [],
+    );
+  }
   // ─── DonationItemFormSheet ────────────────────────────────────────────────────
   // Cole este bloco dentro de AppDecorations, antes do fechamento da classe.
 

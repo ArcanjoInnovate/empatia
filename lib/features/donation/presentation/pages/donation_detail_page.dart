@@ -1235,7 +1235,7 @@ class _CtaButtonState extends State<_CtaButton>
       otherEmoji: userInfo['profileEmoji'],
     );
 
-    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat));
+    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat, fromDetail: true));
   }
 
   Color get _bgColor {
@@ -1286,8 +1286,8 @@ class _CtaButtonState extends State<_CtaButton>
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: _fgColor,
                 letterSpacing: 0.1,
+                color: _fgColor,
               ),
             ),
           ),

@@ -160,7 +160,9 @@ class FeedRepository {
         return FeedItem.fromDream(id, map, currentUserId: currentUserId);
       }));
 
-      enriched.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      enriched
+        ..removeWhere((item) => item.status == 'fulfilled')
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return enriched;
     } catch (e) {
       debugPrint('❌ _fetchDreams error: $e');
@@ -213,12 +215,12 @@ class FeedRepository {
     final states = <String>{};
     final snaps = results;
 
-    // Dreams: todos entram
+    // Dreams: exclui os realizados
     final dreamsSnap = snaps[0];
     if (dreamsSnap.exists && dreamsSnap.value != null) {
       for (final child in dreamsSnap.children) {
         final value = child.value;
-        if (value is Map) {
+        if (value is Map && value['status']?.toString() != 'fulfilled') {
           final s = value['state']?.toString();
           if (s != null && s.isNotEmpty) states.add(s);
         }
@@ -253,12 +255,12 @@ class FeedRepository {
     final cities = <String>{};
     final stateLower = stateCode.toLowerCase();
 
-    // Dreams: Firebase já filtrou por estado
+    // Dreams: Firebase já filtrou por estado, exclui realizados
     final dreamsSnap = results[0];
     if (dreamsSnap.exists && dreamsSnap.value != null) {
       for (final child in dreamsSnap.children) {
         final value = child.value;
-        if (value is Map) {
+        if (value is Map && value['status']?.toString() != 'fulfilled') {
           final c = value['city']?.toString();
           if (c != null && c.isNotEmpty) cities.add(c);
         }

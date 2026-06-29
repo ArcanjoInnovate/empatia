@@ -40,6 +40,9 @@ class ChatModel {
   /// true quando a última mensagem enviada por mim foi lida pelo outro
   final bool? lastReadByMe;
 
+  /// true quando a doação foi concluída (delivery_confirmed)
+  final bool completed;
+
   // Info do outro usuário
   final String otherUid;
   final String? otherName;
@@ -61,6 +64,7 @@ class ChatModel {
     this.lastTimestamp,
     this.unread = 0,
     this.lastReadByMe,
+    this.completed = false,
     this.otherName,
     this.otherAvatar,
     this.otherEmoji,
@@ -103,6 +107,7 @@ class ChatModel {
     String? itemTitle,
     String? itemType,
     String? itemPhotoUrl,
+    bool completed = false,
   }) {
     final otherUid = map['other_uid']?.toString() ?? '';
     final parts = chatId.split('_');
@@ -123,6 +128,7 @@ class ChatModel {
       itemTitle: itemTitle,
       itemType: itemType,
       itemPhotoUrl: itemPhotoUrl,
+      completed: completed,
     );
   }
 

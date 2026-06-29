@@ -91,6 +91,7 @@ class FeedItem {
       likedByMe: liked,
       childName: map['childName']?.toString(),
       childEmoji: map['childEmoji']?.toString(),
+      status: map['status']?.toString(),
     );
   }
 
@@ -134,6 +135,10 @@ class FeedItem {
       dreamDate: date,
       dreamProgress: progress,
       category: category,
+      // ✅ ADICIONADOS — sem eles o chat não consegue identificar o dono
+      ownerId: userId,
+      ownerName: userName,
+      ownerPhotoUrl: userProfileImage,
     );
   }
 }

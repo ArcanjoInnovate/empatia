@@ -1,34 +1,24 @@
 // lib/features/home/presentation/pages/home_page.dart
 //
 // Home — hierarquia: Hero Header → Ranking → Filtros → Feed
+// Todas as cores literais substituídas por tokens AppTheme.
 // ─────────────────────────────────────────────────────────────
 
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/home/controllers/feed_controller.dart';
+import 'package:empatia/features/home/controllers/user_status_controller.dart';
 import 'package:empatia/features/home/data/models/feed_item_.dart';
 import 'package:empatia/features/home/data/repositories/feed_repository.dart';
+import 'package:empatia/features/home/data/repositories/user_stats_repository.dart';
 import 'package:empatia/features/home/presentation/constants/home_constants.dart';
 import 'package:empatia/features/home/presentation/widgets/feeds_card.dart';
 import 'package:empatia/features/home/presentation/widgets/filter_widgets.dart';
-import 'package:empatia/features/home/presentation/widgets/weekly_ranking_widget.dart';
+import 'package:empatia/features/ranking/controller/ranking_controller.dart';
+import 'package:empatia/features/ranking/presentation/widget/weekly_ranking_widget.dart';
 import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
-
-// ═══════════════════════════════════════════════════════════════
-// DESIGN TOKENS
-// ═══════════════════════════════════════════════════════════════
-
-abstract final class _H {
-  static const navy    = Color(0xFF0F1F3D);
-  static const blue    = Color(0xFF1E3A8A);
-  static const blueMid = Color(0xFF2563EB);
-  static const purple  = Color(0xFF7C3AED);
-  static const purpleL = Color(0xFFA78BFA);
-  static const white   = Colors.white;
-  static const gold    = Color(0xFFFFD700);
-}
 
 // ═══════════════════════════════════════════════════════════════
 // HOME PAGE
@@ -43,17 +33,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late final FeedController _feed;
+  late final FeedController      _feed;
+  late final UserStatsController _userStats;
+  late final RankingController   _ranking;
   final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+
     _feed = FeedController(
       FeedRepository(),
       currentUserId: widget.user.id ?? '',
     )..init();
     _feed.addListener(() { if (mounted) setState(() {}); });
+
+    _userStats = UserStatsController(widget.user.id ?? '')..load();
+    _userStats.addListener(() { if (mounted) setState(() {}); });
+
+    _ranking = RankingController()..load();
+    _ranking.addListener(() { if (mounted) setState(() {}); });
+
     _scrollController.addListener(_onScroll);
   }
 
@@ -66,26 +66,30 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _onRefresh() => Future.wait([
+    _feed.refresh(),
+    _userStats.refresh(),
+    _ranking.load(),
+  ]);
+
   @override
   void dispose() {
     _scrollController.dispose();
     _feed.dispose();
+    _userStats.dispose();
+    _ranking.dispose();
     super.dispose();
   }
-
-  // ────────────────────────────────────────────────────────────
-  // BUILD
-  // ────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F6FB),
+        backgroundColor: AppTheme.backgroundColor,
         body: RefreshIndicator(
-          onRefresh: _feed.refresh,
-          color: _H.purple,
+          onRefresh: _onRefresh,
+          color: AppTheme.kidsPurple,
           displacement: 20,
           child: CustomScrollView(
             controller: _scrollController,
@@ -97,6 +101,8 @@ class _HomePageState extends State<HomePage> {
               SliverToBoxAdapter(
                 child: _HeroHeader(
                   user: widget.user,
+                  stats: _userStats.stats,
+                  statsLoading: _userStats.loading,
                   onNotifications: () {/* TODO */},
                   onProfile: () {/* TODO */},
                 ),
@@ -106,7 +112,7 @@ class _HomePageState extends State<HomePage> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: const WeeklyRankingWidget(),
+                  child: WeeklyRankingWidget(controller: _ranking),
                 ),
               ),
 
@@ -116,7 +122,6 @@ class _HomePageState extends State<HomePage> {
               // 4 ── FEED
               _buildFeedSliver(),
 
-              // Indicador de carregamento de mais
               SliverToBoxAdapter(child: _buildLoadMore()),
 
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
@@ -139,7 +144,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabeçalho da seção
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -154,7 +158,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: _H.navy,
+                          color: AppTheme.textDark,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -164,7 +168,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: _H.navy.withValues(alpha: 0.45),
+                          color: AppTheme.textDark.withValues(alpha: 0.45),
                         ),
                       ),
                     ],
@@ -179,19 +183,21 @@ class _HomePageState extends State<HomePage> {
                         horizontal: 14, vertical: 9),
                     decoration: BoxDecoration(
                       gradient: hasGeo
-                          ? const LinearGradient(
-                              colors: [_H.purple, _H.purpleL])
+                          ? const LinearGradient(colors: [
+                              AppTheme.kidsPurple,
+                              AppTheme.kidsPurpleLight,
+                            ])
                           : null,
-                      color: hasGeo ? null : Colors.white,
+                      color: hasGeo ? null : AppTheme.surfaceWhite,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: hasGeo
                             ? Colors.transparent
-                            : _H.purple.withValues(alpha: 0.2),
+                            : AppTheme.kidsPurple.withValues(alpha: 0.2),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: _H.purple.withValues(alpha: 0.12),
+                          color: AppTheme.kidsPurple.withValues(alpha: 0.12),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -200,24 +206,33 @@ class _HomePageState extends State<HomePage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.tune_rounded,
-                            size: 15,
-                            color: hasGeo ? Colors.white : _H.purple),
+                        Icon(
+                          Icons.tune_rounded,
+                          size: 15,
+                          color: hasGeo
+                              ? Colors.white
+                              : AppTheme.kidsPurple,
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           hasGeo ? 'Filtros ativos' : 'Filtrar',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: hasGeo ? Colors.white : _H.purple,
+                            color: hasGeo
+                                ? Colors.white
+                                : AppTheme.kidsPurple,
                           ),
                         ),
                         if (hasGeo) ...[
                           const SizedBox(width: 6),
                           GestureDetector(
                             onTap: _feed.clearFilters,
-                            child: const Icon(Icons.close_rounded,
-                                size: 13, color: Colors.white),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ],
@@ -230,7 +245,7 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 16),
 
-          // Chips de tipo (scroll horizontal)
+          // Chips de tipo
           SizedBox(
             height: 44,
             child: ListView.separated(
@@ -239,15 +254,15 @@ class _HomePageState extends State<HomePage> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemCount: kFilterChips.length,
               itemBuilder: (context, i) {
-                final chip = kFilterChips[i];
+                final chip     = kFilterChips[i];
                 final chipType = chip['type'] as FeedItemType?;
                 final isSelected = _feed.filter.type == chipType;
                 return FilterChip(
                   emoji: chip['emoji'] as String,
                   label: chip['label'] as String,
                   selected: isSelected,
-                  onTap: () =>
-                      _feed.applyFilter(_feed.filter.copyWith(type: chipType)),
+                  onTap: () => _feed.applyFilter(
+                      _feed.filter.copyWith(type: chipType)),
                 );
               },
             ),
@@ -270,42 +285,46 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.symmetric(vertical: 80),
           child: Center(
             child: CircularProgressIndicator(
-              color: _H.purple, strokeWidth: 2),
+              color: AppTheme.kidsPurple,
+              strokeWidth: 2,
+            ),
           ),
         ),
       );
     }
 
     if (_feed.status == FeedStatus.error) {
-      return SliverToBoxAdapter(child: _ErrorState(
-        message: _feed.error,
-        onRetry: _feed.refresh,
-      ));
+      return SliverToBoxAdapter(
+        child: _ErrorState(
+          message: _feed.error,
+          onRetry: _feed.refresh,
+        ),
+      );
     }
 
     if (_feed.items.isEmpty) {
-      return SliverToBoxAdapter(child: _EmptyState(
-        hasFilter: _feed.filter.hasAny,
-        onClear: _feed.clearFilters,
-      ));
+      return SliverToBoxAdapter(
+        child: _EmptyState(
+          hasFilter: _feed.filter.hasAny,
+          onClear: _feed.clearFilters,
+        ),
+      );
     }
 
-    // Insere InsightBlock a cada 5 cards
     const interval = 5;
-    final count = _feed.items.length;
+    final count  = _feed.items.length;
     final blocks = count ~/ interval;
-    final total = count + blocks;
+    final total  = count + blocks;
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          const blockSize = interval + 1;
+          const blockSize  = interval + 1;
           final posInBlock = index % blockSize;
-          final block = index ~/ blockSize;
+          final block      = index ~/ blockSize;
 
           if (posInBlock == interval) {
-            return InsightBlock(
-                data: kInsights[block % kInsights.length]);
+            return InsightBlock(data: kInsights[block % kInsights.length]);
           }
 
           final feedIndex = block * interval + posInBlock;
@@ -323,14 +342,12 @@ class _HomePageState extends State<HomePage> {
       padding: EdgeInsets.symmetric(vertical: 28),
       child: Center(
         child: CircularProgressIndicator(
-            color: _H.purple, strokeWidth: 2),
+          color: AppTheme.kidsPurple,
+          strokeWidth: 2,
+        ),
       ),
     );
   }
-
-  // ────────────────────────────────────────────────────────────
-  // FILTER SHEET
-  // ────────────────────────────────────────────────────────────
 
   void _showFilterSheet() {
     showModalBottomSheet(
@@ -348,11 +365,15 @@ class _HomePageState extends State<HomePage> {
 
 class _HeroHeader extends StatelessWidget {
   final UserModel user;
+  final UserStats stats;
+  final bool statsLoading;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
 
   const _HeroHeader({
     required this.user,
+    required this.stats,
+    required this.statsLoading,
     required this.onNotifications,
     required this.onProfile,
   });
@@ -374,25 +395,17 @@ class _HeroHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firstName = user.name?.split(' ').first ?? 'Amigo';
-    final topPad = MediaQuery.of(context).padding.top;
+    final topPad    = MediaQuery.of(context).padding.top;
 
     return Container(
       width: double.infinity,
+      // Mesmo gradiente do profileHeaderGradient: pink → magenta → purple
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F1F3D),
-            Color(0xFF1E3A8A),
-            Color(0xFF3B1FA0),
-          ],
-          stops: [0.0, 0.55, 1.0],
-        ),
+        gradient: AppTheme.profileHeaderGradient,
       ),
       child: Stack(
         children: [
-          // ── Decorações de fundo ──────────────────────────────
+          // Decorações de fundo
           Positioned(
             right: -30,
             top: topPad - 10,
@@ -400,7 +413,7 @@ class _HeroHeader extends StatelessWidget {
               '✨',
               style: TextStyle(
                 fontSize: 110,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -411,11 +424,10 @@ class _HeroHeader extends StatelessWidget {
               '❤️',
               style: TextStyle(
                 fontSize: 90,
-                color: Colors.white.withValues(alpha: 0.04),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
-          // Círculo decorativo
           Positioned(
             right: 60,
             bottom: 20,
@@ -424,29 +436,28 @@ class _HeroHeader extends StatelessWidget {
               height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.03),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
           ),
 
-          // ── Conteúdo ──────────────────────────────────────────
+          // Conteúdo
           Padding(
             padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Linha de topo: nome do app + botões
+                // Linha de topo
                 Row(
                   children: [
-                    // Logo textual
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.10),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15)),
+                            color: Colors.white.withValues(alpha: 0.20)),
                       ),
                       child: const Text(
                         'EMPATIA',
@@ -459,13 +470,11 @@ class _HeroHeader extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    // Botão notificações
                     _HeaderIconBtn(
                       icon: AppIcons.notificationsOutline,
                       onTap: onNotifications,
                     ),
                     const SizedBox(width: 10),
-                    // Botão perfil
                     _HeaderIconBtn(
                       icon: AppIcons.person,
                       onTap: onProfile,
@@ -475,31 +484,28 @@ class _HeroHeader extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // Linha do usuário: avatar + saudação
+                // Avatar + saudação
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Avatar
                     _UserAvatar(user: user),
                     const SizedBox(width: 14),
-                    // Saudação + nome
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Text(
-                                _greetEmoji,
-                                style: const TextStyle(fontSize: 14),
-                              ),
+                              Text(_greetEmoji,
+                                  style: const TextStyle(fontSize: 14)),
                               const SizedBox(width: 5),
                               Text(
                                 _greeting,
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.70),
+                                  color:
+                                      Colors.white.withValues(alpha: 0.75),
                                 ),
                               ),
                             ],
@@ -518,24 +524,26 @@ class _HeroHeader extends StatelessWidget {
                         ],
                       ),
                     ),
-                      ],
-                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 20),
 
-                // Linha de impacto + ranking
+                // Pills: impacto + ranking
                 Row(
                   children: [
-                    // Impacto do mês
                     Expanded(
                       child: _StatPill(
-                        emoji: '❤️',
-                        text: 'Você ajudou 3 famílias este mês',
+                        loading: statsLoading,
+                        donatedThisMonth: stats.donatedThisMonth,
+                        dreamsReceived: stats.dreamsReceived,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Posição no ranking
-                    _RankPill(position: 18),
+                    _RankPill(
+                      position: stats.rankingPosition,
+                      loading: statsLoading,
+                    ),
                   ],
                 ),
               ],
@@ -564,10 +572,11 @@ class _UserAvatar extends StatelessWidget {
       height: 62,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 2.5),
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.40), width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
+            color: Colors.black.withValues(alpha: 0.20),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -592,7 +601,7 @@ class _EmojiAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: Colors.white.withValues(alpha: 0.15),
         child: Center(
           child: Text(emoji, style: const TextStyle(fontSize: 30)),
         ),
@@ -613,10 +622,10 @@ class _HeaderIconBtn extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.20)),
+            border:
+                Border.all(color: Colors.white.withValues(alpha: 0.25)),
           ),
           child: Icon(icon, color: Colors.white, size: 20),
         ),
@@ -626,31 +635,58 @@ class _HeaderIconBtn extends StatelessWidget {
 // ── Pill de impacto ───────────────────────────────────────────
 
 class _StatPill extends StatelessWidget {
-  final String emoji;
-  final String text;
-  const _StatPill({required this.emoji, required this.text});
+  final bool loading;
+  final int donatedThisMonth;
+  final int dreamsReceived;
+
+  const _StatPill({
+    required this.loading,
+    required this.donatedThisMonth,
+    required this.dreamsReceived,
+  });
+
+  String get _emoji {
+    if (loading) return '⏳';
+    if (donatedThisMonth > 0) return '❤️';
+    if (dreamsReceived > 0)   return '✨';
+    return '💜';
+  }
+
+  String get _text {
+    if (loading) return 'Calculando impacto...';
+    if (donatedThisMonth > 0) {
+      final s = donatedThisMonth == 1 ? 'família' : 'famílias';
+      return 'Você ajudou $donatedThisMonth $s este mês';
+    }
+    if (dreamsReceived > 0) {
+      final s = dreamsReceived == 1 ? 'sonho realizado' : 'sonhos realizados';
+      return '$dreamsReceived $s ✨';
+    }
+    return 'Comece a ajudar hoje!';
+  }
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.18)),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.22)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 13)),
+            Text(_emoji, style: const TextStyle(fontSize: 13)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                text,
+                _text,
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: Colors.white.withValues(alpha: 0.90),
                   height: 1.3,
                 ),
                 maxLines: 2,
@@ -665,21 +701,24 @@ class _StatPill extends StatelessWidget {
 
 class _RankPill extends StatelessWidget {
   final int? position;
-  const _RankPill({this.position});
+  final bool loading;
+  const _RankPill({this.position, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
-    if (position == null) {
+    // Loading ou sem posição — pill translúcido branco
+    if (loading || position == null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15)),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.18)),
         ),
         child: Text(
-          '⭐ Sem posição',
+          loading ? '🏆 ...' : '⭐ Sem posição',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -689,18 +728,19 @@ class _RankPill extends StatelessWidget {
       );
     }
 
+    // Com posição — destaque dourado
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFFFD700).withValues(alpha: 0.20),
-            const Color(0xFFFFA500).withValues(alpha: 0.12),
+            AppTheme.kidsYellowGold.withValues(alpha: 0.25),
+            AppTheme.accentOrange.withValues(alpha: 0.15),
           ],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.40)),
+            color: AppTheme.kidsYellowGold.withValues(alpha: 0.45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -712,7 +752,7 @@ class _RankPill extends StatelessWidget {
             style: const TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w800,
-              color: Color(0xFFFFD700),
+              color: AppTheme.kidsYellowGold,
             ),
           ),
         ],
@@ -737,11 +777,11 @@ class _EmptyState extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceWhite,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7C3AED).withValues(alpha: 0.07),
+              color: AppTheme.kidsPurple.withValues(alpha: 0.07),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -758,7 +798,7 @@ class _EmptyState extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1E3A5F),
+                color: AppTheme.textDark,
               ),
               textAlign: TextAlign.center,
             ),
@@ -780,7 +820,10 @@ class _EmptyState extends StatelessWidget {
                       horizontal: 22, vertical: 12),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                      colors: [
+                        AppTheme.kidsPurple,
+                        AppTheme.kidsPurpleLight,
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(22),
                   ),
@@ -818,7 +861,7 @@ class _ErrorState extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceWhite,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
               color: AppTheme.errorRed.withValues(alpha: 0.12)),
@@ -832,7 +875,7 @@ class _ErrorState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1E3A5F),
+                color: AppTheme.textDark,
               ),
             ),
             const SizedBox(height: 8),
@@ -849,7 +892,9 @@ class _ErrorState extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 22, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED),
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.kidsPink, AppTheme.kidsPurple],
+                  ),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: const Text(

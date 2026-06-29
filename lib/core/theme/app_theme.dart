@@ -513,4 +513,90 @@ class AppTheme {
       ),
     );
   }
+  // ════════════════════════════════════════════════════════════════════════════
+// SUBSTITUA o bloco "─── Cores do Ranking ───" e "─── Gradientes do Ranking ───"
+// dentro de class AppTheme { ... } pelo conteúdo abaixo.
+// Remova também as constantes rankingNavy, rankingNavyMid, rankingPurple,
+// rankingNavyBlue, rankingBronzeDark, rankingBronzeMid que ficavam lá.
+// ════════════════════════════════════════════════════════════════════════════
+
+  // ─── Cores do Ranking ────────────────────────────────────────────────────────
+
+  /// Prata (medalha 2°)
+  static const Color silverMedal = Color(0xFFB0BEC5);
+
+  /// Fundo branco suave do Scaffold da RankingPage
+  static const Color rankingBackground = Color(0xFFFDF4FF); // bgPastelPurple
+
+  /// Cor do spinner e pill de countdown na RankingPage
+  static const Color rankingAccent = kidsPurple;
+
+  /// Cor do RefreshIndicator da RankingPage
+  static const Color rankingRefreshColor = kidsYellowGold;
+
+  // ─── Gradientes do Ranking ───────────────────────────────────────────────────
+
+  /// Header da RankingPage — pink → amarelo → roxo (mesmo padrão do app)
+  static const LinearGradient rankingHeaderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsPink, kidsYellow, kidsPurple],
+    stops: [0.0, 0.50, 1.0],
+  );
+
+  /// Slide 1° lugar — pink quente → laranja → dourado
+  static const LinearGradient rankingSlide1Gradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsPink, accentOrange, kidsYellowGold],
+    stops: [0.0, 0.55, 1.0],
+  );
+
+  /// Slide 2° lugar — roxo → pink
+  static const LinearGradient rankingSlide2Gradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsPurple, kidsPink],
+  );
+
+  /// Slide 3° lugar — ciano → azul
+  static const LinearGradient rankingSlide3Gradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsCyan, kidsCyanLight],
+  );
+
+  /// Banner motivacional do usuário logado (UserPositionBanner)
+  static const LinearGradient rankingUserBannerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [kidsPurple, kidsPink],
+  );
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  /// Gradiente correto por posição no carrossel.
+  /// Uso: AppTheme.rankingSlideGradient(position)
+  static LinearGradient rankingSlideGradient(int pos) {
+    if (pos == 1) return rankingSlide1Gradient;
+    if (pos == 2) return rankingSlide2Gradient;
+    return rankingSlide3Gradient;
+  }
+
+  /// Cor de medalha por posição.
+  /// Uso: AppTheme.rankingMedalColor(position)
+  static Color rankingMedalColor(int pos) {
+    if (pos == 1) return kidsYellowGold; // dourado
+    if (pos == 2) return silverMedal;    // prata
+    return bronzeMedal;                  // bronze
+  }
+
+  /// Cor de texto sobre medalha por posição (contraste garantido).
+  /// Uso: AppTheme.rankingMedalTextColor(position)
+  static Color rankingMedalTextColor(int pos) {
+    if (pos == 1) return kidsAmber;      // âmbar escuro sobre dourado
+    if (pos == 2) return textNavy;       // navy sobre prata
+    return accentOrange;                 // laranja sobre bronze
+  }
+
 }

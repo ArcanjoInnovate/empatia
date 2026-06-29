@@ -221,6 +221,13 @@ class SearchRepository {
         type,
       );
 
+      // ── Filtro de status — exclui itens já concluídos ─────────────────
+      // Donations: status 'donated' ou 'reserved' ficam fora
+      // Dreams: status 'fulfilled' fica fora
+      final itemStatus = (item.status ?? '').toLowerCase();
+      if (type == 'donation' && itemStatus != 'available') continue;
+      if (type == 'dream'    && itemStatus == 'fulfilled') continue;
+
       // ── Filtro de estado (dupla verificação) ───────────────────────────
       if (state != null &&
           state.isNotEmpty &&

@@ -18,6 +18,7 @@ class DreamModel {
 
   final String? imageUrl;
   final double? progress;
+  final String? status; // null | 'fulfilled'
   final DateTime? createdAt;
 
   // ── Filho vinculado ────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ class DreamModel {
     this.emoji,
     this.imageUrl,
     this.progress,
+    this.status,
     this.createdAt,
     this.childId,
     this.childName,
@@ -58,6 +60,7 @@ class DreamModel {
       emoji: map['emoji'] as String?,
       imageUrl: map['imageUrl'] as String?,
       progress: (map['progress'] as num?)?.toDouble(),
+      status:   map['status'] as String?,
       createdAt: createdAt,
       childId: map['childId'] as String?,
       childName: map['childName'] as String?,
@@ -90,6 +93,7 @@ class DreamModel {
     String? emoji,
     String? imageUrl,
     double? progress,
+    String? status,
     DateTime? createdAt,
     String? childId,
     String? childName,
@@ -103,6 +107,7 @@ class DreamModel {
       emoji:      emoji      ?? this.emoji,
       imageUrl:   imageUrl   ?? this.imageUrl,
       progress:   progress   ?? this.progress,
+      status:     status     ?? this.status,
       createdAt:  createdAt  ?? this.createdAt,
       childId:    childId    ?? this.childId,
       childName:  childName  ?? this.childName,

@@ -49,10 +49,11 @@ class _ChatListTileState extends State<ChatListTile>
 
   @override
   Widget build(BuildContext context) {
-    final chat     = widget.chat;
-    final hasUnread  = chat.unread > 0;
-    final isLastMine = chat.lastSenderId == widget.myUid;
-    final isDream    = (chat.itemType ?? 'dream') != 'donation';
+    final chat        = widget.chat;
+    final hasUnread   = chat.unread > 0;
+    final isLastMine  = chat.lastSenderId == widget.myUid;
+    final isDream     = (chat.itemType ?? 'dream') != 'donation';
+    final isCompleted = chat.completed;
 
     return GestureDetector(
       onTapDown:   (_) => _ctrl.reverse(),
@@ -64,143 +65,182 @@ class _ChatListTileState extends State<ChatListTile>
             Transform.scale(scale: _ctrl.value, child: child),
         child: Container(
           margin:  const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color:         AppTheme.cardBackground,
-            borderRadius:  BorderRadius.circular(20),
-            border: hasUnread
-                ? Border.all(
-                    color: isDream
-                        ? AppTheme.kidsPurpleViolet.withValues(alpha: 0.25)
-                        : AppTheme.kidsPink.withValues(alpha: 0.25),
-                    width: 1.5,
-                  )
-                : Border.all(
-                    color: Colors.grey.withValues(alpha: 0.10),
-                  ),
+            color:        AppTheme.cardBackground,
+            borderRadius: BorderRadius.circular(20),
+            border: isCompleted
+                ? Border.all(color: AppTheme.kidsGreenDark.withValues(alpha: 0.45), width: 1.5)
+                : hasUnread
+                    ? Border.all(
+                        color: isDream
+                            ? AppTheme.kidsPurpleViolet.withValues(alpha: 0.25)
+                            : AppTheme.kidsPink.withValues(alpha: 0.25),
+                        width: 1.5,
+                      )
+                    : Border.all(color: Colors.grey.withValues(alpha: 0.10)),
             boxShadow: [
               BoxShadow(
-                color: hasUnread
-                    ? (isDream
-                            ? AppTheme.kidsPurpleViolet
-                            : AppTheme.kidsPink)
-                        .withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.04),
-                blurRadius: hasUnread ? 12 : 8,
-                offset:    const Offset(0, 3),
+                color: isCompleted
+                    ? AppTheme.kidsGreenDark.withValues(alpha: 0.10)
+                    : hasUnread
+                        ? (isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink)
+                            .withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.04),
+                blurRadius: isCompleted ? 14 : hasUnread ? 12 : 8,
+                offset:     const Offset(0, 3),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              children: [
-                // ── Linha principal ──────────────────────────
-                Row(
-                  children: [
-                    // Avatar + dot de presença
-                    _PresenceAvatar(
-                      otherUid: chat.otherUid,
-                      name:     chat.otherName,
-                      emoji:    chat.otherEmoji,
-                      imageUrl: chat.otherAvatar,
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    // Nome + preview
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Nome + timestamp
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  chat.otherName ?? 'Usuário',
-                                  style: TextStyle(
-                                    fontSize:   14.5,
-                                    fontWeight: hasUnread
-                                        ? FontWeight.w800
-                                        : FontWeight.w600,
-                                    color: AppTheme.primaryBlue,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _formatTime(chat.lastTimestamp),
-                                style: TextStyle(
-                                  fontSize:   11,
-                                  color:      hasUnread
-                                      ? AppTheme.kidsPurpleViolet
-                                      : AppTheme.textSecondary,
-                                  fontWeight: hasUnread
-                                      ? FontWeight.w700
-                                      : FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 4),
-
-                          // Última mensagem + badge
-                          Row(
-                            children: [
-                              // Ícone de leitura para msgs minhas
-                              if (isLastMine) ...[
-                                Icon(
-                                  Icons.done_all_rounded,
-                                  size:  14,
-                                  color: chat.lastReadByMe == true
-                                      ? AppTheme.primaryBlueMid
-                                      : Colors.grey.shade400,
-                                ),
-                                const SizedBox(width: 3),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  chat.lastMessage?.isNotEmpty == true
-                                      ? chat.lastMessage!
-                                      : 'Inicie a conversa ✨',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color:    hasUnread
-                                        ? AppTheme.textDarkGray
-                                        : AppTheme.textSecondary,
-                                    fontWeight: hasUnread
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    height: 1.3,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                              if (hasUnread) ...[
-                                const SizedBox(width: 8),
-                                _UnreadBadge(count: chat.unread, isDream: isDream),
-                              ],
-                            ],
-                          ),
-                        ],
+          child: Column(
+            children: [
+              // ── Banner "Doação concluída" ───────────────────
+              if (isCompleted)
+                Container(
+                  width:   double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+                  color:   AppTheme.kidsGreenDark.withValues(alpha: 0.09),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_rounded,
+                          size: 13, color: AppTheme.kidsGreenDark),
+                      const SizedBox(width: 5),
+                      Text(
+                        isDream ? 'Sonho realizado! 🎉' : 'Doação concluída! 🎉',
+                        style: TextStyle(
+                          fontSize:   12,
+                          fontWeight: FontWeight.w700,
+                          color:      AppTheme.kidsGreenDark,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
-                // ── Contexto (sonho/doação) ───────────────────
-                if (chat.itemTitle != null && chat.itemTitle!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _ContextChip(
-                    chat: chat,
-                    isDream: isDream,
-                  ),
-                ],
-              ],
-            ),
+              // ── Conteúdo ───────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _PresenceAvatar(
+                          otherUid: chat.otherUid,
+                          name:     chat.otherName,
+                          emoji:    chat.otherEmoji,
+                          imageUrl: chat.otherAvatar,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Nome + timestamp
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      chat.otherName ?? 'Usuário',
+                                      style: TextStyle(
+                                        fontSize:   14.5,
+                                        fontWeight: hasUnread
+                                            ? FontWeight.w800
+                                            : FontWeight.w600,
+                                        color: isCompleted
+                                            ? AppTheme.kidsGreenDark
+                                            : AppTheme.primaryBlue,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatTime(chat.lastTimestamp),
+                                    style: TextStyle(
+                                      fontSize:   11,
+                                      color: isCompleted
+                                          ? AppTheme.kidsGreenDark.withValues(alpha: 0.65)
+                                          : hasUnread
+                                              ? AppTheme.kidsPurpleViolet
+                                              : AppTheme.textSecondary,
+                                      fontWeight: hasUnread
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              // Última mensagem
+                              Row(
+                                children: [
+                                  if (isLastMine && !isCompleted) ...[
+                                    Icon(
+                                      Icons.done_all_rounded,
+                                      size:  14,
+                                      color: chat.lastReadByMe == true
+                                          ? AppTheme.primaryBlueMid
+                                          : Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(width: 3),
+                                  ],
+                                  if (isCompleted) ...[
+                                    Icon(Icons.check_circle_outline_rounded,
+                                        size: 13,
+                                        color: AppTheme.kidsGreenDark.withValues(alpha: 0.70)),
+                                    const SizedBox(width: 3),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      isCompleted
+                                          ? 'Entrega confirmada pelos dois lados'
+                                          : chat.lastMessage?.isNotEmpty == true
+                                              ? chat.lastMessage!
+                                              : 'Inicie a conversa ✨',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        color: isCompleted
+                                            ? AppTheme.kidsGreenDark.withValues(alpha: 0.80)
+                                            : hasUnread
+                                                ? AppTheme.textDarkGray
+                                                : AppTheme.textSecondary,
+                                        fontWeight: isCompleted || hasUnread
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        height: 1.3,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  if (hasUnread && !isCompleted) ...[
+                                    const SizedBox(width: 8),
+                                    _UnreadBadge(count: chat.unread, isDream: isDream),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ── Contexto (sonho/doação) ─────────────
+                    if (chat.itemTitle != null && chat.itemTitle!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _ContextChip(
+                        chat:        chat,
+                        isDream:     isDream,
+                        isCompleted: isCompleted,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -228,32 +268,39 @@ class _ChatListTileState extends State<ChatListTile>
 class _ContextChip extends StatelessWidget {
   final ChatModel chat;
   final bool isDream;
+  final bool isCompleted;
 
-  const _ContextChip({required this.chat, required this.isDream});
+  const _ContextChip({
+    required this.chat,
+    required this.isDream,
+    this.isCompleted = false,
+  });
 
-  Color get _accent =>
-      isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink;
+  Color get _accent => isCompleted
+      ? AppTheme.kidsGreenDark
+      : isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink;
 
-  Color get _bg =>
-      isDream
+  Color get _bg => isCompleted
+      ? AppTheme.kidsGreenDark.withValues(alpha: 0.07)
+      : isDream
           ? AppTheme.kidsPurpleViolet.withValues(alpha: 0.06)
           : AppTheme.kidsPink.withValues(alpha: 0.06);
 
-  String get _emoji => isDream ? '💭' : '🎁';
+  String get _emoji => isCompleted ? '✅' : isDream ? '💭' : '🎁';
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:     const EdgeInsets.all(8),
-      decoration:  BoxDecoration(
+      padding:    const EdgeInsets.all(8),
+      decoration: BoxDecoration(
         color:        _bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _accent.withValues(alpha: 0.12)),
+        border: Border.all(color: _accent.withValues(alpha: isCompleted ? 0.25 : 0.12)),
       ),
       child: Row(
         children: [
-          // Miniatura da imagem
-          if (chat.itemPhotoUrl != null && chat.itemPhotoUrl!.isNotEmpty)
+          // Miniatura ou emoji
+          if (!isCompleted && chat.itemPhotoUrl != null && chat.itemPhotoUrl!.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
@@ -274,11 +321,13 @@ class _ContextChip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isDream ? 'Sonho' : 'Doação',
+                  isCompleted
+                      ? (isDream ? 'Sonho realizado' : 'Doação entregue')
+                      : (isDream ? 'Sonho' : 'Doação'),
                   style: TextStyle(
                     fontSize:   10,
                     fontWeight: FontWeight.w700,
-                    color:      _accent.withValues(alpha: 0.70),
+                    color:      _accent.withValues(alpha: isCompleted ? 0.85 : 0.70),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -300,7 +349,6 @@ class _ContextChip extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Status da jornada
           _JourneyStatus(chat: chat, isDream: isDream),
         ],
       ),
@@ -334,16 +382,16 @@ class _JourneyStatus extends StatelessWidget {
     final unread = chat.unread;
     final hasMsg = chat.lastMessage?.isNotEmpty == true;
 
+    if (chat.completed) {
+      return _StatusInfo('✅', 'Concluída', AppTheme.kidsGreenDark);
+    }
     if (!hasMsg) {
-      return _StatusInfo('🟡', 'Interesse\ndemonstrado',
-          AppTheme.kidsAmber);
+      return _StatusInfo('🟡', 'Interesse\ndemonstrado', AppTheme.kidsAmber);
     }
     if (unread > 0) {
-      return _StatusInfo(
-          '🔵', 'Conversando', AppTheme.primaryBlueMid);
+      return _StatusInfo('🔵', 'Conversando', AppTheme.primaryBlueMid);
     }
-    return _StatusInfo(
-        '🟣', 'Em andamento', AppTheme.kidsPurpleViolet);
+    return _StatusInfo('🟣', 'Em andamento', AppTheme.kidsPurpleViolet);
   }
 
   @override

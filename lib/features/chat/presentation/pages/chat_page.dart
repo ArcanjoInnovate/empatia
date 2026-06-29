@@ -1,5 +1,4 @@
 // lib/features/chat/presentation/pages/chat_page.dart
-// Refatoração visual — lógica, controllers e fluxo intocados.
 
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/chat/controller/chat_controller.dart';
@@ -12,6 +11,7 @@ import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart
 import 'package:empatia/features/search/data/repositories/search_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT PAGE
@@ -20,11 +20,24 @@ import 'package:flutter/services.dart';
 class ChatPage extends StatefulWidget {
   final String myUid;
   final ChatModel chat;
+  /// true quando aberto a partir de DreamDetailPage ou DonationDetailPage
+  final bool fromDetail;
 
-  const ChatPage({super.key, required this.myUid, required this.chat});
+  const ChatPage({
+    super.key,
+    required this.myUid,
+    required this.chat,
+    this.fromDetail = false,
+  });
 
-  static Route<void> route({required String myUid, required ChatModel chat}) =>
-      MaterialPageRoute(builder: (_) => ChatPage(myUid: myUid, chat: chat));
+  static Route<void> route({
+    required String myUid,
+    required ChatModel chat,
+    bool fromDetail = false,
+  }) =>
+      MaterialPageRoute(
+          builder: (_) =>
+              ChatPage(myUid: myUid, chat: chat, fromDetail: fromDetail));
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -43,18 +56,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _ctrl = ChatController(myUid: widget.myUid, chat: widget.chat);
+    _ctrl = ChatController(
+        myUid: widget.myUid, chat: widget.chat, fromDetail: widget.fromDetail);
     _ctrl.addListener(_onState);
     _ctrl.init();
   }
 
-  // Chamado pelo SO toda vez que o teclado sobe ou desce
   @override
   void didChangeMetrics() {
     final insets = WidgetsBinding.instance.platformDispatcher.views.first
         .viewInsets.bottom;
-    // Teclado subiu (insets aumentou) → scroll para o fim no próximo frame,
-    // quando o layout já foi recalculado com o novo tamanho
     if (insets > _prevInsets) {
       _prevInsets = insets;
       WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottom());
@@ -69,14 +80,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     final count = _ctrl.messages.length;
     if (count > _prevMsgCount) {
       _prevMsgCount = count;
-      // Nova mensagem: jump imediato sem animação para não perder o fim
       WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottom());
+    }
+    // Mostra efeito de conclusão quando chegar
+    if (_ctrl.showCompletionEffect) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showCompletionOverlay();
+      });
     }
   }
 
-  /// Jump imediato — sem animação, sem depender de maxScrollExtent estático.
-  /// Usa jumpTo(double.maxFinite) que o Flutter clipa no valor máximo real,
-  /// garantindo que chegamos ao fim independente do momento do layout.
   void _jumpToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
@@ -109,6 +122,20 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     FocusScope.of(context).unfocus();
   }
 
+  void _showCompletionOverlay() {
+    _ctrl.dismissCompletionEffect();
+    HapticFeedback.heavyImpact();
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (_) => _CompletionDialog(
+        itemTitle: widget.chat.itemTitle ?? 'Item',
+        isDream:   _isDream,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chat = widget.chat;
@@ -117,32 +144,74 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       backgroundColor: const Color(0xFFF0F2F8),
       resizeToAvoidBottomInset: true,
       body: GestureDetector(
-        // Qualquer toque fora do TextField fecha o teclado e remove o foco.
-        // behavior.translucent garante que o toque chega aos filhos também.
         onTap: _unfocus,
         behavior: HitTestBehavior.translucent,
         child: SafeArea(
           bottom: false,
-          child: Column(
+          child: Stack(
             children: [
-              _ChatAppBar(
-                chat:     chat,
-                online:   _ctrl.otherOnline,
-                lastSeen: _ctrl.otherLastSeen,
+              Column(
+                children: [
+                  _ChatAppBar(
+                    chat:      chat,
+                    online:    _ctrl.otherOnline,
+                    lastSeen:  _ctrl.otherLastSeen,
+                    completed: _ctrl.completed,
+                  ),
+
+                  if (chat.itemId != null && chat.itemTitle?.isNotEmpty == true)
+                    _ContextCard(chat: chat, focusNode: _focusNode),
+
+                  // Banner de doação concluída — informativo, não bloqueia o input
+                  if (_ctrl.completed)
+                    widget.fromDetail
+                        ? _HistoricCompletedBanner(isDream: _isDream, itemTitle: chat.itemTitle)
+                        : _CompletedBanner(isDream: _isDream, itemTitle: chat.itemTitle),
+
+                  // Banner de troca de contexto — aparece quando o usuário abre
+                  // o chat por um item diferente do que está ativo na conversa
+                  if (_ctrl.isContextSwitch)
+                    _ContextSwitchBanner(
+                      isDream:   _isDream,
+                      itemTitle: chat.itemTitle,
+                    ),
+
+                  Expanded(child: _buildBody()),
+
+                  // Barra de entrega — oculta quando concluído, quando eu enviei
+                  // um request sem resposta, ou quando ainda não há ao menos
+                  // 1 mensagem de texto de cada lado (evita confirm prematuro)
+                  if (!_ctrl.completed && !_ctrl.iSentPendingRequest && !_ctrl.isContextSwitch && _ctrl.canSendDelivery)
+                    _DeliveryBar(
+                      chat:             chat,
+                      isDream:          _isDream,
+                      sending:          _ctrl.sending,
+                      hasPendingRequest: _ctrl.hasPendingRequest,
+                      onDelivery: (isDonor) async {
+                        final title = widget.chat.itemTitle ?? 'Item';
+                        final type  = widget.chat.itemType  ?? 'dream';
+                        await _ctrl.sendDeliveryRequest(
+                          itemTitle: title,
+                          itemType:  type,
+                          isDonor:   isDonor,
+                        );
+                        WidgetsBinding.instance
+                            .addPostFrameCallback((_) => _jumpToBottom());
+                      },
+                    ),
+
+                  _InputBar(
+                    controller: _inputCtrl,
+                    focusNode:  _focusNode,
+                    isDream:    _isDream,
+                    sending:    _ctrl.sending,
+                    onSend:     _send,
+                  ),
+                ],
               ),
 
-              if (chat.itemId != null && chat.itemTitle?.isNotEmpty == true)
-                _ContextCard(chat: chat, focusNode: _focusNode),
-
-              Expanded(child: _buildBody()),
-
-              _InputBar(
-                controller: _inputCtrl,
-                focusNode:  _focusNode,
-                isDream:    _isDream,
-                sending:    _ctrl.sending,
-                onSend:     _send,
-              ),
+              // Confetes flutuantes quando showCompletionEffect (já foi para dialog,
+              // mas mantemos uma camada de partículas leve sobre o chat)
             ],
           ),
         ),
@@ -181,6 +250,17 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     final otherUid = widget.chat.otherUid;
     final total    = msgs.length;
 
+    // Pré-calcula quais delivery_requests já foram respondidos
+    // para esconder os botões de todos (sender e receptor)
+    final answeredRequestIds = <String>{};
+    for (final m in msgs) {
+      if ((m.type == ChatMessageType.deliveryConfirmed ||
+           m.type == ChatMessageType.deliveryDenied) &&
+          m.deliveryRequestId != null) {
+        answeredRequestIds.add(m.deliveryRequestId!);
+      }
+    }
+
     return ListView.builder(
       controller: _scrollCtrl,
       padding:    const EdgeInsets.fromLTRB(0, 12, 0, 8),
@@ -206,10 +286,448 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           showTimestamp:     showTs,
           isGroupedWithPrev: prevSame && !showTs,
           isGroupedWithNext: nextSame,
+          isAnswered: msg.type == ChatMessageType.deliveryRequest
+              && answeredRequestIds.contains(msg.id),
+          onRespondDelivery: (requestMsg, confirmed) {
+            _ctrl.respondDelivery(
+              requestMsg: requestMsg,
+              confirmed:  confirmed,
+            );
+          },
         );
       },
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANNER DE DOAÇÃO CONCLUÍDA (persistente no topo)
+// ═══════════════════════════════════════════════════════════════
+
+class _CompletedBanner extends StatelessWidget {
+  final bool isDream;
+  final String? itemTitle;
+  const _CompletedBanner({required this.isDream, this.itemTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF16A34A), Color(0xFF22C55E)],
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('🎉', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              isDream
+                  ? 'Sonho realizado! Esta doação foi concluída.'
+                  : 'Doação concluída com sucesso!',
+              style: const TextStyle(
+                fontSize:   13,
+                fontWeight: FontWeight.w700,
+                color:      Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANNER DE TROCA DE CONTEXTO
+// ═══════════════════════════════════════════════════════════════
+
+class _ContextSwitchBanner extends StatelessWidget {
+  final bool isDream;
+  final String? itemTitle;
+  const _ContextSwitchBanner({required this.isDream, this.itemTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink;
+    final label  = isDream ? 'Novo sonho selecionado' : 'Nova doação selecionada';
+    final body   = isDream
+        ? 'Esta conversa será vinculada ao sonho abaixo. Envie uma mensagem para iniciar o processo.'
+        : 'Esta conversa será vinculada à doação abaixo. Envie uma mensagem para iniciar o processo.';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      decoration: BoxDecoration(
+        color:        accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border:       Border.all(color: accent.withValues(alpha: 0.22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color:  accent.withValues(alpha: 0.12),
+                shape:  BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  isDream ? '💭' : '🎁',
+                  style: const TextStyle(fontSize: 17),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color:        accent.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          label.toUpperCase(),
+                          style: TextStyle(
+                            fontSize:      7.5,
+                            fontWeight:    FontWeight.w800,
+                            color:         accent,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (itemTitle?.isNotEmpty == true) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      itemTitle!,
+                      style: TextStyle(
+                        fontSize:   13,
+                        fontWeight: FontWeight.w700,
+                        color:      accent,
+                        height:     1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: TextStyle(
+                      fontSize:   11.5,
+                      fontWeight: FontWeight.w500,
+                      color:      accent.withValues(alpha: 0.75),
+                      height:     1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANNER HISTÓRICO — informativo, não bloqueia o input
+// ═══════════════════════════════════════════════════════════════
+
+class _HistoricCompletedBanner extends StatelessWidget {
+  final bool isDream;
+  final String? itemTitle;
+  const _HistoricCompletedBanner({required this.isDream, this.itemTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+        border: const Border(
+          bottom: BorderSide(color: Color(0xFF16A34A), width: 0),
+          top:    BorderSide(color: Color(0xFF16A34A), width: 0),
+          left:   BorderSide(color: Color(0xFF16A34A), width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('✅', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              isDream
+                  ? 'Sonho realizado! Envie uma mensagem para continuar a conversa.'
+                  : 'Doação concluída! Envie uma mensagem para continuar a conversa.',
+              style: const TextStyle(
+                fontSize:   12,
+                fontWeight: FontWeight.w600,
+                color:      Color(0xFF15803D),
+                height:     1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DIALOG DE CONCLUSÃO (efeito visual único)
+// ═══════════════════════════════════════════════════════════════
+
+class _CompletionDialog extends StatefulWidget {
+  final String itemTitle;
+  final bool isDream;
+  const _CompletionDialog({required this.itemTitle, required this.isDream});
+
+  @override
+  State<_CompletionDialog> createState() => _CompletionDialogState();
+}
+
+class _CompletionDialogState extends State<_CompletionDialog>
+    with TickerProviderStateMixin {
+  late final AnimationController _scaleCtrl;
+  late final AnimationController _confettiCtrl;
+  late final Animation<double> _scale;
+  final _rng = math.Random();
+
+  final List<_Particle> _particles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _confettiCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+    _scale = CurvedAnimation(parent: _scaleCtrl, curve: Curves.elasticOut);
+
+    // Gera partículas de confete
+    for (int i = 0; i < 30; i++) {
+      _particles.add(_Particle(
+        x:     _rng.nextDouble(),
+        y:     _rng.nextDouble() * -0.5,
+        vx:    (_rng.nextDouble() - 0.5) * 0.4,
+        vy:    _rng.nextDouble() * 0.6 + 0.3,
+        color: _confettiColors[_rng.nextInt(_confettiColors.length)],
+        size:  _rng.nextDouble() * 8 + 5,
+        rot:   _rng.nextDouble() * math.pi * 2,
+      ));
+    }
+
+    _scaleCtrl.forward();
+    _confettiCtrl.forward();
+  }
+
+  static const _confettiColors = [
+    Color(0xFFFFD700), Color(0xFFFF6B9D), Color(0xFF7C3AED),
+    Color(0xFF22C55E), Color(0xFF3B82F6), Color(0xFFF97316),
+  ];
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    _confettiCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Partículas de confete
+          AnimatedBuilder(
+            animation: _confettiCtrl,
+            builder: (_, __) {
+              return SizedBox(
+                width: 320, height: 400,
+                child: CustomPaint(
+                  painter: _ConfettiPainter(
+                    particles: _particles,
+                    progress: _confettiCtrl.value,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Card principal
+          ScaleTransition(
+            scale: _scale,
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color:        Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color:      Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 40,
+                    offset:     const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Ícone animado
+                  Container(
+                    width: 80, height: 80,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF16A34A), Color(0xFF4ADE80)],
+                        begin:  Alignment.topLeft,
+                        end:    Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:      const Color(0xFF22C55E).withValues(alpha: 0.40),
+                          blurRadius: 24,
+                          offset:     const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text('🎉', style: TextStyle(fontSize: 38)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Text(
+                    widget.isDream ? 'Sonho Realizado!' : 'Doação Concluída!',
+                    style: const TextStyle(
+                      fontSize:   22,
+                      fontWeight: FontWeight.w900,
+                      color:      AppTheme.primaryBlue,
+                      height:     1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+
+                  Text(
+                    '"${widget.itemTitle}"',
+                    style: const TextStyle(
+                      fontSize:   15,
+                      fontWeight: FontWeight.w700,
+                      color:      AppTheme.kidsPurpleViolet,
+                      fontStyle:  FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+
+                  Text(
+                    widget.isDream
+                        ? 'Você ajudou a realizar o sonho de uma criança. Isso ficará para sempre no histórico de doações! ❤️'
+                        : 'Esta doação foi registrada no histórico de ambos os participantes e vale pontos no ranking! 🏆',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color:    AppTheme.textSecondary.withValues(alpha: 0.80),
+                      height:   1.55,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.kidsGreenDeep,
+                        foregroundColor: Colors.white,
+                        padding:  const EdgeInsets.symmetric(vertical: 14),
+                        shape:    RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Incrível! 🎊',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Particle {
+  double x, y, vx, vy, size, rot;
+  final Color color;
+  _Particle({
+    required this.x, required this.y, required this.vx,
+    required this.vy, required this.size, required this.rot,
+    required this.color,
+  });
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double progress;
+  const _ConfettiPainter({required this.particles, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (final p in particles) {
+      final cx = (p.x + p.vx * progress) * size.width;
+      final cy = (p.y + p.vy * progress) * size.height;
+      final opacity = (1.0 - progress * 0.8).clamp(0.0, 1.0);
+
+      paint.color = p.color.withValues(alpha: opacity);
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(p.rot + progress * math.pi * 3);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset.zero, width: p.size, height: p.size * 0.5),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => old.progress != progress;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -220,16 +738,19 @@ class _ChatAppBar extends StatelessWidget {
   final ChatModel chat;
   final bool online;
   final int? lastSeen;
+  final bool completed;
 
   const _ChatAppBar({
     required this.chat,
     required this.online,
     this.lastSeen,
+    this.completed = false,
   });
 
   bool get _isDream => (chat.itemType ?? 'dream') != 'donation';
 
   String get _presenceText {
+    if (completed) return '✅ Doação concluída';
     if (online) return 'Online agora';
     if (lastSeen == null) return 'Offline';
     final dt   = DateTime.fromMillisecondsSinceEpoch(lastSeen!);
@@ -252,7 +773,7 @@ class _ChatAppBar extends StatelessWidget {
     final hasItem = chat.itemTitle?.isNotEmpty == true;
 
     return Container(
-      color: AppTheme.primaryBlue,
+      color: completed ? AppTheme.kidsGreenDark : AppTheme.primaryBlue,
       padding: EdgeInsets.fromLTRB(0, topPad, 12, 0),
       child: Row(
         children: [
@@ -273,7 +794,7 @@ class _ChatAppBar extends StatelessWidget {
                 ),
                 child: ClipOval(child: _AvatarContent(chat: chat, size: 44)),
               ),
-              if (online)
+              if (online && !completed)
                 Positioned(
                   bottom: 0, right: -1,
                   child: Container(
@@ -309,7 +830,7 @@ class _ChatAppBar extends StatelessWidget {
                   const SizedBox(height: 1),
                   Row(
                     children: [
-                      if (online)
+                      if (online && !completed)
                         Padding(
                           padding: const EdgeInsets.only(right: 4),
                           child: Container(
@@ -323,10 +844,10 @@ class _ChatAppBar extends StatelessWidget {
                         _presenceText,
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: online
+                          color: (online && !completed)
                               ? AppTheme.kidsGreen
-                              : Colors.white.withValues(alpha: 0.50),
-                          fontWeight: FontWeight.w500,
+                              : Colors.white.withValues(alpha: 0.70),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -394,7 +915,7 @@ class _AvatarContent extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CARD DE CONTEXTO + TIMELINE
+// CARD DE CONTEXTO
 // ═══════════════════════════════════════════════════════════════
 
 class _ContextCard extends StatefulWidget {
@@ -408,7 +929,6 @@ class _ContextCard extends StatefulWidget {
 
 class _ContextCardState extends State<_ContextCard> {
   bool _pressed = false;
-
   bool get _isDream => (widget.chat.itemType ?? 'dream') != 'donation';
 
   @override
@@ -441,15 +961,13 @@ class _ContextCardState extends State<_ContextCard> {
             end:   Alignment.centerRight,
           ),
           border: Border(
-            bottom: BorderSide(
-                color: accent.withValues(alpha: 0.12), width: 1),
-            left: BorderSide(color: accent, width: 3),
+            bottom: BorderSide(color: accent.withValues(alpha: 0.12), width: 1),
+            left:   BorderSide(color: accent, width: 3),
           ),
         ),
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Row(
           children: [
-            // Thumbnail com glow
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -467,18 +985,14 @@ class _ContextCardState extends State<_ContextCard> {
                 accent:   accent,
               ),
             ),
-
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Label pill
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color:        accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -508,10 +1022,7 @@ class _ContextCardState extends State<_ContextCard> {
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
-            // Seta animada
             AnimatedContainer(
               duration: const Duration(milliseconds: 120),
               width: 30, height: 30,
@@ -519,11 +1030,7 @@ class _ContextCardState extends State<_ContextCard> {
                 color:  accent.withValues(alpha: _pressed ? 0.18 : 0.10),
                 shape:  BoxShape.circle,
               ),
-              child: Icon(
-                Icons.arrow_forward_rounded,
-                color: accent,
-                size:  16,
-              ),
+              child: Icon(Icons.arrow_forward_rounded, color: accent, size: 16),
             ),
           ],
         ),
@@ -533,7 +1040,6 @@ class _ContextCardState extends State<_ContextCard> {
 
   Future<void> _openDetail(BuildContext context) async {
     HapticFeedback.lightImpact();
-    // Unfocus antes de navegar — evita que o Flutter snapshote o foco
     widget.focusNode.unfocus();
     FocusScope.of(context).unfocus();
 
@@ -550,7 +1056,6 @@ class _ContextCardState extends State<_ContextCard> {
     );
     if (!context.mounted) return;
 
-    // .then() garante unfocus quando a tela fechar, independente de RouteObserver
     final route = isDream
         ? DreamDetailPage.route(
             result: result,
@@ -573,16 +1078,14 @@ class _ItemThumbnail extends StatelessWidget {
   final String? imageUrl;
   final String emoji;
   final Color accent;
-  const _ItemThumbnail(
-      {this.imageUrl, required this.emoji, required this.accent});
+  const _ItemThumbnail({this.imageUrl, required this.emoji, required this.accent});
 
   @override
   Widget build(BuildContext context) {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: Image.network(imageUrl!,
-            width: 40, height: 40, fit: BoxFit.cover,
+        child: Image.network(imageUrl!, width: 40, height: 40, fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => _ph()),
       );
     }
@@ -590,8 +1093,7 @@ class _ItemThumbnail extends StatelessWidget {
   }
 
   Widget _ph() => Container(
-        width: 40,
-        height: 40,
+        width: 40, height: 40,
         decoration: BoxDecoration(
           color:        accent.withValues(alpha: 0.09),
           borderRadius: BorderRadius.circular(10),
@@ -618,16 +1120,8 @@ class _EmptyChat extends StatelessWidget {
   });
 
   List<String> get _suggestions => isDream
-      ? [
-          'Olá! Gostaria de ajudar. ❤️',
-          'Como posso contribuir?',
-          'Posso conversar sobre este sonho?'
-        ]
-      : [
-          'Olá! Tenho interesse. 😊',
-          'O item ainda está disponível?',
-          'Podemos conversar?'
-        ];
+      ? ['Olá! Gostaria de ajudar. ❤️', 'Como posso contribuir?', 'Posso conversar sobre este sonho?']
+      : ['Olá! Tenho interesse. 😊', 'O item ainda está disponível?', 'Podemos conversar?'];
 
   @override
   Widget build(BuildContext context) {
@@ -635,8 +1129,8 @@ class _EmptyChat extends StatelessWidget {
     final name   = chat.otherName?.split(' ').first ?? 'a pessoa';
 
     return GestureDetector(
-      onTap:     onInputTap,
-      behavior:  HitTestBehavior.opaque,
+      onTap:    onInputTap,
+      behavior: HitTestBehavior.opaque,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
         child: Column(
@@ -679,15 +1173,8 @@ class _EmptyChat extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             Text(
-              isDream
-                  ? 'Você pode ajudar a realizar este sonho'
-                  : 'Interessado nesta doação?',
-              style: const TextStyle(
-                fontSize:   19,
-                fontWeight: FontWeight.w900,
-                color:      AppTheme.primaryBlue,
-                height:     1.25,
-              ),
+              isDream ? 'Você pode ajudar a realizar este sonho' : 'Interessado nesta doação?',
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppTheme.primaryBlue, height: 1.25),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -695,11 +1182,7 @@ class _EmptyChat extends StatelessWidget {
               isDream
                   ? 'Apresente-se e diga como gostaria de ajudar $name.'
                   : 'Envie uma mensagem para combinar os próximos passos com $name.',
-              style: TextStyle(
-                fontSize: 13.5,
-                color:    AppTheme.textSecondary.withValues(alpha: 0.85),
-                height:   1.6,
-              ),
+              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary.withValues(alpha: 0.85), height: 1.6),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -712,20 +1195,14 @@ class _EmptyChat extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(isDream ? '✨' : '♻️',
-                      style: const TextStyle(fontSize: 20)),
+                  Text(isDream ? '✨' : '♻️', style: const TextStyle(fontSize: 20)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       isDream
                           ? 'Sua ajuda pode aproximar esta criança da realização deste sonho.'
                           : 'Sua retirada ajuda outra família imediatamente.',
-                      style: TextStyle(
-                        fontSize:   12.5,
-                        fontWeight: FontWeight.w600,
-                        color:      accent,
-                        height:     1.45,
-                      ),
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: accent, height: 1.45),
                     ),
                   ),
                 ],
@@ -736,32 +1213,20 @@ class _EmptyChat extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Sugestões para começar',
-                style: TextStyle(
-                  fontSize:      11.5,
-                  fontWeight:    FontWeight.w700,
-                  color:         AppTheme.textSecondary.withValues(alpha: 0.70),
-                  letterSpacing: 0.3,
-                ),
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.textSecondary.withValues(alpha: 0.70), letterSpacing: 0.3),
               ),
             ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8, runSpacing: 8,
               children: _suggestions
-                  .map((s) => _SuggestionChip(
-                        text:  s,
-                        color: accent,
-                        onTap: () => onSuggest(s),
-                      ))
+                  .map((s) => _SuggestionChip(text: s, color: accent, onTap: () => onSuggest(s)))
                   .toList(),
             ),
             const SizedBox(height: 20),
             Text(
               'Nada é salvo até você enviar a primeira mensagem.',
-              style: TextStyle(
-                fontSize: 11,
-                color:    AppTheme.textSecondary.withValues(alpha: 0.45),
-              ),
+              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary.withValues(alpha: 0.45)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -775,8 +1240,7 @@ class _SuggestionChip extends StatefulWidget {
   final String text;
   final Color color;
   final VoidCallback onTap;
-  const _SuggestionChip(
-      {required this.text, required this.color, required this.onTap});
+  const _SuggestionChip({required this.text, required this.color, required this.onTap});
 
   @override
   State<_SuggestionChip> createState() => _SuggestionChipState();
@@ -789,40 +1253,20 @@ class _SuggestionChipState extends State<_SuggestionChip> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
+      onTapUp:     (_) { setState(() => _pressed = false); widget.onTap(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: _pressed
-              ? widget.color.withValues(alpha: 0.10)
-              : Colors.white,
+          color:  _pressed ? widget.color.withValues(alpha: 0.10) : Colors.white,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: widget.color.withValues(alpha: _pressed ? 0.40 : 0.20),
-          ),
-          boxShadow: _pressed
-              ? null
-              : [
-                  BoxShadow(
-                    color:      widget.color.withValues(alpha: 0.07),
-                    blurRadius: 8,
-                    offset:     const Offset(0, 2),
-                  ),
-                ],
+          border: Border.all(color: widget.color.withValues(alpha: _pressed ? 0.40 : 0.20)),
+          boxShadow: _pressed ? null : [
+            BoxShadow(color: widget.color.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 2)),
+          ],
         ),
-        child: Text(
-          widget.text,
-          style: TextStyle(
-            fontSize:   13,
-            fontWeight: FontWeight.w600,
-            color:      widget.color,
-          ),
-        ),
+        child: Text(widget.text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: widget.color)),
       ),
     );
   }
@@ -837,6 +1281,7 @@ class _InputBar extends StatefulWidget {
   final FocusNode focusNode;
   final bool isDream;
   final bool sending;
+  final bool disabled;
   final ValueChanged<String> onSend;
 
   const _InputBar({
@@ -845,6 +1290,7 @@ class _InputBar extends StatefulWidget {
     required this.isDream,
     required this.sending,
     required this.onSend,
+    this.disabled = false,
   });
 
   @override
@@ -880,17 +1326,34 @@ class _InputBarState extends State<_InputBar> {
 
   void _submit() {
     final text = widget.controller.text.trim();
-    if (text.isEmpty || widget.sending) return;
+    if (text.isEmpty || widget.sending || widget.disabled) return;
     widget.onSend(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    // padding inferior da safe area (barra de navegação do dispositivo)
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final accent    = widget.isDream
-        ? AppTheme.kidsPurpleViolet
-        : AppTheme.kidsPink;
+    final accent    = widget.isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink;
+
+    if (widget.disabled) {
+      return Container(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+        ),
+        child: Center(
+          child: Text(
+            '✅ Esta conversa foi concluída',
+            style: TextStyle(
+              fontSize:   13,
+              color:      AppTheme.kidsGreenDark.withValues(alpha: 0.80),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottomPad),
@@ -905,11 +1368,7 @@ class _InputBarState extends State<_InputBar> {
           ),
         ),
         boxShadow: [
-          BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset:     const Offset(0, -2),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, -2)),
         ],
       ),
       child: Row(
@@ -919,14 +1378,10 @@ class _InputBarState extends State<_InputBar> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               decoration: BoxDecoration(
-                color: _focused
-                    ? accent.withValues(alpha: 0.04)
-                    : const Color(0xFFF2F4F8),
+                color: _focused ? accent.withValues(alpha: 0.04) : const Color(0xFFF2F4F8),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: _focused
-                      ? accent.withValues(alpha: 0.30)
-                      : Colors.transparent,
+                  color: _focused ? accent.withValues(alpha: 0.30) : Colors.transparent,
                   width: 1.5,
                 ),
               ),
@@ -936,20 +1391,10 @@ class _InputBarState extends State<_InputBar> {
                 maxLines:           5,
                 minLines:           1,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color:    AppTheme.primaryBlue,
-                  height:   1.4,
-                ),
+                style: const TextStyle(fontSize: 15, color: AppTheme.primaryBlue, height: 1.4),
                 decoration: InputDecoration(
-                  hintText: widget.isDream
-                      ? 'Escreva como deseja ajudar...'
-                      : 'Envie uma mensagem ao doador...',
-                  hintStyle: TextStyle(
-                    fontSize:   14.5,
-                    color:      AppTheme.textSecondary.withValues(alpha: 0.50),
-                    fontWeight: FontWeight.w400,
-                  ),
+                  hintText: widget.isDream ? 'Escreva como deseja ajudar...' : 'Envie uma mensagem ao doador...',
+                  hintStyle: TextStyle(fontSize: 14.5, color: AppTheme.textSecondary.withValues(alpha: 0.50), fontWeight: FontWeight.w400),
                   border:         InputBorder.none,
                   contentPadding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                 ),
@@ -976,13 +1421,7 @@ class _InputBarState extends State<_InputBar> {
               color:  _hasText ? null : const Color(0xFFEBEDF2),
               shape:  BoxShape.circle,
               boxShadow: _hasText
-                  ? [
-                      BoxShadow(
-                        color:      accent.withValues(alpha: 0.32),
-                        blurRadius: 12,
-                        offset:     const Offset(0, 4),
-                      ),
-                    ]
+                  ? [BoxShadow(color: accent.withValues(alpha: 0.32), blurRadius: 12, offset: const Offset(0, 4))]
                   : null,
             ),
             child: Material(
@@ -994,23 +1433,199 @@ class _InputBarState extends State<_InputBar> {
                   child: widget.sending
                       ? SizedBox(
                           width: 18, height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: _hasText ? Colors.white : accent,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: _hasText ? Colors.white : accent),
                         )
-                      : Icon(
-                          Icons.send_rounded,
-                          size:  20,
-                          color: _hasText
-                              ? Colors.white
-                              : Colors.grey.shade400,
-                        ),
+                      : Icon(Icons.send_rounded, size: 20, color: _hasText ? Colors.white : Colors.grey.shade400),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELIVERY BAR
+// ═══════════════════════════════════════════════════════════════
+
+class _DeliveryBar extends StatelessWidget {
+  final ChatModel chat;
+  final bool isDream;
+  final bool sending;
+  final bool hasPendingRequest;
+  final Future<void> Function(bool isDonor) onDelivery;
+
+  const _DeliveryBar({
+    required this.chat,
+    required this.isDream,
+    required this.sending,
+    required this.hasPendingRequest,
+    required this.onDelivery,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (chat.itemId == null) return const SizedBox.shrink();
+
+    // Se há request pendente, mostra aviso em vez dos botões
+    if (hasPendingRequest) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        color: Colors.white,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color:        AppTheme.kidsAmber.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.kidsAmber.withValues(alpha: 0.30)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('⏳', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+              Text(
+                'Aguardando sua confirmação de entrega acima',
+                maxLines: 2,
+                style: TextStyle(
+                  fontSize:   10,
+                  fontWeight: FontWeight.w600,
+                  color:      AppTheme.kidsAmber,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+            child: _DeliveryChip(
+              label:   '📦 Entregou o item',
+              color:   AppTheme.primaryBlueMid,
+              sending: sending,
+              onTap:   () => _confirm(context, isDonor: true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _DeliveryChip(
+              label:   '🛍️ Buscou o item',
+              color:   AppTheme.kidsPurpleViolet,
+              sending: sending,
+              onTap:   () => _confirm(context, isDonor: false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirm(BuildContext context, {required bool isDonor}) {
+    final label = isDonor
+        ? 'Você quer marcar que entregou o item?'
+        : 'Você quer marcar que buscou o item?';
+    final sub = isDonor
+        ? 'O outro participante precisará confirmar o recebimento.'
+        : 'O outro participante precisará confirmar a retirada.';
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlueMid.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.local_shipping_rounded, color: AppTheme.primaryBlueMid, size: 28),
+            ),
+            const SizedBox(height: 16),
+            Text(label,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue, height: 1.25),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(sub,
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary.withValues(alpha: 0.80), height: 1.5),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlueMid,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                onPressed: () { Navigator.pop(context); onDelivery(isDonor); },
+                child: const Text('Confirmar e notificar',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar',
+                  style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.70))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeliveryChip extends StatefulWidget {
+  final String label;
+  final Color color;
+  final bool sending;
+  final VoidCallback onTap;
+  const _DeliveryChip({required this.label, required this.color, required this.sending, required this.onTap});
+
+  @override
+  State<_DeliveryChip> createState() => _DeliveryChipState();
+}
+
+class _DeliveryChipState extends State<_DeliveryChip> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown:   (_) => setState(() => _pressed = true),
+      onTapUp:     (_) { setState(() => _pressed = false); if (!widget.sending) widget.onTap(); },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        decoration: BoxDecoration(
+          color: _pressed ? widget.color.withValues(alpha: 0.12) : widget.color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: widget.color.withValues(alpha: _pressed ? 0.40 : 0.20)),
+        ),
+        child: Text(widget.label,
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: widget.color),
+            textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }

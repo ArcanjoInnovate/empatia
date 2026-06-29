@@ -1,7 +1,6 @@
 // lib/features/home/presentation/widgets/feeds_card.dart
 //
 // Cards do feed — DreamCard, DonationCard, InsightBlock e auxiliares.
-// Reestruturação completa: hierarquia emocional, narrativa, conversão.
 // ─────────────────────────────────────────────────────────────────────
 
 import 'package:empatia/core/theme/app_theme.dart';
@@ -14,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// DESIGN TOKENS — internos ao arquivo
+// DESIGN TOKENS
 // ═══════════════════════════════════════════════════════════════
 
 abstract final class _K {
@@ -68,7 +67,7 @@ class FeedCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DREAM CARD — hierarquia emocional completa
+// DREAM CARD
 // ═══════════════════════════════════════════════════════════════
 
 class DreamCard extends StatefulWidget {
@@ -118,7 +117,6 @@ class _DreamCardState extends State<DreamCard>
   }
   void _onTapCancel() => _ctrl.forward();
 
-  // Microcopy emocional rotativo por ID
   static const _copies = [
     '✨ Um sonho esperando acontecer',
     '💛 Cada apoio transforma uma vida',
@@ -171,18 +169,13 @@ class _DreamCardState extends State<DreamCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ── 1. HERO VISUAL ─────────────────────────────────────
                 _DreamHero(item: item, heroTag: heroTag, hasImage: hasImage),
 
-                // ── 2. CORPO ───────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      // 2a. Identificação compacta
                       Row(
                         children: [
                           _DreamBadge(),
@@ -203,7 +196,6 @@ class _DreamCardState extends State<DreamCard>
 
                       const SizedBox(height: 14),
 
-                      // 2b. HEADLINE — elemento mais importante
                       Text(
                         item.title,
                         style: const TextStyle(
@@ -217,7 +209,6 @@ class _DreamCardState extends State<DreamCard>
                         overflow: TextOverflow.ellipsis,
                       ),
 
-                      // 2c. RELATO DA FAMÍLIA — segunda informação mais importante
                       if (hasStory) ...[
                         const SizedBox(height: 12),
                         _FamilyStorySnippet(story: item.date!),
@@ -225,7 +216,6 @@ class _DreamCardState extends State<DreamCard>
 
                       const SizedBox(height: 16),
 
-                      // 2d. BLOCO DE IMPACTO EMOCIONAL
                       _ImpactBlock(
                         copy: _microcopy(item.id),
                         color: _K.purple,
@@ -234,7 +224,6 @@ class _DreamCardState extends State<DreamCard>
 
                       const SizedBox(height: 16),
 
-                      // 2e. RODAPÉ — autor + social
                       _DreamFooter(item: item),
 
                       const SizedBox(height: 18),
@@ -262,7 +251,6 @@ class _DreamHero extends StatelessWidget {
     required this.hasImage,
   });
 
-  // Gradientes afetivos por ID
   static const _grads = [
     [Color(0xFF667EEA), Color(0xFF764BA2)],
     [Color(0xFF7C3AED), Color(0xFF4F46E5)],
@@ -285,7 +273,6 @@ class _DreamHero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Fundo: imagem ou gradiente
           if (hasImage)
             Hero(
               tag: heroTag,
@@ -303,7 +290,6 @@ class _DreamHero extends StatelessWidget {
           else
             _GradientPlaceholder(colors: colors, emoji: item.emoji),
 
-          // Scrim narrativo
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -319,7 +305,6 @@ class _DreamHero extends StatelessWidget {
             ),
           ),
 
-          // Nome da criança sobre a imagem
           if (item.childName != null && item.childName!.isNotEmpty)
             Positioned(
               left: 16,
@@ -350,7 +335,6 @@ class _DreamHero extends StatelessWidget {
               ),
             ),
 
-          // Botão de imagem fullscreen (canto superior direito)
           if (hasImage)
             Positioned(
               top: 12,
@@ -460,7 +444,7 @@ class _FamilyStorySnippet extends StatelessWidget {
   }
 }
 
-// ── Bloco de impacto emocional (compartilhado) ────────────────
+// ── Bloco de impacto emocional ────────────────────────────────
 
 class _ImpactBlock extends StatelessWidget {
   final String copy;
@@ -532,7 +516,6 @@ class _DreamFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Avatar do autor
         _AuthorAvatar(
           emoji: item.userProfileEmoji,
           imageUrl: item.userProfileImage,
@@ -553,7 +536,7 @@ class _DreamFooter extends StatelessWidget {
               if (item.likesCount > 0 || item.commentsCount > 0)
                 Text(
                   _socialText(item.likesCount, item.commentsCount),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
                     color: _K.muted,
                     fontWeight: FontWeight.w500,
@@ -562,7 +545,6 @@ class _DreamFooter extends StatelessWidget {
             ],
           ),
         ),
-        // CTA sutil
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
@@ -612,7 +594,7 @@ class _DreamFooter extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DONATION CARD — oportunidade valiosa, não classificado
+// DONATION CARD
 // ═══════════════════════════════════════════════════════════════
 
 class DonationCard extends StatefulWidget {
@@ -713,8 +695,6 @@ class _DonationCardState extends State<DonationCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ── 1. HERO COM BADGE SOBREPOSTO ───────────────────────
                 _DonationHero(
                   item: item,
                   heroTag: heroTag,
@@ -722,14 +702,11 @@ class _DonationCardState extends State<DonationCard>
                   catLabel: catLabel,
                 ),
 
-                // ── 2. CORPO ───────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      // 2a. Categoria + localização
                       Row(
                         children: [
                           _CatPill(label: catLabel),
@@ -744,7 +721,6 @@ class _DonationCardState extends State<DonationCard>
 
                       const SizedBox(height: 14),
 
-                      // 2b. HEADLINE
                       Text(
                         item.title,
                         style: const TextStyle(
@@ -758,7 +734,6 @@ class _DonationCardState extends State<DonationCard>
                         overflow: TextOverflow.ellipsis,
                       ),
 
-                      // 2c. DESCRIÇÃO
                       if (hasDesc) ...[
                         const SizedBox(height: 10),
                         Text(
@@ -776,7 +751,6 @@ class _DonationCardState extends State<DonationCard>
 
                       const SizedBox(height: 16),
 
-                      // 2d. BLOCO DE VALOR EMOCIONAL
                       _ImpactBlock(
                         copy: _valueCopy(item.id),
                         color: _K.pink,
@@ -785,7 +759,7 @@ class _DonationCardState extends State<DonationCard>
 
                       const SizedBox(height: 16),
 
-                      // 2e. RODAPÉ — status + CTA
+                      // ── RODAPÉ ATUALIZADO — avatar + nome + CTA ──────
                       _DonationFooter(item: item),
 
                       const SizedBox(height: 18),
@@ -827,7 +801,6 @@ class _DonationHero extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Fundo
           if (hasImage)
             Hero(
               tag: heroTag,
@@ -844,7 +817,6 @@ class _DonationHero extends StatelessWidget {
           else
             _DonationPlaceholder(emoji: item.emoji),
 
-          // Scrim
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -860,14 +832,12 @@ class _DonationHero extends StatelessWidget {
             ),
           ),
 
-          // Badge de status no topo esquerdo
           Positioned(
             top: 12,
             left: 12,
             child: _StatusBadge(status: item.status),
           ),
 
-          // Badge indisponível no topo direito
           if (_isUnavailable)
             Positioned(
               top: 12,
@@ -875,7 +845,6 @@ class _DonationHero extends StatelessWidget {
               child: _UnavailableBadge(status: item.status),
             ),
 
-          // Emoji grande no rodapé
           Positioned(
             right: 16,
             bottom: 12,
@@ -984,7 +953,7 @@ class _UnavailableBadge extends StatelessWidget {
       );
 }
 
-// ── Rodapé do DonationCard ────────────────────────────────────
+// ── Rodapé do DonationCard — agora com avatar + nome do doador ─
 
 class _DonationFooter extends StatelessWidget {
   final FeedItem item;
@@ -997,41 +966,36 @@ class _DonationFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasAuthor = item.userName != null && item.userName!.isNotEmpty;
+
     return Row(
       children: [
-        // Status pill
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: _available
-                ? _K.greenBg
-                : _K.amber.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(_K.r99),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        // ── Avatar + nome do doador ──────────────────────────
+        _AuthorAvatar(
+          emoji: item.userProfileEmoji,
+          imageUrl: item.userProfileImage,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.circle,
-                size: 7,
-                color: _available ? _K.green : _K.amber,
-              ),
-              const SizedBox(width: 5),
               Text(
-                _available ? 'Disponível' : 'Reservado',
-                style: TextStyle(
-                  fontSize: 11,
+                hasAuthor ? item.userName! : 'Doador',
+                style: const TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: _available ? _K.green : _K.amber,
+                  color: _K.navy,
                 ),
               ),
+              // Status pill abaixo do nome
+              const SizedBox(height: 3),
+              _InlineStatusPill(available: _available),
             ],
           ),
         ),
 
-        const Spacer(),
-
-        // CTA primário
+        // ── CTA ───────────────────────────────────────────────
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
@@ -1044,7 +1008,7 @@ class _DonationFooter extends StatelessWidget {
             );
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFFF5C8D), Color(0xFFE0457A)],
@@ -1062,11 +1026,11 @@ class _DonationFooter extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('❤️', style: TextStyle(fontSize: 13)),
-                SizedBox(width: 6),
+                SizedBox(width: 5),
                 Text(
                   'Tenho Interesse',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
                   ),
@@ -1078,6 +1042,33 @@ class _DonationFooter extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Status compacto (verde/âmbar) que cabe ao lado do nome do doador.
+class _InlineStatusPill extends StatelessWidget {
+  final bool available;
+  const _InlineStatusPill({required this.available});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.circle,
+            size: 7,
+            color: available ? _K.green : _K.amber,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            available ? 'Disponível' : 'Reservado',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: available ? _K.green : _K.amber,
+            ),
+          ),
+        ],
+      );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1277,6 +1268,7 @@ class _LocationPill extends StatelessWidget {
       );
 }
 
+/// Avatar do autor — mostra foto de rede se disponível, senão emoji/fallback.
 class _AuthorAvatar extends StatelessWidget {
   final String? emoji;
   final String? imageUrl;
@@ -1312,9 +1304,7 @@ class _AuthorAvatar extends StatelessWidget {
       );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Manter estes aliases públicos para não quebrar outros arquivos
-// ─────────────────────────────────────────────────────────────
+// ── Aliases públicos (retrocompatibilidade) ───────────────────
 
 class FeedTypeBadge extends StatelessWidget {
   final String label;

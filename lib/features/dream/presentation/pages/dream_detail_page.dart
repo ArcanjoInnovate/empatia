@@ -1243,7 +1243,7 @@ class _CtaButtonState extends State<_CtaButton>
       otherEmoji: userInfo['profileEmoji'],
     );
 
-    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat));
+    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat, fromDetail: true));
   }
 
   @override
