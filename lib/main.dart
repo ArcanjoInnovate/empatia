@@ -21,7 +21,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
+  print('teste');
   // Desativa verificação de reCAPTCHA/Play Integrity em debug.
   if (kDebugMode) {
     await FirebaseAuth.instance.setSettings(
