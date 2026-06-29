@@ -1,8 +1,6 @@
 // lib/features/home/presentation/pages/home_page.dart
-//
-// Home — hierarquia: Hero Header → Ranking → Filtros → Feed
-// Todas as cores literais substituídas por tokens AppTheme.
-// ─────────────────────────────────────────────────────────────
+
+import 'dart:async';
 
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_icons.dart';
@@ -17,14 +15,11 @@ import 'package:empatia/features/home/presentation/widgets/feeds_card.dart';
 import 'package:empatia/features/home/presentation/widgets/filter_widgets.dart';
 import 'package:empatia/features/notification/controller/notification_controller.dart';
 import 'package:empatia/features/notification/presentation/page/notification_page.dart';
+import 'package:empatia/features/profile/data/repository/profile_repository.dart';
 import 'package:empatia/features/ranking/controller/ranking_controller.dart';
 import 'package:empatia/features/ranking/presentation/widget/weekly_ranking_widget.dart';
 import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
-
-// ═══════════════════════════════════════════════════════════════
-// HOME PAGE
-// ═══════════════════════════════════════════════════════════════
 
 class HomePage extends StatefulWidget {
   final UserModel user;
@@ -35,15 +30,21 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late final FeedController            _feed;
-  late final UserStatsController       _userStats;
-  late final RankingController         _ranking;
-  late final NotificationController    _notifications;
+  late final FeedController         _feed;
+  late final UserStatsController    _userStats;
+  late final RankingController      _ranking;
+  late final NotificationController _notifications;
   final _scrollController = ScrollController();
+
+  // Mantém o UserModel sempre atualizado via stream do Firebase
+  late UserModel _currentUser;
+  StreamSubscription<UserModel?>? _userSub;
 
   @override
   void initState() {
     super.initState();
+
+    _currentUser = widget.user;
 
     _feed = FeedController(
       FeedRepository(),
@@ -61,6 +62,11 @@ class _HomePageState extends State<HomePage> {
     _notifications.addListener(() { if (mounted) setState(() {}); });
 
     _scrollController.addListener(_onScroll);
+
+    // Assina o stream do perfil para refletir edições em tempo real
+    _userSub = ProfileRepository().watchUser().listen((user) {
+      if (mounted && user != null) setState(() => _currentUser = user);
+    });
   }
 
   void _onScroll() {
@@ -80,6 +86,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _userSub?.cancel();
     _scrollController.dispose();
     _feed.dispose();
     _userStats.dispose();
@@ -104,10 +111,9 @@ class _HomePageState extends State<HomePage> {
               parent: AlwaysScrollableScrollPhysics(),
             ),
             slivers: [
-              // 1 ── HERO HEADER
               SliverToBoxAdapter(
                 child: _HeroHeader(
-                  user: widget.user,
+                  user: _currentUser,
                   stats: _userStats.stats,
                   statsLoading: _userStats.loading,
                   unreadNotifications: _notifications.unreadCount,
@@ -125,7 +131,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // 2 ── RANKING SEMANAL
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -133,10 +138,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // 3 ── FILTROS + TÍTULO DA SEÇÃO
               SliverToBoxAdapter(child: _buildFilterSection()),
 
-              // 4 ── FEED
               _buildFeedSliver(),
 
               SliverToBoxAdapter(child: _buildLoadMore()),
@@ -148,10 +151,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // ────────────────────────────────────────────────────────────
-  // SEÇÃO DE FILTROS
-  // ────────────────────────────────────────────────────────────
 
   Widget _buildFilterSection() {
     final hasGeo = _feed.filter.stateCode != null || _feed.filter.city != null;
@@ -191,7 +190,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                // Botão de filtro geográfico
                 GestureDetector(
                   onTap: _showFilterSheet,
                   child: AnimatedContainer(
@@ -226,9 +224,7 @@ class _HomePageState extends State<HomePage> {
                         Icon(
                           Icons.tune_rounded,
                           size: 15,
-                          color: hasGeo
-                              ? Colors.white
-                              : AppTheme.kidsPurple,
+                          color: hasGeo ? Colors.white : AppTheme.kidsPurple,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -236,9 +232,7 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: hasGeo
-                                ? Colors.white
-                                : AppTheme.kidsPurple,
+                            color: hasGeo ? Colors.white : AppTheme.kidsPurple,
                           ),
                         ),
                         if (hasGeo) ...[
@@ -262,7 +256,6 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 16),
 
-          // Chips de tipo
           SizedBox(
             height: 44,
             child: ListView.separated(
@@ -290,10 +283,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // ────────────────────────────────────────────────────────────
-  // FEED SLIVER
-  // ────────────────────────────────────────────────────────────
 
   Widget _buildFeedSliver() {
     if (_feed.status == FeedStatus.loading) {
@@ -333,6 +322,10 @@ class _HomePageState extends State<HomePage> {
     final blocks = count ~/ interval;
     final total  = count + blocks;
 
+    // UID do usuário logado — passado para cada FeedCard para exibir
+    // o badge "Meu item" nos cards que pertencem a este usuário.
+    final currentUserId = _currentUser.id ?? '';
+
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
@@ -346,7 +339,12 @@ class _HomePageState extends State<HomePage> {
 
           final feedIndex = block * interval + posInBlock;
           if (feedIndex >= count) return const SizedBox.shrink();
-          return FeedCard(item: _feed.items[feedIndex]);
+
+          // ✅ currentUserId passado aqui
+          return FeedCard(
+            item: _feed.items[feedIndex],
+            currentUserId: currentUserId,
+          );
         },
         childCount: total,
       ),
@@ -423,7 +421,6 @@ class _HeroHeader extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Decorações de fundo
           Positioned(
             right: -30,
             top: topPad - 10,
@@ -459,13 +456,11 @@ class _HeroHeader extends StatelessWidget {
             ),
           ),
 
-          // Conteúdo
           Padding(
             padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Linha de topo
                 Row(
                   children: [
                     Container(
@@ -503,7 +498,6 @@ class _HeroHeader extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // Avatar + saudação
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -523,8 +517,7 @@ class _HeroHeader extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color:
-                                      Colors.white.withValues(alpha: 0.75),
+                                  color: Colors.white.withValues(alpha: 0.75),
                                 ),
                               ),
                             ],
@@ -548,7 +541,6 @@ class _HeroHeader extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Pills: impacto + ranking
                 Row(
                   children: [
                     Expanded(
@@ -574,16 +566,13 @@ class _HeroHeader extends StatelessWidget {
   }
 }
 
-// ── Avatar do usuário no header ──────────────────────────────
-
 class _UserAvatar extends StatelessWidget {
   final UserModel user;
   const _UserAvatar({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = user.profileImage != null &&
-        user.profileImage!.isNotEmpty;
+    final hasPhoto = user.profileImage != null && user.profileImage!.isNotEmpty;
     final emoji = user.profileEmoji ?? '👤';
 
     return Container(
@@ -627,8 +616,6 @@ class _EmojiAvatar extends StatelessWidget {
       );
 }
 
-// ── Botão ícone do header com badge opcional ─────────────────
-
 class _HeaderIconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -667,8 +654,7 @@ class _HeaderIconBtn extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.kidsRed,
                     borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: Colors.white, width: 1.5),
+                    border: Border.all(color: Colors.white, width: 1.5),
                   ),
                   constraints: const BoxConstraints(minWidth: 18),
                   child: Text(
@@ -686,8 +672,6 @@ class _HeaderIconBtn extends StatelessWidget {
         ),
       );
 }
-
-// ── Pill de impacto ───────────────────────────────────────────
 
 class _StatPill extends StatelessWidget {
   final bool loading;
@@ -722,13 +706,11 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(22),
-          border:
-              Border.all(color: Colors.white.withValues(alpha: 0.22)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -752,8 +734,6 @@ class _StatPill extends StatelessWidget {
       );
 }
 
-// ── Pill de posição no ranking ────────────────────────────────
-
 class _RankPill extends StatelessWidget {
   final int? position;
   final bool loading;
@@ -763,13 +743,11 @@ class _RankPill extends StatelessWidget {
   Widget build(BuildContext context) {
     if (loading || position == null) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(22),
-          border:
-              Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
         ),
         child: Text(
           loading ? '🏆 ...' : '⭐ Sem posição',
@@ -815,7 +793,7 @@ class _RankPill extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EMPTY STATE
+// EMPTY / ERROR STATE
 // ═══════════════════════════════════════════════════════════════
 
 class _EmptyState extends StatelessWidget {
@@ -873,10 +851,7 @@ class _EmptyState extends StatelessWidget {
                       horizontal: 22, vertical: 12),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        AppTheme.kidsPurple,
-                        AppTheme.kidsPurpleLight,
-                      ],
+                      colors: [AppTheme.kidsPurple, AppTheme.kidsPurpleLight],
                     ),
                     borderRadius: BorderRadius.circular(22),
                   ),
@@ -898,10 +873,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ERROR STATE
-// ═══════════════════════════════════════════════════════════════
-
 class _ErrorState extends StatelessWidget {
   final String? message;
   final VoidCallback onRetry;
@@ -916,8 +887,7 @@ class _ErrorState extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.surfaceWhite,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-              color: AppTheme.errorRed.withValues(alpha: 0.12)),
+          border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.12)),
         ),
         child: Column(
           children: [
@@ -934,8 +904,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message ?? 'Tente novamente em instantes.',
-              style: const TextStyle(
-                  fontSize: 13, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),

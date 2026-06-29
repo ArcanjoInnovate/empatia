@@ -40,6 +40,10 @@ abstract final class _K {
   static const greenBg = Color(0xFFDCFCE7);
   static const amber   = Color(0xFFF59E0B);
 
+  // "Meu item" badge
+  static const myItemBg     = Color(0xFF0EA5E9); // azul-céu
+  static const myItemBorder = Color(0xFF0284C7);
+
   // Radius
   static const r4  = 4.0;
   static const r8  = 8.0;
@@ -51,18 +55,69 @@ abstract final class _K {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// BADGE "MEU ITEM"
+// Renderizado no topo-direito do hero quando o item pertence
+// ao usuário logado.
+// ═══════════════════════════════════════════════════════════════
+
+class _MyItemBadge extends StatelessWidget {
+  const _MyItemBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: _K.myItemBg,
+          borderRadius: BorderRadius.circular(_K.r99),
+          border: Border.all(color: _K.myItemBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _K.myItemBg.withValues(alpha: 0.40),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('✏️', style: TextStyle(fontSize: 10)),
+            SizedBox(width: 4),
+            Text(
+              'Meu item',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FEED CARD — router
 // ═══════════════════════════════════════════════════════════════
 
 class FeedCard extends StatelessWidget {
   final FeedItem item;
-  const FeedCard({super.key, required this.item});
+
+  /// UID do usuário logado — usado para identificar itens próprios.
+  final String? currentUserId;
+
+  const FeedCard({
+    super.key,
+    required this.item,
+    this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return item.type == FeedItemType.dream
-        ? DreamCard(item: item)
-        : DonationCard(item: item);
+        ? DreamCard(item: item, currentUserId: currentUserId)
+        : DonationCard(item: item, currentUserId: currentUserId);
   }
 }
 
@@ -72,7 +127,12 @@ class FeedCard extends StatelessWidget {
 
 class DreamCard extends StatefulWidget {
   final FeedItem item;
-  const DreamCard({super.key, required this.item});
+
+  /// UID do usuário logado. Quando igual a [item.userId], exibe o badge
+  /// "Meu item" no canto superior direito do hero.
+  final String? currentUserId;
+
+  const DreamCard({super.key, required this.item, this.currentUserId});
 
   @override
   State<DreamCard> createState() => _DreamCardState();
@@ -129,6 +189,11 @@ class _DreamCardState extends State<DreamCard>
     return _copies[idx];
   }
 
+  bool get _isMyItem =>
+      widget.currentUserId != null &&
+      widget.currentUserId!.isNotEmpty &&
+      widget.item.userId == widget.currentUserId;
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -169,7 +234,12 @@ class _DreamCardState extends State<DreamCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _DreamHero(item: item, heroTag: heroTag, hasImage: hasImage),
+                _DreamHero(
+                  item: item,
+                  heroTag: heroTag,
+                  hasImage: hasImage,
+                  isMyItem: _isMyItem,
+                ),
 
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
@@ -245,10 +315,15 @@ class _DreamHero extends StatelessWidget {
   final FeedItem item;
   final String heroTag;
   final bool hasImage;
+
+  /// Quando true, exibe o badge "Meu item" no topo-direito.
+  final bool isMyItem;
+
   const _DreamHero({
     required this.item,
     required this.heroTag,
     required this.hasImage,
+    required this.isMyItem,
   });
 
   static const _grads = [
@@ -335,10 +410,20 @@ class _DreamHero extends StatelessWidget {
               ),
             ),
 
+          // ── Badge "Meu item" ────────────────────────────────────
+          if (isMyItem)
+            const Positioned(
+              top: 12,
+              right: 12,
+              child: _MyItemBadge(),
+            ),
+
           if (hasImage)
             Positioned(
               top: 12,
-              right: 12,
+              // Empurra o botão de fullscreen para a esquerda quando
+              // o badge "Meu item" também está visível.
+              right: isMyItem ? 88 : 12,
               child: GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -599,7 +684,12 @@ class _DreamFooter extends StatelessWidget {
 
 class DonationCard extends StatefulWidget {
   final FeedItem item;
-  const DonationCard({super.key, required this.item});
+
+  /// UID do usuário logado. Quando igual a [item.userId], exibe o badge
+  /// "Meu item" no canto superior direito do hero.
+  final String? currentUserId;
+
+  const DonationCard({super.key, required this.item, this.currentUserId});
 
   @override
   State<DonationCard> createState() => _DonationCardState();
@@ -655,6 +745,11 @@ class _DonationCardState extends State<DonationCard>
     return _valueCopies[idx];
   }
 
+  bool get _isMyItem =>
+      widget.currentUserId != null &&
+      widget.currentUserId!.isNotEmpty &&
+      widget.item.userId == widget.currentUserId;
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -700,6 +795,7 @@ class _DonationCardState extends State<DonationCard>
                   heroTag: heroTag,
                   hasImage: hasImage,
                   catLabel: catLabel,
+                  isMyItem: _isMyItem,
                 ),
 
                 Padding(
@@ -759,7 +855,6 @@ class _DonationCardState extends State<DonationCard>
 
                       const SizedBox(height: 16),
 
-                      // ── RODAPÉ ATUALIZADO — avatar + nome + CTA ──────
                       _DonationFooter(item: item),
 
                       const SizedBox(height: 18),
@@ -782,11 +877,16 @@ class _DonationHero extends StatelessWidget {
   final String heroTag;
   final bool hasImage;
   final String catLabel;
+
+  /// Quando true, exibe o badge "Meu item" no topo-direito.
+  final bool isMyItem;
+
   const _DonationHero({
     required this.item,
     required this.heroTag,
     required this.hasImage,
     required this.catLabel,
+    required this.isMyItem,
   });
 
   bool get _isUnavailable =>
@@ -832,18 +932,24 @@ class _DonationHero extends StatelessWidget {
             ),
           ),
 
+          // Badge de status no topo-esquerdo
           Positioned(
             top: 12,
             left: 12,
             child: _StatusBadge(status: item.status),
           ),
 
-          if (_isUnavailable)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: _UnavailableBadge(status: item.status),
-            ),
+          // Badge "indisponível" ou "Meu item" no topo-direito.
+          // Prioridade: "Meu item" > status de indisponibilidade.
+          Positioned(
+            top: 12,
+            right: 12,
+            child: isMyItem
+                ? const _MyItemBadge()
+                : _isUnavailable
+                    ? _UnavailableBadge(status: item.status)
+                    : const SizedBox.shrink(),
+          ),
 
           Positioned(
             right: 16,
@@ -953,7 +1059,7 @@ class _UnavailableBadge extends StatelessWidget {
       );
 }
 
-// ── Rodapé do DonationCard — agora com avatar + nome do doador ─
+// ── Rodapé do DonationCard ────────────────────────────────────
 
 class _DonationFooter extends StatelessWidget {
   final FeedItem item;
@@ -970,7 +1076,6 @@ class _DonationFooter extends StatelessWidget {
 
     return Row(
       children: [
-        // ── Avatar + nome do doador ──────────────────────────
         _AuthorAvatar(
           emoji: item.userProfileEmoji,
           imageUrl: item.userProfileImage,
@@ -988,14 +1093,12 @@ class _DonationFooter extends StatelessWidget {
                   color: _K.navy,
                 ),
               ),
-              // Status pill abaixo do nome
               const SizedBox(height: 3),
               _InlineStatusPill(available: _available),
             ],
           ),
         ),
 
-        // ── CTA ───────────────────────────────────────────────
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
@@ -1044,7 +1147,6 @@ class _DonationFooter extends StatelessWidget {
   }
 }
 
-/// Status compacto (verde/âmbar) que cabe ao lado do nome do doador.
 class _InlineStatusPill extends StatelessWidget {
   final bool available;
   const _InlineStatusPill({required this.available});
@@ -1268,7 +1370,6 @@ class _LocationPill extends StatelessWidget {
       );
 }
 
-/// Avatar do autor — mostra foto de rede se disponível, senão emoji/fallback.
 class _AuthorAvatar extends StatelessWidget {
   final String? emoji;
   final String? imageUrl;

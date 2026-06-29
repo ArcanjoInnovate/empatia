@@ -12,7 +12,12 @@ class ProfileDreamsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (dreams == null || dreams!.isEmpty) {
+    // Filtra sonhos já realizados: status 'fulfilled' OU progress completo (1.0)
+    final pendingDreams = dreams
+        ?.where((d) => d.status != 'fulfilled' && (d.progress ?? 0) < 1.0)
+        .toList();
+
+    if (pendingDreams == null || pendingDreams.isEmpty) {
       return ProfileEmptyStateWidget(
         emoji: '💭',
         message: 'Nenhum sonho cadastrado',
@@ -22,11 +27,11 @@ class ProfileDreamsWidget extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: dreams!.length,
+      itemCount: pendingDreams.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) => DreamCardWidget(dream: dreams![i]),
+      itemBuilder: (_, i) => DreamCardWidget(dream: pendingDreams[i]),
     );
   }
 }

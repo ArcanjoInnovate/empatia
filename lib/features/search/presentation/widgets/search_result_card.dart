@@ -1,3 +1,5 @@
+// lib/features/search/presentation/widgets/search_result_card.dart
+
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
@@ -20,6 +22,51 @@ abstract final class _C {
   static const white     = Colors.white;
   static const r16       = 16.0;
   static const r20       = 20.0;
+
+  // "Meu item" badge
+  static const myItemBg     = Color(0xFF0EA5E9);
+  static const myItemBorder = Color(0xFF0284C7);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BADGE "MEU ITEM"
+// Exibido no topo-direito do card quando o item pertence ao usuário logado.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MyItemBadge extends StatelessWidget {
+  const _MyItemBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          color: _C.myItemBg,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: _C.myItemBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _C.myItemBg.withValues(alpha: 0.45),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('✏️', style: TextStyle(fontSize: 9)),
+            SizedBox(width: 3),
+            Text(
+              'Meu item',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,33 +75,41 @@ abstract final class _C {
 
 class SearchResultCard extends StatelessWidget {
   final SearchResult result;
-  const SearchResultCard({Key? key, required this.result}) : super(key: key);
+
+  /// UID do usuário logado. Quando igual a [result.ownerId], exibe o badge
+  /// "Meu item" no card.
+  final String? currentUserId;
+
+  const SearchResultCard({
+    Key? key,
+    required this.result,
+    this.currentUserId,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     if (result.type == 'dream') {
-      return _DreamCard(result: result);
+      return _DreamCard(result: result, currentUserId: currentUserId);
     }
-    return _DonationCard(result: result);
+    return _DonationCard(result: result, currentUserId: currentUserId);
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DREAM CARD
-// Vende uma história. O usuário deve pensar: "Quero conhecer essa criança."
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _DreamCard extends StatelessWidget {
   final SearchResult result;
-  const _DreamCard({required this.result});
+  final String? currentUserId;
+  const _DreamCard({required this.result, this.currentUserId});
 
-  // Gradientes afetivos — variam pelo ID para dar diversidade visual
   static const _gradients = [
-    [Color(0xFF667EEA), Color(0xFF764BA2)], // roxo
-    [Color(0xFFFF5C8D), Color(0xFFE0457A)], // rosa
-    [Color(0xFF2563EB), Color(0xFF1E3A5F)], // azul
-    [Color(0xFF16A34A), Color(0xFF065F46)], // verde
-    [Color(0xFFF59E0B), Color(0xFFB45309)], // âmbar
+    [Color(0xFF667EEA), Color(0xFF764BA2)],
+    [Color(0xFFFF5C8D), Color(0xFFE0457A)],
+    [Color(0xFF2563EB), Color(0xFF1E3A5F)],
+    [Color(0xFF16A34A), Color(0xFF065F46)],
+    [Color(0xFFF59E0B), Color(0xFFB45309)],
   ];
 
   List<Color> _gradient(String? id) {
@@ -62,6 +117,11 @@ class _DreamCard extends StatelessWidget {
         _gradients.length;
     return _gradients[idx];
   }
+
+  bool get _isMyItem =>
+      currentUserId != null &&
+      currentUserId!.isNotEmpty &&
+      result.ownerId == currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +163,7 @@ class _DreamCard extends StatelessWidget {
               else
                 _DreamGradientBg(colors: colors, emoji: childEmoji),
 
-              // ── Scrim total — garante legibilidade total ───────────
+              // ── Scrim total ────────────────────────────────────────
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -119,7 +179,7 @@ class _DreamCard extends StatelessWidget {
                 ),
               ),
 
-              // ── Topo: emoji do sonho + badge "Sonho" ──────────────
+              // ── Topo: emoji do sonho + badge "Sonho" + "Meu item" ─
               Positioned(
                 top: 10,
                 left: 10,
@@ -156,8 +216,10 @@ class _DreamCard extends StatelessWidget {
                       ),
                     ),
 
-                    // Emoji da criança
-                    if (childEmoji.isNotEmpty && photoUrl == null)
+                    // Badge "Meu item" ou emoji da criança
+                    if (_isMyItem)
+                      const _MyItemBadge()
+                    else if (childEmoji.isNotEmpty && photoUrl == null)
                       const SizedBox.shrink()
                     else
                       Text(childEmoji,
@@ -176,7 +238,6 @@ class _DreamCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
 
-                    // Nome da criança — destaque máximo
                     if (childName.isNotEmpty) ...[
                       Row(
                         children: [
@@ -197,7 +258,6 @@ class _DreamCard extends StatelessWidget {
                       const SizedBox(height: 3),
                     ],
 
-                    // Título do sonho
                     if (title.isNotEmpty)
                       Text(
                         title,
@@ -216,7 +276,6 @@ class _DreamCard extends StatelessWidget {
 
                     const SizedBox(height: 7),
 
-                    // Microcopy emocional + localização
                     Row(
                       children: [
                         Expanded(
@@ -323,17 +382,22 @@ class _EmotionalMicrocopy extends StatelessWidget {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DONATION CARD
-// Transmite oportunidade e generosidade — não marketplace, não OLX.
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _DonationCard extends StatelessWidget {
   final SearchResult result;
-  const _DonationCard({required this.result});
+  final String? currentUserId;
+  const _DonationCard({required this.result, this.currentUserId});
 
   bool get _isUnavailable =>
       result.status == 'donated'   ||
       result.status == 'fulfilled' ||
       result.status == 'reserved';
+
+  bool get _isMyItem =>
+      currentUserId != null &&
+      currentUserId!.isNotEmpty &&
+      result.ownerId == currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -360,7 +424,7 @@ class _DonationCard extends StatelessWidget {
             // ── Foto ou placeholder ────────────────────────────────
             _DonationBg(result: result, heroTag: heroTag),
 
-            // ── Overlay: leve no topo, denso embaixo ──────────────
+            // ── Overlay ───────────────────────────────────────────
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -376,7 +440,7 @@ class _DonationCard extends StatelessWidget {
               ),
             ),
 
-            // ── Disponibilidade no topo ────────────────────────────
+            // ── Topo: badge de tipo + "Meu item" ou status ────────
             Positioned(
               top: 10,
               left: 10,
@@ -387,14 +451,16 @@ class _DonationCard extends StatelessWidget {
                   // Badge de doação / oportunidade
                   _DonationTopBadge(status: result.status),
 
-                  // Status badge (quando não disponível)
-                  if (_isUnavailable)
+                  // "Meu item" sobrepõe o badge de indisponibilidade
+                  if (_isMyItem)
+                    const _MyItemBadge()
+                  else if (_isUnavailable)
                     _UnavailableBadge(status: result.status),
                 ],
               ),
             ),
 
-            // ── Rodapé: oportunidade + título + local ──────────────
+            // ── Rodapé: título + microcopy + local ────────────────
             Positioned(
               left: 12,
               right: 12,
@@ -404,7 +470,6 @@ class _DonationCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
 
-                  // Microcopy de oportunidade emocional
                   _DonationMicrocopy(
                     status: result.status,
                     id: result.id,
@@ -412,7 +477,6 @@ class _DonationCard extends StatelessWidget {
 
                   const SizedBox(height: 4),
 
-                  // Título do item
                   Text(
                     title,
                     maxLines: 2,
@@ -429,7 +493,6 @@ class _DonationCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Localização
                   if (location.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     Row(
@@ -456,7 +519,7 @@ class _DonationCard extends StatelessWidget {
               ),
             ),
 
-            // ── Overlay de indisponibilidade (subtil) ─────────────
+            // ── Overlay de indisponibilidade (sutil) ──────────────
             if (_isUnavailable)
               Positioned.fill(
                 child: DecoratedBox(

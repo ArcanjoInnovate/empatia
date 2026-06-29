@@ -1,3 +1,5 @@
+// lib/features/search/presentation/pages/search_page.dart
+
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/search/controller/search_controller.dart';
@@ -7,24 +9,12 @@ import 'package:empatia/features/search/presentation/widgets/search_result_card.
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTES DE FILTRO
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Filtro de tipo: determina qual nó do Firebase é consultado.
 const _types = [
   (null,       '🔍', 'Todos'),
   ('donation', '🎁', 'Doações'),
   ('dream',    '⭐', 'Sonhos'),
 ];
 
-/// Filtro de categoria: aplicado client-side após o fetch.
-/// O valor null representa "Todos" (sem filtro de categoria).
-///
-/// IMPORTANTE — os valores devem bater exatamente com o campo `category`
-/// gravado no Firebase. O padrão do app é inglês minúsculo:
-///   Donations: "books" | "clothes" | "toys" | "food" | "furniture" | "others"
-///   Dreams:    não têm campo `category` — o filtro usa fallback por emoji.
 const _categories = [
   (null,        '✨', 'Todos'),
   ('clothes',   '👕', 'Roupas'),
@@ -34,10 +24,6 @@ const _categories = [
   ('furniture', '🛋️', 'Móveis'),
   ('others',    '📦', 'Outros'),
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SEARCH PAGE
-// ─────────────────────────────────────────────────────────────────────────────
 
 class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
@@ -64,13 +50,10 @@ class _SearchPageState extends State<SearchPage> {
       final fc   = context.read<SearchFilterController>();
       final sc   = context.read<SearchController>();
 
-      // ① Carga inicial imediata (fire-and-forget)
       sc.loadInitial();
 
-      // ② Carrega dropdowns de estado em paralelo
       await fc.loadEstados();
 
-      // ③ Prefill de localização do perfil (opcional)
       if (!mounted) return;
       if (user?.state != null || user?.city != null) {
         await fc.prefillFromUser(
@@ -114,8 +97,8 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: AppTheme.profileBackground,
         body: SafeArea(
           child: _SearchScrollView(
-            searchCtrl:     _searchCtrl,
-            focusNode:      _focusNode,
+            searchCtrl:      _searchCtrl,
+            focusNode:       _focusNode,
             filtersExpanded: _filtersExpanded,
             onToggleFilters: () =>
                 setState(() => _filtersExpanded = !_filtersExpanded),
@@ -127,10 +110,6 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SCROLL VIEW PRINCIPAL
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _SearchScrollView extends StatelessWidget {
   final TextEditingController searchCtrl;
@@ -161,7 +140,6 @@ class _SearchScrollView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Barra de busca + botão de filtros de localização
               _SearchBar(
                 searchCtrl:      searchCtrl,
                 focusNode:       focusNode,
@@ -170,7 +148,6 @@ class _SearchScrollView extends StatelessWidget {
                 onClearAll:      onClearAll,
               ),
 
-              // Painel de localização (colapsável)
               AnimatedSize(
                 duration: const Duration(milliseconds: 240),
                 curve: Curves.easeInOut,
@@ -180,19 +157,15 @@ class _SearchScrollView extends StatelessWidget {
                     : const SizedBox.shrink(),
               ),
 
-              // Chips de filtros ativos (localização + categoria)
               const _ActiveFilterChips(),
               const SizedBox(height: 6),
 
-              // Linha 1: Tipo (Todos / Doações / Sonhos)
               const _TypeFilterBar(),
               const SizedBox(height: 6),
 
-              // Linha 2: Categoria (Todos / Roupas / Brinquedos / …)
               const _CategoryFilterBar(),
               const SizedBox(height: 2),
 
-              // Contador de resultados
               if (ctrl.state == SearchState.success)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
@@ -210,10 +183,12 @@ class _SearchScrollView extends StatelessWidget {
           ),
         ),
 
+        // ✅ currentUserId passado para o _ResultsSliver
         _ResultsSliver(
-          state:        ctrl.state,
-          results:      ctrl.results,
-          errorMessage: ctrl.errorMessage,
+          state:         ctrl.state,
+          results:       ctrl.results,
+          errorMessage:  ctrl.errorMessage,
+          currentUserId: context.read<UserModel?>()?.id,
         ),
       ],
     );
@@ -438,7 +413,6 @@ class _FilterToggleButton extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHIPS DE FILTROS ATIVOS
-// Exibe localização + categoria quando ativos
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ActiveFilterChips extends StatelessWidget {
@@ -490,7 +464,6 @@ class _ActiveFilterChips extends StatelessWidget {
       ));
     }
 
-    // Chip de categoria ativa
     if (sc.selectedCategory != null) {
       final cat = _categories.firstWhere(
         (c) => c.$1 == sc.selectedCategory,
@@ -541,7 +514,6 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Categoria: roxo suave; proximidade: verde; padrão: rosa
     final Color bg;
     final Color fg;
     final Color border;
@@ -590,7 +562,7 @@ class _Chip extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BARRA DE TIPO — Todos / Doações / Sonhos
+// BARRAS DE FILTRO
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TypeFilterBar extends StatelessWidget {
@@ -625,15 +597,9 @@ class _TypeFilterBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BARRA DE CATEGORIA — Todos / Roupas / Brinquedos / …
-// Visual distinto da barra de tipo para hierarquia visual clara.
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _CategoryFilterBar extends StatelessWidget {
   const _CategoryFilterBar();
 
-  // Roxo — cor semântica de "categoria", diferente do rosa de "tipo"
   static const _color = Color(0xFF7C3AED);
 
   @override
@@ -665,8 +631,6 @@ class _CategoryFilterBar extends StatelessWidget {
   }
 }
 
-/// Pill reutilizável para as duas barras de filtro.
-/// [color] define a cor de destaque quando selecionado.
 class _FilterPill extends StatelessWidget {
   final String emoji;
   final String label;
@@ -727,7 +691,7 @@ class _FilterPill extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RESULTADOS COMO SLIVERS
+// RESULTS SLIVER
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ResultsSliver extends StatelessWidget {
@@ -735,10 +699,14 @@ class _ResultsSliver extends StatelessWidget {
   final List<SearchResult> results;
   final String? errorMessage;
 
+  /// UID do usuário logado — repassado para cada SearchResultCard.
+  final String? currentUserId;
+
   const _ResultsSliver({
     required this.state,
     required this.results,
     required this.errorMessage,
+    this.currentUserId,
   });
 
   @override
@@ -772,7 +740,11 @@ class _ResultsSliver extends StatelessWidget {
               mainAxisExtent: 220,
             ),
             delegate: SliverChildBuilderDelegate(
-              (_, i) => SearchResultCard(result: results[i]),
+              // ✅ currentUserId passado para cada card
+              (_, i) => SearchResultCard(
+                result: results[i],
+                currentUserId: currentUserId,
+              ),
               childCount: results.length,
             ),
           ),
@@ -782,7 +754,7 @@ class _ResultsSliver extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SKELETON GRID — loading state
+// SKELETON GRID
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SkeletonGrid extends StatelessWidget {
@@ -851,16 +823,14 @@ class _SkeletonCardState extends State<_SkeletonCard>
                 Positioned(
                   top: 0, left: 0, right: 0, height: 140,
                   child: Container(
-                    color:
-                        AppTheme.kidsPink.withValues(alpha: opacity + 0.04),
+                    color: AppTheme.kidsPink.withValues(alpha: opacity + 0.04),
                   ),
                 ),
                 Positioned(
                   left: 12, right: 30, bottom: 42, height: 12,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.kidsPink
-                          .withValues(alpha: opacity + 0.06),
+                      color: AppTheme.kidsPink.withValues(alpha: opacity + 0.06),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
@@ -869,8 +839,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
                   left: 12, right: 60, bottom: 22, height: 10,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.kidsPink
-                          .withValues(alpha: opacity + 0.03),
+                      color: AppTheme.kidsPink.withValues(alpha: opacity + 0.03),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
@@ -885,7 +854,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ESTADOS VAZIOS / ERRO
+// EMPTY / ERROR STATE
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
@@ -918,8 +887,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Tente outro termo ou ajuste os filtros',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 13, color: AppTheme.textSecondary),
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
         ],
       ),

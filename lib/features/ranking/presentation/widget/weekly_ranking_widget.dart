@@ -123,20 +123,7 @@ class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget> {
                         letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: AppDecorations.rankingCountdownPill,
-                      child: Text(
-                        dayLabel,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.rankingAccent,
-                        ),
-                      ),
-                    ),
+                    
                   ],
                 ),
               ),

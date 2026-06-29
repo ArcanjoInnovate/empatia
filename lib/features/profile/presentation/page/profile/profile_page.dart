@@ -94,15 +94,8 @@ class _ProfileBody extends StatelessWidget {
           _divider(),
           const SizedBox(height: 8),
 
-          // ── Sonhos ──
-          ProfileSectionWidget(
-            emoji: '💭',
-            title: 'Meus Sonhos',
-            count: user.dreams?.length,
-            child: ProfileDreamsWidget(dreams: user.dreams),
-          ),
+          
 
-          const SizedBox(height: 32),
         ],
       ),
     );

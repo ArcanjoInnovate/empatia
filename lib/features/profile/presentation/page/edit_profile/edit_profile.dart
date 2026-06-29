@@ -97,12 +97,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _onControllerChange() {
+    // Listener mantido apenas para erros que ocorram fora do fluxo de _onSave
     if (!mounted) return;
     final ctrl = _profileController!;
-    if (ctrl.saveState == SaveState.success) {
-      _showSnackBar('✅ Perfil atualizado!', AppTheme.kidsGreen);
-      ctrl.resetState();
-    } else if (ctrl.saveState == SaveState.error) {
+    if (ctrl.saveState == SaveState.error) {
       _showSnackBar('❌ ${ctrl.errorMessage}', Colors.redAccent);
       ctrl.resetState();
     }
@@ -130,7 +128,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   // SALVAR
   // ══════════════════════════════════════════════════════════
 
-  void _onSave(ProfileController controller) {
+  Future<void> _onSave(ProfileController controller) async {
     // Valida bairro: se digitou mas não selecionou da lista, bloqueia
     final bairroDigitado = _neighborhoodController.text.trim();
     if (bairroDigitado.isNotEmpty && !_neighborhoodConfirmed) {
@@ -141,7 +139,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    controller.saveProfile(
+    // Exibe overlay de carregando — bloqueia interação e cobre a tela
+    _showLoadingOverlay();
+
+    await controller.saveProfile(
       name:         _nameController.text,
       age:          _ageController.text,
       status:       _statusController.text,
@@ -153,9 +154,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
       sexo:         _selectedSexo,
       latitude:     _cityLat,
       longitude:    _cityLng,
-      profilePhoto: _selectedProfilePhoto, // ← NOVO
+      profilePhoto: _selectedProfilePhoto,
     );
-    Navigator.pop(context);
+
+    // Remove o overlay
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+    if (!mounted) return;
+
+    if (controller.saveState == SaveState.success) {
+      controller.resetState();
+      Navigator.pop(context); // volta para o ProfilePage
+    } else if (controller.saveState == SaveState.error) {
+      _showSnackBar('❌ ${controller.errorMessage}', Colors.redAccent);
+      controller.resetState();
+    }
+  }
+
+  void _showLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (_) => const _SavingOverlay(),
+    );
   }
 
   // ══════════════════════════════════════════════════════════
@@ -194,8 +216,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   // Selector: só o botão salvar recria quando saveState muda
                   Selector<ProfileController, SaveState>(
                     selector: (_, c) => c.saveState,
-                    builder: (_, __, ___) => _buildSaveButton(
-                        context.read<ProfileController>()),
+                    builder: (_, state, ___) => _buildSaveButton(
+                        context.read<ProfileController>(), state),
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -439,8 +461,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget _buildSaveButton(ProfileController controller) {
-    final isLoading = controller.saveState == SaveState.loading;
+  Widget _buildSaveButton(ProfileController controller, SaveState state) {
+    final isLoading = state == SaveState.loading;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
@@ -486,5 +508,62 @@ class _EditProfilePageState extends State<EditProfilePage> {
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ));
+  }
+}
+
+// ── Overlay de salvando ───────────────────────────────────────────────────────
+
+class _SavingOverlay extends StatelessWidget {
+  const _SavingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 52,
+              height: 52,
+              child: CircularProgressIndicator(
+                strokeWidth: 3.5,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.kidsPink),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Salvando perfil...',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Aguarde enquanto enviamos sua foto 📸',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

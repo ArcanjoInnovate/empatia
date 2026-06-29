@@ -23,7 +23,7 @@ class ProfileHeaderWidget extends StatelessWidget {
       automaticallyImplyLeading: false,
       actions: const [],
       flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [StretchMode.blurBackground],
+        stretchModes: const [StretchMode.zoomBackground],
         background: _HeaderBackground(user: user),
       ),
     );
