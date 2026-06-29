@@ -143,6 +143,7 @@ class ChatModel {
     'item_type': itemType,
     'item_photo_url': itemPhotoUrl,
     'block_dialog': false,
+    'item_changed_at': 0, // chat novo: toda mensagem é "primeiro contato"
     'unreadCount': {user1: 0, user2: 0},
     'metadata': {
       'created_at': DateTime.now().millisecondsSinceEpoch,

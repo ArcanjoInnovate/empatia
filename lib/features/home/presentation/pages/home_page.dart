@@ -15,6 +15,8 @@ import 'package:empatia/features/home/data/repositories/user_stats_repository.da
 import 'package:empatia/features/home/presentation/constants/home_constants.dart';
 import 'package:empatia/features/home/presentation/widgets/feeds_card.dart';
 import 'package:empatia/features/home/presentation/widgets/filter_widgets.dart';
+import 'package:empatia/features/notification/controller/notification_controller.dart';
+import 'package:empatia/features/notification/presentation/page/notification_page.dart';
 import 'package:empatia/features/ranking/controller/ranking_controller.dart';
 import 'package:empatia/features/ranking/presentation/widget/weekly_ranking_widget.dart';
 import 'package:flutter/material.dart' hide FilterChip;
@@ -103,7 +105,18 @@ class _HomePageState extends State<HomePage> {
                   user: widget.user,
                   stats: _userStats.stats,
                   statsLoading: _userStats.loading,
-                  onNotifications: () {/* TODO */},
+                  onNotifications: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(
+                        builder: (context) => NotificationsPage(
+                          controller: NotificationController(
+                            uid: widget.user.id!
+                          ),
+                        )
+                      )
+                    );
+                  },
                   onProfile: () {/* TODO */},
                 ),
               ),

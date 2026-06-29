@@ -126,6 +126,11 @@ class ChatRepository {
         updates['completed_at']       = null;
         updates['completed_item_id']  = null; // <── fix: limpa o campo que
         //     chatCompletedStream usa como referência do outro lado
+
+        // Grava o timestamp da troca de contexto — usado pela Cloud Function
+        // para saber que mensagens anteriores a este momento pertencem a outro
+        // item e NÃO devem contar como "primeiro contato no contexto atual".
+        updates['item_changed_at']    = ServerValue.timestamp;
       }
     } catch (_) {
       // Se falhar ao ler o item_id atual, reseta completed por precaução

@@ -1,5 +1,6 @@
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/navigation/main_navigation.dart';
+import 'package:empatia/core/service/fcm_service.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/controller/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -86,6 +87,9 @@ class _AuthGuardState extends State<AuthGuard> with TickerProviderStateMixin {
         
         if (!mounted) return;
         
+        // Inicializa FCM e salva token no RTDB (async, fora do setState)
+        await FcmService.init(user.uid);
+
         setState(() {
           if (userData == null) {
             _userData = _createTempUser(user.uid);
