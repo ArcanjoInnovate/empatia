@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-/// ðŸ‘¤ PROFILE REPOSITORY
+/// 👤 PROFILE REPOSITORY
 ///
 /// Conversa diretamente com o Firebase.
 class ProfileRepository {
@@ -13,13 +13,13 @@ class ProfileRepository {
 
   String get _uid {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) throw Exception('âŒ UsuÃ¡rio nÃ£o estÃ¡ logado.');
+    if (uid == null) throw Exception('❌ Usuário não está logado.');
     return uid;
   }
 
   DatabaseReference get _userRef => _db.ref('Users/$_uid');
 
-  /// ðŸ“º Stream do usuÃ¡rio â€” atualiza em tempo real
+  /// 📺 Stream do usuário — atualiza em tempo real
   Stream<UserModel?> watchUser() {
     return _userRef.onValue.map((event) {
       final snapshot = event.snapshot;
@@ -31,37 +31,37 @@ class ProfileRepository {
     });
   }
 
-  /// ðŸ’¾ Salva dados do perfil (merge) e espelha dados pÃºblicos em UsersPublic
+  /// 💾 Salva dados do perfil (merge) e espelha dados públicos em UsersPublic
   Future<void> updateProfile(UserModel user) async {
     final map = user.toMap();
-    debugPrint('ðŸ“¦ Salvando perfil: $map');
+    debugPrint('📦 Salvando perfil: $map');
 
     // Grava dados completos em Users (privado)
     await _userRef.update(map);
 
-    // Espelha campos pÃºblicos em UsersPublic (legÃ­vel por qualquer autenticado)
+    // Espelha campos públicos em UsersPublic (legível por qualquer autenticado)
     final publicData = <String, dynamic>{
       'uid': _uid,
       if (user.name != null) 'name': user.name,
       if (user.profileEmoji != null) 'profileEmoji': user.profileEmoji,
-      // Sempre incluÃ­do (mesmo null): mantÃ©m UsersPublic em sincronia
-      // quando o usuÃ¡rio remove a foto e volta para o avatar.
+      // Sempre incluído (mesmo null): mantém UsersPublic em sincronia
+      // quando o usuário remove a foto e volta para o avatar.
       'profileImage': user.profileImage,
       if (user.city != null) 'city': user.city,
       if (user.state != null) 'state': user.state,
       if (user.sexo != null) 'sexo': user.sexo,
       if (user.age != null) 'age': user.age,
-      // Status pode ser limpo (ficar null) â€” sempre incluÃ­do para refletir
-      // a remoÃ§Ã£o no perfil pÃºblico tambÃ©m.
+      // Status pode ser limpo (ficar null) — sempre incluído para refletir
+      // a remoção no perfil público também.
       'status': user.status,
-      // Sempre incluÃ­dos (mesmo null): permite remover um link salvo
-      // tambÃ©m no perfil pÃºblico.
+      // Sempre incluídos (mesmo null): permite remover um link salvo
+      // também no perfil público.
       'socialFacebook': user.socialFacebook,
       'socialInstagram': user.socialInstagram,
       'socialX': user.socialX,
-      // VerificaÃ§Ã£o: espelha os dois booleans + o resultado calculado
-      // (mais simples de ler direto no perfil pÃºblico sem reimplementar
-      // a regra de negÃ³cio lÃ¡).
+      // Verificação: espelha os dois booleans + o resultado calculado
+      // (mais simples de ler direto no perfil público sem reimplementar
+      // a regra de negócio lá).
       'emailVerified': user.emailVerified == true,
       'profileCompleted': user.profileCompleted == true,
       'fullyVerified':
@@ -70,32 +70,32 @@ class ProfileRepository {
     await _db.ref('UsersPublic/$_uid').update(publicData);
   }
 
-  /// ðŸ”„ ALTERNA MODO: "donor" â†” "receiver"
+  /// 🔄 ALTERNA MODO: "donor" ↔ "receiver"
   Future<void> toggleMode(String newMode) async {
     assert(
       newMode == 'donor' || newMode == 'receiver',
-      'âŒ newMode deve ser "donor" ou "receiver"',
+      '❌ newMode deve ser "donor" ou "receiver"',
     );
-    debugPrint('ðŸ”„ Alternando modo para: $newMode');
+    debugPrint('🔄 Alternando modo para: $newMode');
     await _userRef.update({
       'activeMode': newMode,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
   }
 
-  /// âœ… Marca perfil como completo no banco de dados
+  /// ✅ Marca perfil como completo no banco de dados
   ///
   /// Chamado automaticamente pelo [ProfileService] quando todos os
-  /// campos obrigatÃ³rios estÃ£o preenchidos ao salvar.
+  /// campos obrigatórios estão preenchidos ao salvar.
   Future<void> markProfileCompleted() async {
-    debugPrint('âœ… Marcando perfil como completo');
+    debugPrint('✅ Marcando perfil como completo');
     await _userRef.update({
       'profileCompleted': true,
       'profileCompletedAt': DateTime.now().millisecondsSinceEpoch,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
 
-    // â”€â”€ Cross-check: e-mail tambÃ©m verificado? â†’ isVerified â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cross-check: e-mail também verificado? → isVerified ─────────────
     final emailSnap = await _userRef.child('emailVerified').get();
     final emailVerified = emailSnap.value == true;
     if (emailVerified) {
@@ -104,56 +104,56 @@ class ProfileRepository {
         'isVerifiedAt': DateTime.now().millisecondsSinceEpoch,
         'updatedAt':    DateTime.now().millisecondsSinceEpoch,
       });
-      debugPrint('âœ… isVerified = true gravado no Firebase');
+      debugPrint('✅ isVerified = true gravado no Firebase');
     }
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────────────
 
-    // MantÃ©m UsersPublic em sincronia â€” sem isso, o perfil pÃºblico
-    // continuaria mostrando "nÃ£o verificado" atÃ© o prÃ³ximo saveProfile().
+    // Mantém UsersPublic em sincronia — sem isso, o perfil público
+    // continuaria mostrando "não verificado" até o próximo saveProfile().
     await _db.ref('UsersPublic/$_uid').update({
       'profileCompleted': true,
       'emailVerified': emailVerified,
-      'fullyVerified': emailVerified, // profileCompleted jÃ¡ Ã© true aqui
+      'fullyVerified': emailVerified, // profileCompleted já é true aqui
     });
   }
 
-  /// âž• Adiciona filho
+  /// ➕ Adiciona filho
   Future<String> addChild(ChildModel child) async {
     final ref = _userRef.child('children').push();
     await ref.set(child.toMap());
     return ref.key!;
   }
 
-  /// âœï¸ Edita filho
+  /// ✏️ Edita filho
   ///
-  /// ApÃ³s salvar, sincroniza os campos denormalizados (childName/
-  /// childEmoji/childAge) em todos os sonhos jÃ¡ cadastrados desse filho
-  /// â€” eles vivem em `Dreams/{dreamId}` (nÃ³ pÃºblico, separado de Users)
-  /// e sÃ£o usados pela vitrine pÃºblica (PublicProfilePage) sem precisar
-  /// ler o nÃ³ privado do filho. Sem isso, editar nome/idade/avatar do
-  /// filho deixaria os sonhos jÃ¡ criados com dados antigos.
+  /// Após salvar, sincroniza os campos denormalizados (childName/
+  /// childEmoji/childAge) em todos os sonhos já cadastrados desse filho
+  /// — eles vivem em `Dreams/{dreamId}` (nó público, separado de Users)
+  /// e são usados pela vitrine pública (PublicProfilePage) sem precisar
+  /// ler o nó privado do filho. Sem isso, editar nome/idade/avatar do
+  /// filho deixaria os sonhos já criados com dados antigos.
   Future<void> updateChild(ChildModel child) async {
     if (child.id == null) {
-      throw Exception('âŒ Filho sem ID nÃ£o pode ser atualizado.');
+      throw Exception('❌ Filho sem ID não pode ser atualizado.');
     }
     await _userRef.child('children/${child.id}').update(child.toMap());
     await _syncChildDreams(child);
   }
 
-  /// ðŸ”„ Atualiza childName/childEmoji/childAge em todos os sonhos
-  /// vinculados a [child], nos DOIS nÃ³s onde eles vivem:
+  /// 🔄 Atualiza childName/childEmoji/childAge em todos os sonhos
+  /// vinculados a [child], nos DOIS nós onde eles vivem:
   ///
-  ///   â€¢ Users/{uid}/dreams/{id} â€” nÃ³ PRIVADO, lido pela DreamPage
-  ///     (tela "Meus Sonhos" do prÃ³prio usuÃ¡rio)
-  ///   â€¢ Dreams/{id}             â€” nÃ³ PÃšBLICO/feed, lido pela vitrine
-  ///     pÃºblica (PublicProfilePage) e pela busca
+  ///   • Users/{uid}/dreams/{id} — nó PRIVADO, lido pela DreamPage
+  ///     (tela "Meus Sonhos" do próprio usuário)
+  ///   • Dreams/{id}             — nó PÚBLICO/feed, lido pela vitrine
+  ///     pública (PublicProfilePage) e pela busca
   ///
-  /// IMPORTANTE: antes sÃ³ sincronizÃ¡vamos o nÃ³ pÃºblico `Dreams`. Isso
-  /// fazia o feed pÃºblico refletir a ediÃ§Ã£o do filho, mas a prÃ³pria
-  /// DreamPage do usuÃ¡rio continuava mostrando nome/idade/avatar antigos
-  /// â€” porque ela lÃª de `Users/{uid}/dreams`, que nunca era tocado aqui.
+  /// IMPORTANTE: antes só sincronizávamos o nó público `Dreams`. Isso
+  /// fazia o feed público refletir a edição do filho, mas a própria
+  /// DreamPage do usuário continuava mostrando nome/idade/avatar antigos
+  /// — porque ela lê de `Users/{uid}/dreams`, que nunca era tocado aqui.
   ///
-  /// Requer Ã­ndice em `childId` em ambos os nÃ³s (regras do Realtime
+  /// Requer índice em `childId` em ambos os nós (regras do Realtime
   /// Database):
   ///   "Dreams": { ".indexOn": ["userId", "childId"] }
   ///   "Users/$uid/dreams": { ".indexOn": ["childId"] }  (ou ".indexOn": ["$uid"]... ajustar conforme regras)
@@ -162,7 +162,7 @@ class ProfileRepository {
 
     final updates = <String, dynamic>{};
 
-    // â”€â”€ 1) NÃ³ privado: Users/{uid}/dreams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── 1) Nó privado: Users/{uid}/dreams ───────────────────────────────────
     try {
       final privateSnap = await _userRef
           .child('dreams')
@@ -178,13 +178,13 @@ class ProfileRepository {
           updates['Users/$_uid/dreams/$dreamId/childAge']   = child.age;
         }
         debugPrint(
-            'âœ… ${privateMap.length} sonho(s) privado(s) sincronizado(s) para o filho ${child.name}');
+            '✅ ${privateMap.length} sonho(s) privado(s) sincronizado(s) para o filho ${child.name}');
       }
     } catch (e) {
-      debugPrint('âš ï¸ Erro ao sincronizar sonhos privados do filho (continuando): $e');
+      debugPrint('⚠️ Erro ao sincronizar sonhos privados do filho (continuando): $e');
     }
 
-    // â”€â”€ 2) NÃ³ pÃºblico: Dreams (feed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── 2) Nó público: Dreams (feed) ─────────────────────────────────────────
     try {
       final dreamsSnap = await _db
           .ref('Dreams')
@@ -200,26 +200,26 @@ class ProfileRepository {
           updates['Dreams/$dreamId/childAge']   = child.age;
         }
         debugPrint(
-            'âœ… ${dreamsMap.length} sonho(s) pÃºblico(s) sincronizado(s) para o filho ${child.name}');
+            '✅ ${dreamsMap.length} sonho(s) público(s) sincronizado(s) para o filho ${child.name}');
       }
     } catch (e) {
-      debugPrint('âš ï¸ Erro ao sincronizar sonhos pÃºblicos do filho (continuando): $e');
+      debugPrint('⚠️ Erro ao sincronizar sonhos públicos do filho (continuando): $e');
     }
 
     if (updates.isEmpty) return;
 
     try {
-      // Multi-path update: grava em ambos os nÃ³s numa Ãºnica chamada
-      // atÃ´mica, em vez de um await por sonho.
+      // Multi-path update: grava em ambos os nós numa única chamada
+      // atômica, em vez de um await por sonho.
       await _db.ref().update(updates);
     } catch (e) {
-      // NÃ£o falha a ediÃ§Ã£o do filho se a sincronizaÃ§Ã£o dos sonhos der
-      // erro â€” os dados do filho jÃ¡ foram salvos corretamente acima.
-      debugPrint('âš ï¸ Erro ao gravar sincronizaÃ§Ã£o dos sonhos do filho (continuando): $e');
+      // Não falha a edição do filho se a sincronização dos sonhos der
+      // erro — os dados do filho já foram salvos corretamente acima.
+      debugPrint('⚠️ Erro ao gravar sincronização dos sonhos do filho (continuando): $e');
     }
   }
 
-  /// ðŸ—‘ï¸ Remove filho
+  /// 🗑️ Remove filho
   Future<void> removeChild(String childId) async {
     await _userRef.child('children/$childId').remove();
   }

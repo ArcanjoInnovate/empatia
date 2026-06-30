@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Regras de produÃ§Ã£o do Firebase Storage para o app Empatia.
+//
+// Tudo que o app envia (fotos de perfil, de filhos, de sonhos e de
+// doaÃ§Ãµes) cai em uploads/{fileName} â€” ver StorageRepository no app.
+//
+// Regra geral:
+//   - Leitura: pÃºblica (as imagens aparecem em telas de outros
+//     usuÃ¡rios â€” perfil pÃºblico, feed de sonhos, vitrine de doaÃ§Ãµes).
+//   - Escrita: sÃ³ para usuÃ¡rios autenticados, com limite de 5MB e
+//     restrito a tipos de imagem (mesma validaÃ§Ã£o jÃ¡ feita no
+//     StorageService do app â€” aqui Ã© a camada de seguranÃ§a real).
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /uploads/{fileName} {
+      allow read: if true;
+
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+
+      allow delete: if request.auth != null;
+    }
+
+    // Bloqueia qualquer outro caminho nÃ£o previsto explicitamente acima.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

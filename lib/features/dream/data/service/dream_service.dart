@@ -6,15 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import '../repository/dream_repository.dart';
 import '../repository/dreams_feed_repository.dart';
 
-/// ðŸ’­ DREAM SERVICE
+/// 💭 DREAM SERVICE
 ///
-/// Orquestra criaÃ§Ã£o e ediÃ§Ã£o de sonhos.
+/// Orquestra criação e edição de sonhos.
 /// Ao receber uma [category], deriva automaticamente o [emoji] correspondente
-/// â€” o usuÃ¡rio nunca seleciona emoji diretamente.
+/// — o usuário nunca seleciona emoji diretamente.
 ///
-/// Grava em dois nÃ³s simultaneamente:
-///   â€¢ Users/{uid}/dreams/{id}  â€” perfil do usuÃ¡rio
-///   â€¢ Dreams/{id}              â€” feed global (denormalizado)
+/// Grava em dois nós simultaneamente:
+///   • Users/{uid}/dreams/{id}  — perfil do usuário
+///   • Dreams/{id}              — feed global (denormalizado)
 class DreamService {
   final DreamRepository _repository;
   final StorageService _storageService;
@@ -24,29 +24,29 @@ class DreamService {
 
   Stream<List<DreamModel>> watchDreams() => _repository.watchDreams();
 
-  // â”€â”€ Mapeamento categoria â†’ emoji â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Mapeamento categoria → emoji ───────────────────────────────────────────
   //
   // Mantido centralizado aqui para que qualquer parte do app que precise
-  // do emoji a partir da categoria use um Ãºnico ponto de verdade.
+  // do emoji a partir da categoria use um único ponto de verdade.
   // Deve estar em sincronia com _kDreamCategories em dream_form_sheet.dart
   // e com _categoryMatchesEmoji em search_repository.dart.
 
   static String emojiForCategory(String? category) {
     switch (category) {
-      case 'clothes':   return 'ðŸ‘•';
-      case 'toys':      return 'ðŸ§¸';
-      case 'books':     return 'ðŸ“š';
-      case 'food':      return 'ðŸŽ';
-      case 'furniture': return 'ðŸ›‹ï¸';
-      default:          return 'ðŸ“¦'; // 'others' e valores desconhecidos
+      case 'clothes':   return '👕';
+      case 'toys':      return '🧸';
+      case 'books':     return '📚';
+      case 'food':      return '🍎';
+      case 'furniture': return '🛋️';
+      default:          return '📦'; // 'others' e valores desconhecidos
     }
   }
 
-  // â”€â”€ Adicionar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Adicionar ──────────────────────────────────────────────────────────────
 
   Future<String> addDream({
     required String? title,
-    required String category,   // â† substituiu emoji
+    required String category,   // ← substituiu emoji
     required UserModel currentUser,
     required String childId,
     required String childName,
@@ -58,19 +58,19 @@ class DreamService {
   }) async {
     if (!ProfileService.isFullyVerified(currentUser)) {
       throw Exception(
-        'âŒ Verifique seu e-mail e complete seu perfil antes de criar um sonho.',
+        '❌ Verifique seu e-mail e complete seu perfil antes de criar um sonho.',
       );
     }
 
     final trimmed = title?.trim() ?? '';
     if (trimmed.isEmpty) {
-      throw Exception('âŒ O tÃ­tulo do sonho nÃ£o pode ficar em branco.');
+      throw Exception('❌ O título do sonho não pode ficar em branco.');
     }
     if (trimmed.length < 3) {
-      throw Exception('âŒ O tÃ­tulo precisa ter pelo menos 3 caracteres.');
+      throw Exception('❌ O título precisa ter pelo menos 3 caracteres.');
     }
     if (progress != null && (progress < 0 || progress > 1)) {
-      throw Exception('âŒ Progresso deve ser entre 0 e 100%.');
+      throw Exception('❌ Progresso deve ser entre 0 e 100%.');
     }
 
     String? imageUrl;
@@ -78,7 +78,7 @@ class DreamService {
       imageUrl = await _storageService.uploadProfileImage(photo);
     }
 
-    // Deriva o emoji da categoria â€” o usuÃ¡rio nÃ£o escolhe mais o emoji
+    // Deriva o emoji da categoria — o usuário não escolhe mais o emoji
     final emoji = emojiForCategory(category);
 
     final dream = DreamModel(
@@ -122,12 +122,12 @@ class DreamService {
     return dreamId;
   }
 
-  // â”€â”€ Editar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Editar ─────────────────────────────────────────────────────────────────
 
   Future<void> updateDream({
     required String dreamId,
     required String? title,
-    required String category,   // â† substituiu emoji
+    required String category,   // ← substituiu emoji
     required String childId,
     required String childName,
     required String childEmoji,
@@ -141,10 +141,10 @@ class DreamService {
   }) async {
     final trimmed = title?.trim() ?? '';
     if (trimmed.isEmpty) {
-      throw Exception('âŒ O tÃ­tulo do sonho nÃ£o pode ficar em branco.');
+      throw Exception('❌ O título do sonho não pode ficar em branco.');
     }
     if (progress != null && (progress < 0 || progress > 1)) {
-      throw Exception('âŒ Progresso deve ser entre 0 e 100%.');
+      throw Exception('❌ Progresso deve ser entre 0 e 100%.');
     }
 
     String? imageUrl = currentImageUrl;
@@ -202,7 +202,7 @@ class DreamService {
 
   Future<void> updateProgress(String dreamId, double progress) async {
     if (progress < 0 || progress > 1) {
-      throw Exception('âŒ Progresso deve ser entre 0 e 100%.');
+      throw Exception('❌ Progresso deve ser entre 0 e 100%.');
     }
     await _repository.updateProgress(dreamId, progress);
   }

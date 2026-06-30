@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // XFile
 import '../repository/storage_repository.dart';
 
-/// ðŸ“¸ STORAGE SERVICE
+/// 📸 STORAGE SERVICE
 ///
-/// Ã‰ o GERENTE de fotos.
+/// É o GERENTE de fotos.
 /// Valida imagens antes de enviar para o Firebase Storage (substitui o
 /// antigo CloudinaryService).
 ///
@@ -14,18 +14,18 @@ import '../repository/storage_repository.dart';
 /// - Validar tamanho e formato de imagens
 /// - Chamar o Repository para upload
 /// - Deletar imagens antigas antes de fazer novo upload
-/// - Garantir que dados estÃ£o corretos
+/// - Garantir que dados estão corretos
 ///
-/// MantÃ©m os mesmos nomes de mÃ©todo do antigo CloudinaryService
+/// Mantém os mesmos nomes de método do antigo CloudinaryService
 /// (uploadProfileImage / deleteProfileImage) para que ProfileService,
-/// DonationService e DreamService nÃ£o precisem mudar nada alÃ©m do
-/// import e do tipo da dependÃªncia injetada.
+/// DonationService e DreamService não precisem mudar nada além do
+/// import e do tipo da dependência injetada.
 class StorageService {
   final StorageRepository _repository;
 
   StorageService(this._repository);
 
-  /// Tamanho mÃ¡ximo: 5MB
+  /// Tamanho máximo: 5MB
   static const int _maxSizeBytes = 5 * 1024 * 1024;
 
   /// Formatos aceitos
@@ -36,34 +36,34 @@ class StorageService {
     '.webp',
   ];
 
-  /// Faz upload de uma imagem COM VALIDAÃ‡ÃƒO
+  /// Faz upload de uma imagem COM VALIDAÇÃO
   ///
   /// [file] = XFile (funciona no web e no mobile)
-  /// [oldImageUrl] = URL da imagem antiga (serÃ¡ deletada se fornecida)
+  /// [oldImageUrl] = URL da imagem antiga (será deletada se fornecida)
   ///
-  /// Retorna URL pÃºblica da nova imagem
+  /// Retorna URL pública da nova imagem
   Future<String> uploadProfileImage(
     XFile file, {
     String? oldImageUrl,
   }) async {
-    // LÃª os bytes uma vez â€” funciona no web (blob URL) e no mobile
+    // Lê os bytes uma vez — funciona no web (blob URL) e no mobile
     final bytes = await file.readAsBytes();
 
-    // VALIDAÃ‡ÃƒO: Arquivo tem conteÃºdo
+    // VALIDAÇÃO: Arquivo tem conteúdo
     if (bytes.isEmpty) {
-      throw Exception('âŒ Arquivo de imagem nÃ£o encontrado ou vazio.');
+      throw Exception('❌ Arquivo de imagem não encontrado ou vazio.');
     }
 
-    // VALIDAÃ‡ÃƒO: Tamanho do arquivo
+    // VALIDAÇÃO: Tamanho do arquivo
     final fileSize = bytes.length;
     if (fileSize > _maxSizeBytes) {
       final sizeMB = (fileSize / (1024 * 1024)).toStringAsFixed(1);
       throw Exception(
-        'âŒ Imagem muito grande ($sizeMB MB). MÃ¡ximo permitido: 5 MB.',
+        '❌ Imagem muito grande ($sizeMB MB). Máximo permitido: 5 MB.',
       );
     }
 
-    // VALIDAÃ‡ÃƒO: ExtensÃ£o do arquivo
+    // VALIDAÇÃO: Extensão do arquivo
     final fileName = file.name.toLowerCase();
     final hasValidExtension = _allowedExtensions.any(
       (ext) => fileName.endsWith(ext),
@@ -71,19 +71,19 @@ class StorageService {
 
     if (!hasValidExtension) {
       throw Exception(
-        'âŒ Formato invÃ¡lido. Use: ${_allowedExtensions.join(", ")}',
+        '❌ Formato inválido. Use: ${_allowedExtensions.join(", ")}',
       );
     }
 
     debugPrint(
-        'ðŸ“¤ Enviando imagem (${(fileSize / 1024).toStringAsFixed(0)} KB)...');
+        '📤 Enviando imagem (${(fileSize / 1024).toStringAsFixed(0)} KB)...');
 
-    // 1ï¸âƒ£ Deleta imagem antiga ANTES de fazer upload
+    // 1️⃣ Deleta imagem antiga ANTES de fazer upload
     if (oldImageUrl != null && oldImageUrl.isNotEmpty) {
       await _deleteOldImage(oldImageUrl);
     }
 
-    // 2ï¸âƒ£ Faz upload passando os bytes (web + mobile safe)
+    // 2️⃣ Faz upload passando os bytes (web + mobile safe)
     final imageUrl = await _repository.uploadImage(bytes, fileName: fileName);
 
     return imageUrl;
@@ -92,15 +92,15 @@ class StorageService {
   /// Deleta uma imagem antiga do Firebase Storage
   Future<void> _deleteOldImage(String imageUrl) async {
     try {
-      debugPrint('ðŸ—‘ï¸ Tentando deletar imagem antiga...');
+      debugPrint('🗑️ Tentando deletar imagem antiga...');
       await _repository.deleteImageByUrl(imageUrl);
     } catch (e) {
-      // NÃ£o falha se deleÃ§Ã£o nÃ£o funcionar
-      debugPrint('âš ï¸ Erro ao deletar imagem antiga (continuando): $e');
+      // Não falha se deleção não funcionar
+      debugPrint('⚠️ Erro ao deletar imagem antiga (continuando): $e');
     }
   }
 
-  /// Remove uma imagem (quando o usuÃ¡rio remove a foto)
+  /// Remove uma imagem (quando o usuário remove a foto)
   Future<void> deleteProfileImage(String imageUrl) async {
     await _deleteOldImage(imageUrl);
   }

@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart'; // XFile
 import '../repository/profile_repository.dart';
 import 'storage_service.dart';
 
-/// ðŸ‘¤ PROFILE SERVICE
+/// 👤 PROFILE SERVICE
 ///
 /// Valida dados e orquestra chamadas ao Repository.
 /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
@@ -16,14 +16,14 @@ class ProfileService {
 
   Stream<UserModel?> watchUser() => _repository.watchUser();
 
-  /// ConstrÃ³i a URL completa de uma rede social a partir do que a pessoa
-  /// digitou no campo (sÃ³ o "@usuario", sem domÃ­nio):
-  ///   â€¢ vazio/em branco â†’ null (remove o link salvo)
-  ///   â€¢ remove @ e barras que tenham sobrado
-  ///   â€¢ monta "https://{domain}/{usuario}"
+  /// Constrói a URL completa de uma rede social a partir do que a pessoa
+  /// digitou no campo (só o "@usuario", sem domínio):
+  ///   • vazio/em branco → null (remove o link salvo)
+  ///   • remove @ e barras que tenham sobrado
+  ///   • monta "https://{domain}/{usuario}"
   ///
-  /// O domÃ­nio NUNCA vem do usuÃ¡rio (evita link incorreto/malicioso) â€”
-  /// Ã© sempre o fixo da prÃ³pria plataforma, escolhido por cÃ³digo.
+  /// O domínio NUNCA vem do usuário (evita link incorreto/malicioso) —
+  /// é sempre o fixo da própria plataforma, escolhido por código.
   static String? _buildSocialUrl(String? rawUsername, String domain) {
     var v = rawUsername?.trim();
     if (v == null || v.isEmpty) return null;
@@ -36,16 +36,16 @@ class ProfileService {
     return 'https://$domain/$v';
   }
 
-  // â”€â”€ Campos obrigatÃ³rios para o perfil ser considerado completo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Campos obrigatórios para o perfil ser considerado completo ──────────────
   //
-  // Para [isProfileComplete] retornar true, o usuÃ¡rio precisa ter:
-  //   â€¢ name        â€” nome preenchido
-  //   â€¢ age         â€” idade vÃ¡lida
-  //   â€¢ sexo        â€” sexo selecionado
-  //   â€¢ city        â€” cidade preenchida
-  //   â€¢ state       â€” estado preenchido
-  //   â€¢ neighborhood â€” bairro preenchido
-  //   â€¢ profileEmoji ou profileImage â€” avatar definido
+  // Para [isProfileComplete] retornar true, o usuário precisa ter:
+  //   • name        — nome preenchido
+  //   • age         — idade válida
+  //   • sexo        — sexo selecionado
+  //   • city        — cidade preenchida
+  //   • state       — estado preenchido
+  //   • neighborhood — bairro preenchido
+  //   • profileEmoji ou profileImage — avatar definido
   //
   static bool isProfileComplete(UserModel user) {
     final hasName  = (user.name?.trim().isNotEmpty ?? false);
@@ -66,7 +66,7 @@ class ProfileService {
         hasAvatar;
   }
 
-  /// Retorna true quando as duas verificaÃ§Ãµes estÃ£o concluÃ­das:
+  /// Retorna true quando as duas verificações estão concluídas:
   ///   1. E-mail verificado     (emailVerified == true)
   ///   2. Perfil completo       (profileCompleted == true)
   static bool isFullyVerified(UserModel user) {
@@ -74,9 +74,9 @@ class ProfileService {
         (user.profileCompleted == true);
   }
 
-  /// Salva perfil COM VALIDAÃ‡ÃƒO.
+  /// Salva perfil COM VALIDAÇÃO.
   ///
-  /// ApÃ³s salvar, verifica automaticamente se o perfil foi completado
+  /// Após salvar, verifica automaticamente se o perfil foi completado
   /// e, em caso positivo, escreve [profileCompleted = true] no banco.
   Future<void> saveProfile({
     required String? name,
@@ -98,20 +98,20 @@ class ProfileService {
   }) async {
     final trimmedName = name?.trim() ?? '';
     if (trimmedName.isEmpty) {
-      throw Exception('âŒ O nome nÃ£o pode ficar em branco.');
+      throw Exception('❌ O nome não pode ficar em branco.');
     }
     if (trimmedName.length < 2) {
-      throw Exception('âŒ O nome precisa ter pelo menos 2 letras.');
+      throw Exception('❌ O nome precisa ter pelo menos 2 letras.');
     }
 
     int? parsedAge;
     if (age != null && age.trim().isNotEmpty) {
       parsedAge = int.tryParse(age.trim());
       if (parsedAge == null) {
-        throw Exception('âŒ Idade invÃ¡lida. Digite sÃ³ nÃºmeros.');
+        throw Exception('❌ Idade inválida. Digite só números.');
       }
       if (parsedAge < 18 || parsedAge > 99) {
-        throw Exception('âŒ Idade deve ser entre 18 e 99 anos.');
+        throw Exception('❌ Idade deve ser entre 18 e 99 anos.');
       }
     }
 
@@ -124,8 +124,8 @@ class ProfileService {
         oldImageUrl: currentUser.profileImage,
       );
     } else if (!usePhoto) {
-      // UsuÃ¡rio trocou explicitamente para o modo "Avatar" (sem foto nova
-      // selecionada) â€” limpa a foto antiga para o avatar prevalecer.
+      // Usuário trocou explicitamente para o modo "Avatar" (sem foto nova
+      // selecionada) — limpa a foto antiga para o avatar prevalecer.
       profileImageUrl = null;
       clearPhoto = true;
     }
@@ -140,9 +140,9 @@ class ProfileService {
           neighborhood?.trim().isEmpty == true ? null : neighborhood?.trim(),
       profileEmoji: profileEmoji,
       sexo: sexo,
-      // Facebook: sem campo de ediÃ§Ã£o ativo no momento â€” nÃ£o enviamos
-      // socialFacebook aqui, entÃ£o o UserModel.copyWith preserva o que
-      // jÃ¡ estava salvo (ver comentÃ¡rio no copyWith).
+      // Facebook: sem campo de edição ativo no momento — não enviamos
+      // socialFacebook aqui, então o UserModel.copyWith preserva o que
+      // já estava salvo (ver comentário no copyWith).
       socialInstagram: _buildSocialUrl(socialInstagram, 'instagram.com'),
       socialX: _buildSocialUrl(socialX, 'x.com'),
       latitude: latitude,
@@ -153,22 +153,22 @@ class ProfileService {
 
     await _repository.updateProfile(updatedUser);
 
-    // â”€â”€ Verifica automaticamente se o perfil foi completado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // SÃ³ marca se ainda nÃ£o estava marcado (evita writes desnecessÃ¡rios).
+    // ── Verifica automaticamente se o perfil foi completado ─────────────────
+    // Só marca se ainda não estava marcado (evita writes desnecessários).
     if (updatedUser.profileCompleted != true && isProfileComplete(updatedUser)) {
       await _repository.markProfileCompleted();
     }
   }
 
-  /// ðŸ”„ ALTERNA MODO do usuÃ¡rio: "donor" â†” "receiver"
+  /// 🔄 ALTERNA MODO do usuário: "donor" ↔ "receiver"
   Future<void> toggleMode(String newMode) async {
     if (newMode != 'donor' && newMode != 'receiver') {
-      throw Exception('âŒ Modo invÃ¡lido: $newMode');
+      throw Exception('❌ Modo inválido: $newMode');
     }
     await _repository.toggleMode(newMode);
   }
 
-  /// Adiciona filho COM VALIDAÃ‡ÃƒO
+  /// Adiciona filho COM VALIDAÇÃO
   Future<void> addChild({
     required String? name,
     required String? age,
@@ -176,14 +176,14 @@ class ProfileService {
   }) async {
     final trimmedName = name?.trim() ?? '';
     if (trimmedName.isEmpty) {
-      throw Exception('âŒ O nome do filho nÃ£o pode ficar em branco.');
+      throw Exception('❌ O nome do filho não pode ficar em branco.');
     }
 
     int? parsedAge;
     if (age != null && age.trim().isNotEmpty) {
       parsedAge = int.tryParse(age.trim());
       if (parsedAge == null || parsedAge < 0 || parsedAge > 18) {
-        throw Exception('âŒ Idade do filho deve ser entre 0 e 18 anos.');
+        throw Exception('❌ Idade do filho deve ser entre 0 e 18 anos.');
       }
     }
 
@@ -200,7 +200,7 @@ class ProfileService {
   }) async {
     final trimmedName = name?.trim() ?? '';
     if (trimmedName.isEmpty) {
-      throw Exception('âŒ O nome do filho nÃ£o pode ficar em branco.');
+      throw Exception('❌ O nome do filho não pode ficar em branco.');
     }
     int? parsedAge;
     if (age != null && age.trim().isNotEmpty) {

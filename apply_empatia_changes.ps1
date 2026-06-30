@@ -1,13 +1,18 @@
 <#
 .SYNOPSIS
-    Aplica todas as alteracoes combinadas no chat ao repositorio empatia,
-    sobrescrevendo os arquivos finais diretamente (nao depende de "git apply",
-    entao funciona mesmo se voce ja tiver alterado alguns desses arquivos
-    manualmente antes):
+    Aplica TODAS as correcoes ao repositorio empatia (clone limpo + correcao
+    completa):
+      - Correcao de mojibake (UTF-8 corrompido) em todos os arquivos .dart
+        afetados: social_links_row.dart, profile_repository.dart,
+        profile_service.dart, storage_service.dart, dream_service.dart,
+        donation_model.dart
       - Force refresh (pull-to-refresh) nas 3 abas da DreamPage
-      - Correcao da sincronizacao de filho -> sonhos (no privado Users/{uid}/dreams)
+      - Correcao da sincronizacao filho -> sonhos (no privado Users/{uid}/dreams)
       - Reducao de 25% nos icones de redes sociais (SocialLinksRow)
-      - Migracao completa Cloudinary -> Firebase Storage
+      - Migracao Cloudinary -> Firebase Storage (storage_repository/service)
+      - Fix do initializeApp() no topo de notifications.ts (timeout deploy)
+      - Regras de Storage (storage.rules) + firebase.json atualizado
+      - firebase_storage adicionado ao pubspec.yaml
 
 .PARAMETER RepoPath
     Caminho local do repositorio "empatia" ja clonado.
@@ -28,81 +33,52 @@ function Write-Step {
     Write-Host ""
     Write-Host ("==> " + $Message) -ForegroundColor Cyan
 }
-
 function Write-Ok {
     param([string]$Message)
     Write-Host ("OK: " + $Message) -ForegroundColor Green
 }
-
 function Write-Fail {
     param([string]$Message)
     Write-Host ("ERRO: " + $Message) -ForegroundColor Red
 }
 
-# Escreve um arquivo em UTF-8 SEM BOM, criando pastas intermediarias se preciso.
 function Write-FileUtf8NoBom {
-    param(
-        [string]$Path,
-        [string]$Content
-    )
+    param([string]$Path, [string]$Content)
     $dir = Split-Path -Parent $Path
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    # Normaliza quebras de linha para LF (padrao do repo original)
     $normalized = $Content -replace "`r`n", "`n"
     [System.IO.File]::WriteAllText($Path, $normalized, $utf8NoBom)
 }
 
 Write-Step "Verificando pre-requisitos"
 
-$gitCmd = Get-Command git -ErrorAction SilentlyContinue
-if (-not $gitCmd) {
-    Write-Fail "Git nao encontrado no PATH. Instale o Git for Windows (https://git-scm.com/download/win) e tente novamente."
-    exit 1
-}
-Write-Ok ("Git encontrado: " + $gitCmd.Source)
-
 if (-not (Test-Path $RepoPath)) {
-    Write-Fail ("Caminho do repositorio nao encontrado: " + $RepoPath)
+    Write-Fail ("Caminho nao encontrado: " + $RepoPath)
     exit 1
 }
+if (-not (Test-Path (Join-Path $RepoPath "pubspec.yaml"))) {
+    Write-Fail "Nao parece ser o repositorio empatia (pubspec.yaml ausente)."
+    exit 1
+}
+Write-Ok ("Repositorio: " + $RepoPath)
 
-Push-Location $RepoPath
-try {
-    if (-not (Test-Path (Join-Path $RepoPath "pubspec.yaml"))) {
-        Write-Fail ("Nao encontrei 'pubspec.yaml' em '" + $RepoPath + "'. Confirme se este e o caminho correto do projeto Flutter 'empatia'.")
-        exit 1
-    }
-    Write-Ok ("Repositorio valido: " + $RepoPath)
+$statusOutput = (& git -C $RepoPath status --porcelain 2>$null)
+if ($statusOutput) {
+    Write-Host ""
+    Write-Host "AVISO: ha alteracoes no repositorio. Este script vai sobrescrever os arquivos com a versao corrigida." -ForegroundColor Yellow
+    $answer = Read-Host "Deseja continuar? (s/N)"
+    if ($answer -notin @("s","S","sim","Sim","y","Y","yes")) { Write-Host "Cancelado."; exit 0 }
+}
 
-    $statusOutput = git status --porcelain 2>$null
-    if ($statusOutput) {
-        Write-Host ""
-        Write-Host "AVISO: existem alteracoes no repositorio. Este script vai SOBRESCREVER os arquivos abaixo com a versao final combinada no chat:" -ForegroundColor Yellow
-        Write-Host "  (recomendado: faca um commit ou backup antes de continuar, caso queira poder comparar/desfazer depois)" -ForegroundColor Yellow
-        $answer = Read-Host "Deseja continuar? (s/N)"
-        if ($answer -notin @("s", "S", "sim", "Sim", "y", "Y", "yes")) {
-            Write-Host "Cancelado pelo usuario."
-            exit 0
-        }
-    }
+Write-Step "Removendo arquivos antigos do Cloudinary"
+$p = Join-Path $RepoPath "lib\features\profile\data\repository\cloudinary_repository.dart"
+if (Test-Path $p) { Remove-Item $p -Force; Write-Ok "Removido: lib/features/profile/data/repository/cloudinary_repository.dart" }
+$p = Join-Path $RepoPath "lib\features\profile\data\service\cloudinary_service.dart"
+if (Test-Path $p) { Remove-Item $p -Force; Write-Ok "Removido: lib/features/profile/data/service/cloudinary_service.dart" }
 
-    Write-Step "Removendo arquivos antigos do Cloudinary"
-    $p = Join-Path $RepoPath "lib/features/profile/data/repository/cloudinary_repository.dart"
-    if (Test-Path $p) {
-        Remove-Item $p -Force
-        Write-Ok "Removido: lib/features/profile/data/repository/cloudinary_repository.dart"
-    }
-    $p = Join-Path $RepoPath "lib/features/profile/data/service/cloudinary_service.dart"
-    if (Test-Path $p) {
-        Remove-Item $p -Force
-        Write-Ok "Removido: lib/features/profile/data/service/cloudinary_service.dart"
-    }
-
-    Write-Step "Escrevendo arquivos atualizados"
-    $content_4 = @'
+Write-Step "Escrevendo arquivos corrigidos"
+$c4 = @'
 import 'package:empatia/core/auth_guard/auth_guard.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/data/repositories/user_repository.dart';
@@ -263,10 +239,10 @@ class MyApp extends StatelessWidget {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\app.dart") -Content $content_4
-    Write-Ok "Escrito: lib/app.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\app.dart") -Content $c4
+Write-Ok "Escrito: lib/app.dart"
 
-    $content_5 = @'
+$c5 = @'
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -567,10 +543,10 @@ class _SocialIcon extends StatelessWidget {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\core\widget\social_links_row.dart") -Content $content_5
-    Write-Ok "Escrito: lib/core/widget/social_links_row.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\core\widget\social_links_row.dart") -Content $c5
+Write-Ok "Escrito: lib/core/widget/social_links_row.dart"
 
-    $content_6 = @'
+$c6 = @'
 /// 🎁 DONATION MODEL
 ///
 /// Representa um item que o usuário está OFERECENDO para doação.
@@ -761,10 +737,10 @@ class DonationModel {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\donation\data\model\donation_model.dart") -Content $content_6
-    Write-Ok "Escrito: lib/features/donation/data/model/donation_model.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\donation\data\model\donation_model.dart") -Content $c6
+Write-Ok "Escrito: lib/features/donation/data/model/donation_model.dart"
 
-    $content_7 = @'
+$c7 = @'
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/features/donation/data/repository/donation_repository.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
@@ -913,10 +889,10 @@ class DonationService {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\donation\data\service\donation_service.dart") -Content $content_7
-    Write-Ok "Escrito: lib/features/donation/data/service/donation_service.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\donation\data\service\donation_service.dart") -Content $c7
+Write-Ok "Escrito: lib/features/donation/data/service/donation_service.dart"
 
-    $content_8 = @'
+$c8 = @'
 import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/features/profile/data/service/storage_service.dart';
@@ -1137,10 +1113,10 @@ class DreamService {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\dream\data\service\dream_service.dart") -Content $content_8
-    Write-Ok "Escrito: lib/features/dream/data/service/dream_service.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\dream\data\service\dream_service.dart") -Content $c8
+Write-Ok "Escrito: lib/features/dream/data/service/dream_service.dart"
 
-    $content_9 = @'
+$c9 = @'
 // lib/features/dream/presentation/pages/dream_page.dart
 
 import 'dart:async';
@@ -2005,10 +1981,10 @@ class _EmptyState extends StatelessWidget {
 }
 
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\dream\presentation\pages\dream_page.dart") -Content $content_9
-    Write-Ok "Escrito: lib/features/dream/presentation/pages/dream_page.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\dream\presentation\pages\dream_page.dart") -Content $c9
+Write-Ok "Escrito: lib/features/dream/presentation/pages/dream_page.dart"
 
-    $content_10 = @'
+$c10 = @'
 import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -2236,10 +2212,10 @@ class ProfileRepository {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\repository\profile_repository.dart") -Content $content_10
-    Write-Ok "Escrito: lib/features/profile/data/repository/profile_repository.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\repository\profile_repository.dart") -Content $c10
+Write-Ok "Escrito: lib/features/profile/data/repository/profile_repository.dart"
 
-    $content_11 = @'
+$c11 = @'
 import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:image_picker/image_picker.dart'; // XFile
@@ -2463,10 +2439,10 @@ class ProfileService {
   }
 }
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\service\profile_service.dart") -Content $content_11
-    Write-Ok "Escrito: lib/features/profile/data/service/profile_service.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\service\profile_service.dart") -Content $c11
+Write-Ok "Escrito: lib/features/profile/data/service/profile_service.dart"
 
-    $content_12 = @'
+$c12 = @'
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -2493,6 +2469,13 @@ class StorageRepository {
   /// separado por um nome de arquivo único).
   static const String _rootFolder = 'uploads';
 
+  /// Tempo máximo de espera por um upload antes de desistir e lançar
+  /// um erro claro. Sem isso, se o Storage não responder (regras
+  /// bloqueando silenciosamente, bucket não provisionado, falha de
+  /// rede persistente), o app fica com o spinner girando para sempre
+  /// — o usuário só vê "Enviando imagem..." sem nunca dar erro.
+  static const Duration _uploadTimeout = Duration(seconds: 30);
+
   /// Faz upload de uma imagem para o Firebase Storage
   ///
   /// [bytes]    = bytes da imagem (lidos via XFile.readAsBytes())
@@ -2513,11 +2496,50 @@ class StorageRepository {
         contentType: _contentTypeFromFileName(fileName),
       );
 
-      await ref.putData(bytes, metadata);
-      final imageUrl = await ref.getDownloadURL();
+      final task = ref.putData(bytes, metadata);
+
+      // Loga eventos do upload — ajuda a diagnosticar travamentos
+      // (ex: state fica preso em "running" sem nunca chegar em
+      // "success"/"error" → indica bloqueio de regras ou bucket
+      // mal configurado, não erro de código).
+      task.snapshotEvents.listen((snapshot) {
+        debugPrint(
+          '📡 Upload ${snapshot.state.name}: '
+          '${snapshot.bytesTransferred}/${snapshot.totalBytes} bytes',
+        );
+      }, onError: (e) {
+        debugPrint('📡 Upload snapshotEvents erro: $e');
+      });
+
+      await task.timeout(
+        _uploadTimeout,
+        onTimeout: () {
+          throw Exception(
+            '❌ Tempo esgotado enviando a imagem (${_uploadTimeout.inSeconds}s). '
+            'Verifique sua conexão e se o Firebase Storage está ativado/configurado '
+            'corretamente no projeto.',
+          );
+        },
+      );
+
+      final imageUrl = await ref.getDownloadURL().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception(
+          '❌ Tempo esgotado obtendo a URL da imagem enviada.',
+        ),
+      );
 
       debugPrint('✅ Upload concluído: $imageUrl');
       return imageUrl;
+    } on FirebaseException catch (e) {
+      debugPrint('❌ Erro no upload (Firebase): ${e.code} — ${e.message}');
+      if (e.code == 'unauthorized' || e.code == 'permission-denied') {
+        throw Exception(
+          '❌ Sem permissão para enviar a imagem. Verifique as regras de '
+          'segurança do Firebase Storage.',
+        );
+      }
+      throw Exception('Não foi possível enviar a imagem. Tente novamente.');
     } catch (e) {
       debugPrint('❌ Erro no upload: $e');
       throw Exception('Não foi possível enviar a imagem. Tente novamente.');
@@ -2569,10 +2591,10 @@ class StorageRepository {
 }
 
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\repository\storage_repository.dart") -Content $content_12
-    Write-Ok "Escrito: lib/features/profile/data/repository/storage_repository.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\repository\storage_repository.dart") -Content $c12
+Write-Ok "Escrito: lib/features/profile/data/repository/storage_repository.dart"
 
-    $content_13 = @'
+$c13 = @'
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // XFile
 import '../repository/storage_repository.dart';
@@ -2682,10 +2704,10 @@ class StorageService {
 }
 
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\service\storage_service.dart") -Content $content_13
-    Write-Ok "Escrito: lib/features/profile/data/service/storage_service.dart"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "lib\features\profile\data\service\storage_service.dart") -Content $c13
+Write-Ok "Escrito: lib/features/profile/data/service/storage_service.dart"
 
-    $content_14 = @'
+$c14 = @'
 name: empatia
 description: "A new Flutter project."
 publish_to: 'none'
@@ -2731,22 +2753,589 @@ flutter:
     - assets/parents/woman/
     - assets/parents/other/
 '@
-    Write-FileUtf8NoBom -Path (Join-Path $RepoPath "pubspec.yaml") -Content $content_14
-    Write-Ok "Escrito: pubspec.yaml"
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "pubspec.yaml") -Content $c14
+Write-Ok "Escrito: pubspec.yaml"
+
+$c15 = @'
+{"functions":[{"source":"functions","codebase":"default","disallowLegacyRuntimeConfig":true,"ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"],"predeploy":["npm --prefix \"$RESOURCE_DIR\" run build"]}],"database":{"rules":"y"},"storage":{"rules":"storage.rules"},"auth":{"providers":{"emailPassword":true}},"flutter":{"platforms":{"android":{"default":{"projectId":"empatia-34400","appId":"1:688438518531:android:6a8fc88d5496bce927ff36","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"empatia-34400","configurations":{"android":"1:688438518531:android:6a8fc88d5496bce927ff36","ios":"1:688438518531:ios:e37de2703041b6b827ff36","macos":"1:688438518531:ios:e37de2703041b6b827ff36","web":"1:688438518531:web:73b518722745ad9e27ff36","windows":"1:688438518531:web:567ef7999103a02227ff36"}}}}}}
+'@
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "firebase.json") -Content $c15
+Write-Ok "Escrito: firebase.json"
+
+$c16 = @'
+rules_version = '2';
+
+// Regras de produção do Firebase Storage para o app Empatia.
+//
+// Tudo que o app envia (fotos de perfil, de filhos, de sonhos e de
+// doações) cai em uploads/{fileName} — ver StorageRepository no app.
+//
+// Regra geral:
+//   - Leitura: pública (as imagens aparecem em telas de outros
+//     usuários — perfil público, feed de sonhos, vitrine de doações).
+//   - Escrita: só para usuários autenticados, com limite de 5MB e
+//     restrito a tipos de imagem (mesma validação já feita no
+//     StorageService do app — aqui é a camada de segurança real).
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /uploads/{fileName} {
+      allow read: if true;
+
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+
+      allow delete: if request.auth != null;
+    }
+
+    // Bloqueia qualquer outro caminho não previsto explicitamente acima.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+'@
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "storage.rules") -Content $c16
+Write-Ok "Escrito: storage.rules"
+
+$c17 = @'
+// functions/src/notifications.ts
+//
+// ⚠️  Assim como em index.ts: NÃO chame initializeApp()/getDatabase() no
+//     topo do módulo. O Firebase CLI carrega este arquivo para descobrir
+//     as funções exportadas; I/O no topo (initializeApp síncrono tentando
+//     detectar credenciais/projeto) pode travar essa descoberta e gerar
+//     o erro "Cannot determine backend specification. Timeout after 10000".
+//     Por isso a inicialização do Admin SDK é sempre lazy, dentro de getDB().
+// ─────────────────────────────────────────────────────────────
+
+import { onValueCreated, onValueUpdated } from 'firebase-functions/v2/database';
+import { onSchedule }                     from 'firebase-functions/v2/scheduler';
+import * as logger                         from 'firebase-functions/logger';
+import { getAdminApp }                     from './shared';
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS LOCAIS
+// ══════════════════════════════════════════════════════════════
+
+function getDB() {
+  getAdminApp();
+  const { getDatabase } = require('firebase-admin/database');
+  return getDatabase();
+}
+
+function getFCM() {
+  getAdminApp();
+  const { getMessaging } = require('firebase-admin/messaging');
+  return getMessaging();
+}
+
+function weekKey(): string {
+  const now   = new Date();
+  const year  = now.getFullYear();
+  const start = new Date(year, 0, 1);
+  const week  = Math.ceil(((now.getTime() - start.getTime()) / 86400000 + 1) / 7);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+async function getUserPublic(db: any, uid: string): Promise<{name: string; emoji: string}> {
+  try {
+    const snap = await db.ref(`UsersPublic/${uid}`).get();
+    if (!snap.exists()) return { name: 'Alguém', emoji: '👤' };
+    const data = snap.val();
+    return {
+      name:  data.name         ?? 'Alguém',
+      emoji: data.profileEmoji ?? '👤',
+    };
+  } catch {
+    return { name: 'Alguém', emoji: '👤' };
+  }
+}
+
+async function writeNotification(
+  db: any,
+  uid: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const ref = db.ref(`Notifications/${uid}`).push();
+  await ref.set({ ...payload, timestamp: Date.now(), read: false });
+
+  try {
+    const tokenSnap = await db.ref(`Users/${uid}/fcmToken`).get();
+    const token = tokenSnap.val() as string | null;
+
+    logger.info('[writeNotification] token lookup', {
+      uid,
+      hasToken: !!token,
+      tokenPrefix: token ? token.slice(0, 20) : null,
+    });
+
+    if (!token) return;
+
+    // Conta notificações não lidas para o badge real no iOS
+    const notifsSnap = await db.ref(`Notifications/${uid}`).get();
+    let unreadCount = 0;
+    if (notifsSnap.exists()) {
+      const notifs = notifsSnap.val() as Record<string, any>;
+      unreadCount = Object.values(notifs).filter(
+        (n: any) => n && n.read === false
+      ).length;
+    }
+
+    const result = await getFCM().send({
+      token,
+      notification: {
+        title: payload['title'] as string,
+        body:  payload['body']  as string,
+      },
+      android: {
+        priority: 'high',
+        notification: { sound: 'default' },
+      },
+      apns: {
+        payload: { aps: { sound: 'default', badge: unreadCount } },
+      },
+      data: {
+        type:         String(payload['type']   ?? ''),
+        chatId:       String(payload['chatId'] ?? ''),
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+      },
+    });
+
+    logger.info('[writeNotification] FCM sent', { uid, result });
+  } catch (fcmErr) {
+    logger.error('[writeNotification] FCM push falhou', { uid, fcmErr });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPER — detecta primeiro contato no contexto atual do item
+//
+// Lógica:
+//   • O Flutter grava `item_changed_at` (timestamp) no nó Chats/{chatId}
+//     sempre que o item muda (updateContext) ou ao criar o chat (valor 0).
+//   • "Primeiro contato no contexto" = ainda não existe nenhuma mensagem
+//     de texto com timestamp > item_changed_at enviada pelo RECEIVER
+//     (ou por qualquer um, dependendo da semântica desejada).
+//   • Não usa orderByChild('timestamp') → sem necessidade de index extra.
+//     Lê todas as mensagens e filtra em memória. Aceitável porque:
+//       – A query só roda uma vez por mensagem enviada.
+//       – Chats com muitas mensagens já terão item_changed_at recente,
+//         então msgCount será > 0 quase imediatamente.
+// ══════════════════════════════════════════════════════════════
+async function isFirstMessageInContext(
+  db: any,
+  chatId: string,
+  itemChangedAt: number,
+  currentMsgTimestamp: number,
+): Promise<boolean> {
+  try {
+    const snap = await db.ref(`ChatMessages/${chatId}`).get();
+    if (!snap.exists()) return true;
+
+    const msgs = snap.val() as Record<string, any>;
+
+    // Conta mensagens de texto com timestamp >= item_changed_at
+    // excluindo a mensagem atual (que acabou de ser criada).
+    let countInContext = 0;
+    for (const [, m] of Object.entries(msgs)) {
+      if (!m || typeof m !== 'object') continue;
+      if (m.type && m.type !== 'text') continue;           // ignora eventos de entrega
+      const ts = (m.timestamp as number) ?? 0;
+      if (ts < itemChangedAt) continue;                    // pertence a item anterior
+      if (ts === currentMsgTimestamp) continue;            // é a própria mensagem atual
+      countInContext++;
+    }
+
+    return countInContext === 0; // nenhuma outra mensagem neste contexto → é a primeira
+  } catch (err) {
+    logger.warn('[isFirstMessageInContext] erro ao contar mensagens', { chatId, err });
+    return false; // em caso de erro, trata como não-primeira (seguro)
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 1. MENSAGEM NOVA NO CHAT
+// ══════════════════════════════════════════════════════════════
+
+export const onNewChatMessage = onValueCreated(
+  {
+    ref:      '/ChatMessages/{chatId}/{msgId}',
+    instance: 'empatia-34400-default-rtdb',
+    region:   'us-central1',
+  },
+  async (event) => {
+    const db = getDB();
+
+    const chatId  = event.params.chatId;
+    const msgData = event.data.val();
+    if (!msgData) return;
+
+    const senderId = msgData.sender_id as string | undefined;
+    const msgType  = msgData.type      as string | undefined;
+    const msgText  = (msgData.text     as string | undefined) ?? '';
+    const msgTs    = (msgData.timestamp as number | undefined) ?? Date.now();
+
+    if (!senderId) return;
+
+    const chatSnap = await db.ref(`Chats/${chatId}`).get();
+    if (!chatSnap.exists()) return;
+    const chatData = chatSnap.val();
+
+    const user1:          string = chatData.user1         ?? '';
+    const user2:          string = chatData.user2         ?? '';
+    const itemTitle:      string = chatData.item_title    ?? '';
+    const itemType:       string = chatData.item_type     ?? '';
+    // item_changed_at = 0 em chats novos (toda mensagem é "primeiro contato")
+    // item_changed_at = ServerValue.timestamp quando o item mudou
+    const itemChangedAt: number  = (chatData.item_changed_at as number) ?? 0;
+
+    const receiverId = senderId === user1 ? user2 : user1;
+    if (!receiverId) return;
+
+    const sender = await getUserPublic(db, senderId);
+
+    // ── Notificação para delivery_request ────────────────────
+    if (msgType === 'delivery_request') {
+      const isDonor   = (msgData.is_donor as boolean | undefined) ?? true;
+      const actionMsg = isDonor
+        ? `${sender.emoji} ${sender.name} confirmou que entregou o item!`
+        : `${sender.emoji} ${sender.name} confirmou que buscou o item!`;
+
+      await writeNotification(db, receiverId, {
+        type:       'delivery_request',
+        title:      '📦 Confirmação de entrega pendente',
+        body:       actionMsg,
+        chatId,
+        senderUid:  senderId,
+        senderName: sender.name,
+        itemTitle,
+        itemType,
+      });
+
+      logger.info(`[onNewChatMessage] delivery_request notif → ${receiverId}`, { chatId, senderId });
+      return;
+    }
+
+    // ── Notificação para delivery_confirmed ──────────────────
+    if (msgType === 'delivery_confirmed') {
+      await writeNotification(db, receiverId, {
+        type:       'delivery_confirmed',
+        title:      '✅ Entrega confirmada!',
+        body:       `${sender.emoji} ${sender.name} confirmou o recebimento${itemTitle ? ` de "${itemTitle}"` : ''}.`,
+        chatId,
+        senderUid:  senderId,
+        senderName: sender.name,
+        itemTitle,
+        itemType,
+      });
+
+      logger.info(`[onNewChatMessage] delivery_confirmed notif → ${receiverId}`, { chatId, senderId });
+      return;
+    }
+
+    // ── Notificação para delivery_denied ─────────────────────
+    if (msgType === 'delivery_denied') {
+      await writeNotification(db, receiverId, {
+        type:       'delivery_denied',
+        title:      '❌ Entrega não confirmada',
+        body:       `${sender.emoji} ${sender.name} indicou que o item ainda não chegou.`,
+        chatId,
+        senderUid:  senderId,
+        senderName: sender.name,
+        itemTitle,
+        itemType,
+      });
+
+      logger.info(`[onNewChatMessage] delivery_denied notif → ${receiverId}`, { chatId, senderId });
+      return;
+    }
+
+    // ── Notificação para mensagens de texto normais ───────────
+    if (msgType && msgType !== 'text') return; // ignora outros tipos
+
+    // ── Detecta primeiro contato NO CONTEXTO DO ITEM ATUAL ───
+    // Usa item_changed_at gravado pelo Flutter para ignorar mensagens
+    // de itens anteriores entre os mesmos dois usuários.
+    const isFirstMessage = await isFirstMessageInContext(
+      db, chatId, itemChangedAt, msgTs,
+    );
+
+    let title: string;
+    let body:  string;
+
+    if (isFirstMessage) {
+      const itemLabel = itemType === 'dream' ? 'sonho' : 'doação';
+      const article   = itemType === 'dream' ? 'o' : 'a';
+      title = itemTitle
+        ? `${sender.emoji} ${sender.name} quer realizar ${article} "${itemTitle}"!`
+        : `${sender.emoji} ${sender.name} tem interesse em sua publicação!`;
+      body = msgText.length > 80 ? `${msgText.slice(0, 80)}…` : msgText;
+      if (!body) body = `Toque para ver a mensagem sobre ${article} ${itemLabel}.`;
+    } else {
+      title = `${sender.emoji} ${sender.name}`;
+      body  = msgText.length > 100 ? `${msgText.slice(0, 100)}…` : msgText;
+    }
+
+    await writeNotification(db, receiverId, {
+      type:       isFirstMessage ? 'first_message' : 'message',
+      title,
+      body,
+      chatId,
+      senderUid:  senderId,
+      senderName: sender.name,
+      itemTitle,
+      itemType,
+    });
+
+    logger.info(`[onNewChatMessage] notif → ${receiverId}`, {
+      chatId, isFirstMessage, itemChangedAt, senderId,
+    });
+  }
+);
+
+// ══════════════════════════════════════════════════════════════
+// 2. DOAÇÃO CONCLUÍDA
+// ══════════════════════════════════════════════════════════════
+
+export const onDonationCompleted = onValueUpdated(
+  {
+    ref:      '/Chats/{chatId}/completed',
+    instance: 'empatia-34400-default-rtdb',
+    region:   'us-central1',
+  },
+  async (event) => {
+    const db = getDB();
+
+    const before = event.data.before.val();
+    const after  = event.data.after.val();
+    if (after !== true || before === true) return;
+
+    const chatId = event.params.chatId;
+
+    const chatSnap = await db.ref(`Chats/${chatId}`).get();
+    if (!chatSnap.exists()) return;
+    const chatData = chatSnap.val();
+
+    const user1:     string = chatData.user1      ?? '';
+    const user2:     string = chatData.user2      ?? '';
+    const itemTitle: string = chatData.item_title ?? '';
+    const itemType:  string = chatData.item_type  ?? '';
+
+    let donorUid    = user1;
+    let receiverUid = user2;
+    try {
+      const histSnap = await db
+        .ref(`DonationHistory/${user1}`)
+        .orderByChild('chatId')
+        .equalTo(chatId)
+        .limitToLast(1)
+        .get();
+      if (histSnap.exists()) {
+        const entries = Object.values(histSnap.val() as Record<string, any>);
+        if (entries[0]?.type === 'donated') {
+          donorUid    = user1;
+          receiverUid = user2;
+        } else {
+          donorUid    = user2;
+          receiverUid = user1;
+        }
+      }
+    } catch { /* mantém default */ }
+
+    const [donor, receiver] = await Promise.all([
+      getUserPublic(db, donorUid),
+      getUserPublic(db, receiverUid),
+    ]);
+
+    const itemLabel = itemType === 'dream' ? 'sonho' : 'doação';
+    const article   = itemType === 'dream' ? 'o'     : 'a';
+
+    await writeNotification(db, donorUid, {
+      type:       'donation_done',
+      title:      `🎉 ${article.toUpperCase().charAt(0) + article.slice(1)} "${itemTitle}" foi entregue${itemType === 'dream' ? ' — sonho realizado!' : '!'}`,
+      body:       `${receiver.emoji} ${receiver.name} confirmou o recebimento. Obrigado por fazer a diferença! 💛`,
+      chatId,
+      senderUid:  receiverUid,
+      senderName: receiver.name,
+      itemTitle,
+      itemType,
+    });
+
+    await writeNotification(db, receiverUid, {
+      type:       'donation_done',
+      title:      `🎉 ${itemTitle ? `"${itemTitle}" chegou!` : `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} concluíd${itemType === 'dream' ? 'o' : 'a'}!`}`,
+      body:       `${donor.emoji} ${donor.name} realizou ${article} ${itemLabel}. Aproveite muito! 🌟`,
+      chatId,
+      senderUid:  donorUid,
+      senderName: donor.name,
+      itemTitle,
+      itemType,
+    });
+
+    logger.info(`[onDonationCompleted] notifs → ${donorUid}, ${receiverUid}`, {
+      chatId, itemTitle,
+    });
+  }
+);
+
+// ══════════════════════════════════════════════════════════════
+// 3. RESET SEMANAL DO RANKING
+// ══════════════════════════════════════════════════════════════
+
+export const weeklyRankingReset = onSchedule(
+  {
+    schedule:       'every monday 03:10',
+    timeZone:       'America/Sao_Paulo',
+    region:         'southamerica-east1',
+    timeoutSeconds: 120,
+  },
+  async () => {
+    const db = getDB();
+
+    const now          = new Date();
+    const prevWeekDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const year         = prevWeekDate.getFullYear();
+    const start        = new Date(year, 0, 1);
+    const week         = Math.ceil(
+      ((prevWeekDate.getTime() - start.getTime()) / 86400000 + 1) / 7
+    );
+    const prevWeekKey  = `${year}-W${String(week).padStart(2, '0')}`;
+    const currentKey   = weekKey();
+
+    logger.info(`[weeklyRankingReset] prev=${prevWeekKey} new=${currentKey}`);
+
+    const rankSnap = await db.ref(`Rankings/weekly/${prevWeekKey}`).get();
+    const rankData = rankSnap.exists() ? rankSnap.val() : null;
+
+    let topNames: string[] = [];
+    if (rankData && typeof rankData === 'object') {
+      const sorted = Object.values(rankData as Record<string, any>)
+        .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, 3);
+      topNames = sorted.map((e: any) => e.name ?? 'Desconhecido');
+    }
+
+    if (rankData) {
+      await db.ref(`Rankings/archive/${prevWeekKey}`).set(rankData);
+    }
+
+    await db.ref(`Rankings/weekly/${currentKey}`).set(null);
+
+    const podium = topNames.length > 0
+      ? topNames.map((n, i) => `${['🥇','🥈','🥉'][i]} ${n}`).join(' · ')
+      : 'Sem doadores esta semana';
+
+    await db.ref('Notifications/broadcast').set({
+      type:      'ranking_reset',
+      title:     '🏆 Ranking semanal reiniciado!',
+      body:      `A semana terminou! ${podium}. Seja o próximo Guardião desta semana!`,
+      timestamp: Date.now(),
+      read:      false,
+      weekKey:   prevWeekKey,
+    });
+
+    logger.info(`[weeklyRankingReset] done. Top: ${podium}`);
+  }
+);
+
+// ══════════════════════════════════════════════════════════════
+// 4. LIMPEZA SEMANAL DE NOTIFICAÇÕES
+//
+// Roda toda segunda-feira às 03:30 (BRT), 20 min após o reset
+// do ranking para não disputar I/O com ele.
+//
+// Regras de retenção:
+//   • Notificações lidas   → removidas após 7 dias
+//   • Notificações não lidas → removidas após 30 dias (failsafe)
+//   • Broadcast            → não mexe (já tem TTL de 7 dias no
+//                            broadcastStream do Flutter)
+// ══════════════════════════════════════════════════════════════
+
+export const weeklyNotificationCleanup = onSchedule(
+  {
+    schedule:       'every monday 03:30',
+    timeZone:       'America/Sao_Paulo',
+    region:         'southamerica-east1',
+    timeoutSeconds: 300,
+    memory:         '256MiB',
+  },
+  async () => {
+    const db  = getDB();
+    const now = Date.now();
+
+    const READ_TTL   = 7  * 24 * 60 * 60 * 1000; // 7 dias
+    const UNREAD_TTL = 30 * 24 * 60 * 60 * 1000; // 30 dias
+
+    logger.info('[weeklyNotificationCleanup] iniciando limpeza');
+
+    try {
+      // Lista todos os UIDs com notificações (exclui o nó broadcast)
+      const rootSnap = await db.ref('Notifications').get();
+      if (!rootSnap.exists()) {
+        logger.info('[weeklyNotificationCleanup] nenhuma notificação encontrada');
+        return;
+      }
+
+      const rootData = rootSnap.val() as Record<string, any>;
+      const uids     = Object.keys(rootData).filter((k) => k !== 'broadcast');
+
+      let totalRemoved = 0;
+      const batchUpdates: Record<string, null> = {};
+
+      for (const uid of uids) {
+        const userNotifs = rootData[uid];
+        if (!userNotifs || typeof userNotifs !== 'object') continue;
+
+        for (const [notifId, notif] of Object.entries(userNotifs)) {
+          if (!notif || typeof notif !== 'object') continue;
+
+          const n         = notif as Record<string, any>;
+          const timestamp = (n['timestamp'] as number) ?? 0;
+          const isRead    = n['read'] === true;
+          const age       = now - timestamp;
+          const ttl       = isRead ? READ_TTL : UNREAD_TTL;
+
+          if (age > ttl) {
+            batchUpdates[`Notifications/${uid}/${notifId}`] = null;
+            totalRemoved++;
+          }
+        }
+      }
+
+      if (Object.keys(batchUpdates).length > 0) {
+        // Firebase limita multi-path updates a ~1000 nós por chamada
+        const entries = Object.entries(batchUpdates);
+        const CHUNK   = 500;
+        for (let i = 0; i < entries.length; i += CHUNK) {
+          const chunk = Object.fromEntries(entries.slice(i, i + CHUNK));
+          await db.ref().update(chunk);
+        }
+      }
+
+      logger.info('[weeklyNotificationCleanup] concluído', {
+        usersProcessed: uids.length,
+        totalRemoved,
+      });
+    } catch (err) {
+      logger.error('[weeklyNotificationCleanup] erro', { err });
+    }
+  }
+);
+'@
+Write-FileUtf8NoBom -Path (Join-Path $RepoPath "functions\src\notifications.ts") -Content $c17
+Write-Ok "Escrito: functions/src/notifications.ts"
 
 
     Write-Step "Resumo (git status)"
-    git status --short
+    git -C $RepoPath status --short
 
-    Write-Step "Proximos passos manuais"
-    Write-Host "1) Rode 'flutter pub get' para baixar a dependencia firebase_storage." -ForegroundColor Yellow
-    Write-Host "2) Configure as regras do Firebase Storage (storage.rules), nao incluidas neste script." -ForegroundColor Yellow
-    Write-Host "3) (Opcional) Limpe a Cloud Function 'deleteCloudinaryImage' em functions/src/media.ts, que ficou orfa apos a migracao." -ForegroundColor Yellow
-    Write-Host "4) Revise (git diff) e faca commit das mudancas." -ForegroundColor Yellow
-
+    Write-Step "Proximos passos"
+    Write-Host "1) flutter clean" -ForegroundColor Yellow
+    Write-Host "2) flutter pub get" -ForegroundColor Yellow
+    Write-Host "3) firebase deploy --only storage,functions" -ForegroundColor Yellow
+    Write-Host "4) git add -A ; git commit -m 'fix: mojibake, Storage migration, refresh, sync filho->sonhos'" -ForegroundColor Yellow
     Write-Host ""
     Write-Ok "Concluido!"
-}
-finally {
-    Pop-Location
-}

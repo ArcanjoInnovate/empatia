@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // â”€â”€ 1. RepositÃ³rios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── 1. Repositórios ──────────────────────────────────
         Provider<ProfileRepository>(create: (_) => ProfileRepository()),
         Provider<LocationRepository>(create: (_) => LocationRepository()),
         Provider<StorageRepository>(create: (_) => StorageRepository()),
@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         Provider<SearchLocationRepository>(
             create: (_) => SearchLocationRepository()),
 
-        // â”€â”€ 2. Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── 2. Services ──────────────────────────────────────
         ProxyProvider<StorageRepository, StorageService>(
           update: (_, repo, __) => StorageService(repo),
         ),
@@ -71,14 +71,14 @@ class MyApp extends StatelessWidget {
               DreamService(repo, storage, feedRepo),
         ),
 
-        // â”€â”€ 3. Stream do UserModel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── 3. Stream do UserModel ───────────────────────────
         StreamProvider<UserModel?>(
           create: (context) => context.read<UserRepository>().watchCurrentUser(),
           initialData: null,
           catchError: (_, __) => null,
         ),
 
-        // â”€â”€ 4. Controllers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── 4. Controllers ───────────────────────────────────
         ChangeNotifierProxyProvider2<ProfileService, LocationService,
             ProfileController>(
           create: (_) => ProfileController(
