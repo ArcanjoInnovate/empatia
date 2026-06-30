@@ -3,14 +3,18 @@
 // Cards do feed — DreamCard, DonationCard, InsightBlock e auxiliares.
 // ─────────────────────────────────────────────────────────────────────
 
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
+import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/home/data/models/feed_item_.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -167,9 +171,11 @@ class _DreamCardState extends State<DreamCard>
     _ctrl.forward();
     HapticFeedback.lightImpact();
     final heroTag = 'feed_dream_${widget.item.id}';
-    Navigator.push(
+    pushIfVerified(
       context,
-      DreamDetailPage.route(
+      currentUser: context.read<UserModel?>(),
+      feature: 'ver os detalhes deste sonho',
+      route: DreamDetailPage.route(
         result: widget.item.toSearchResult(),
         heroTag: heroTag,
       ),
@@ -633,9 +639,11 @@ class _DreamFooter extends StatelessWidget {
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            Navigator.push(
+            pushIfVerified(
               context,
-              DreamDetailPage.route(
+              currentUser: context.read<UserModel?>(),
+              feature: 'ver os detalhes deste sonho',
+              route: DreamDetailPage.route(
                 result: item.toSearchResult(),
                 heroTag: 'feed_dream_${item.id}',
               ),
@@ -722,9 +730,11 @@ class _DonationCardState extends State<DonationCard>
     _ctrl.forward();
     HapticFeedback.lightImpact();
     final heroTag = 'feed_donation_${widget.item.id}';
-    Navigator.push(
+    pushIfVerified(
       context,
-      DonationDetailPage.route(
+      currentUser: context.read<UserModel?>(),
+      feature: 'ver os detalhes desta doação',
+      route: DonationDetailPage.route(
         result: widget.item.toSearchResult(),
         heroTag: heroTag,
       ),
@@ -1102,9 +1112,11 @@ class _DonationFooter extends StatelessWidget {
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            Navigator.push(
+            pushIfVerified(
               context,
-              DonationDetailPage.route(
+              currentUser: context.read<UserModel?>(),
+              feature: 'ver os detalhes desta doação',
+              route: DonationDetailPage.route(
                 result: item.toSearchResult(),
                 heroTag: 'feed_donation_${item.id}',
               ),

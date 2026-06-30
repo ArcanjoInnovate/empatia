@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:empatia/features/profile/data/service/location_service.dart';
@@ -207,11 +209,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   _buildSection(
                     emoji: '👨‍👩‍👧‍👦',
                     title: 'Meus Filhos',
-                    child: ChildrenSection(
-                      children: widget.currentUser.children ?? [],
-                      controller: context.read<ProfileController>(),
-                    ),
-                  ),
+                    child: StreamBuilder<UserModel?>(
+                      stream: context.read<ProfileController>().userStream,
+                      initialData: widget.currentUser, // evita flicker/loading no primeiro frame
+                      builder: (context, snapshot) {
+                        final children = snapshot.data?.children ?? widget.currentUser.children ?? [];
+                        return ChildrenSection(
+                          children: children,
+                          controller: context.read<ProfileController>(),
+                        );
+                      },
+                  )),
                   const SizedBox(height: 16),
                   // Selector: só o botão salvar recria quando saveState muda
                   Selector<ProfileController, SaveState>(
@@ -518,52 +526,105 @@ class _SavingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundColor,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Stack(
+      children: [
+        // Fundo desfocado
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: Container(color: Colors.black.withOpacity(0.25)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 52,
-              height: 52,
-              child: CircularProgressIndicator(
-                strokeWidth: 3.5,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.kidsPink),
+        Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.85, end: 1),
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutBack,
+            builder: (context, scale, child) {
+              return Transform.scale(scale: scale, child: child);
+            },
+            child: Container(
+              width: 260,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.backgroundColor,
+                    AppTheme.backgroundColor.withOpacity(0.95),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.4),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.kidsPink.withOpacity(0.18),
+                    blurRadius: 32,
+                    offset: const Offset(0, 12),
+                    spreadRadius: -4,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.kidsPink.withOpacity(0.15),
+                          AppTheme.primaryBlue.withOpacity(0.15),
+                        ],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3.5,
+                        strokeCap: StrokeCap.round,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.kidsPink,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'Salvando perfil...',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryBlue,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Aguarde enquanto enviamos sua foto 📸',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Salvando perfil...',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Aguarde enquanto enviamos sua foto 📸',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

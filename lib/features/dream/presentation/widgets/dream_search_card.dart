@@ -1,8 +1,12 @@
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
+import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 /// 💫 DREAM SEARCH CARD
 ///
@@ -33,9 +37,11 @@ class DreamSearchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(
+      onTap: () => pushIfVerified(
         context,
-        DreamDetailPage.route(result: result, heroTag: _heroTag),
+        currentUser: context.read<UserModel?>(),
+        feature: 'ver os detalhes deste sonho',
+        route: DreamDetailPage.route(result: result, heroTag: _heroTag),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),

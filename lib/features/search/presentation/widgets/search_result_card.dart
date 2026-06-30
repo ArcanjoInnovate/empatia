@@ -1,11 +1,15 @@
 // lib/features/search/presentation/widgets/search_result_card.dart
 
+import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
+import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS — compartilhados pelos dois cards
@@ -140,9 +144,11 @@ class _DreamCard extends StatelessWidget {
     final colors = _gradient(result.id);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
+      onTap: () => pushIfVerified(
         context,
-        DreamDetailPage.route(result: result, heroTag: heroTag),
+        currentUser: context.read<UserModel?>(),
+        feature: 'ver os detalhes deste sonho',
+        route: DreamDetailPage.route(result: result, heroTag: heroTag),
       ),
       child: Hero(
         tag: heroTag,
@@ -411,9 +417,11 @@ class _DonationCard extends StatelessWidget {
     ].join(', ');
 
     return GestureDetector(
-      onTap: () => Navigator.push(
+      onTap: () => pushIfVerified(
         context,
-        DonationDetailPage.route(result: result, heroTag: heroTag),
+        currentUser: context.read<UserModel?>(),
+        feature: 'ver os detalhes desta doação',
+        route: DonationDetailPage.route(result: result, heroTag: heroTag),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_C.r20),

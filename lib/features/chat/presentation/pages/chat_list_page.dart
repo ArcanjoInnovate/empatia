@@ -603,51 +603,7 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
 
-            if (tabIndex == 0) ...[
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  onExplore();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 13),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppTheme.kidsPurpleViolet,
-                        AppTheme.primaryBlue,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color:     AppTheme.kidsPurpleViolet
-                            .withValues(alpha: 0.30),
-                        blurRadius: 16,
-                        offset:    const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('✨', style: TextStyle(fontSize: 15)),
-                      SizedBox(width: 8),
-                      Text(
-                        'Explorar comunidade',
-                        style: TextStyle(
-                          fontSize:   14,
-                          fontWeight: FontWeight.w800,
-                          color:      Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            
           ],
         ),
       ),

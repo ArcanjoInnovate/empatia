@@ -1,3 +1,4 @@
+import 'package:empatia/core/constant/legal_linkgs_constant.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/auth/presentation/pages/login_page.dart';
@@ -94,14 +95,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         icon: Icons.description_rounded,
                         iconColor: Colors.grey.shade500,
                         title: 'Termos de uso',
-                        onTap: () {},
+                        onTap: () => LegalLinks.openTerms(),
                       ),
                       _buildDivider(),
                       _buildArrowItem(
                         icon: Icons.privacy_tip_rounded,
                         iconColor: Colors.grey.shade500,
                         title: 'Política de privacidade',
-                        onTap: () {},
+                        onTap: () => LegalLinks.openPrivacyPolicy(),
                       ),
                       _buildDivider(),
                       

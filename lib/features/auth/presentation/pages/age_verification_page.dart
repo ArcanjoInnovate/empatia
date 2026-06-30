@@ -6,7 +6,6 @@ import 'package:empatia/features/auth/presentation/pages/sucess_auth_page.dart';
 import 'package:empatia/features/auth/controller/birth_controller.dart';
 import 'package:empatia/features/auth/data/repositories/birth_repository.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class AgeVerificationPage extends StatefulWidget {
   /// Quando vindo do cadastro, recebe as credenciais para fazer o registro
@@ -92,38 +91,6 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
     }
   }
 
-  Future<void> _pickFromCalendar() async {
-    final now     = DateTime.now();
-    final initial = _controller.selectedDate ??
-        DateTime(now.year - 25, now.month, now.day);
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial.isAfter(now) ? now : initial,
-      firstDate:   DateTime(now.year - 120),
-      lastDate:    now,
-      locale: const Locale('pt', 'BR'),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary:   AppTheme.kidsPink,
-            onPrimary: AppTheme.backgroundColor,
-            surface:   AppTheme.backgroundColor,
-            onSurface: AppTheme.textDark,
-          ),
-        ),
-        child: child!,
-      ),
-    );
-
-    if (picked != null) {
-      _controller.onDateSelected(picked);
-      _dayCtrl.text   = picked.day.toString().padLeft(2, '0');
-      _monthCtrl.text = picked.month.toString().padLeft(2, '0');
-      _yearCtrl.text  = picked.year.toString();
-    }
-  }
-
   Future<void> _submit() async {
     final date = _controller.selectedDate;
     if (date == null || _isSubmitting) return;
@@ -202,33 +169,49 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (_, __) {
-          return Column(
-            children: [
-              _buildHeader(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: 20, right: 20, top: 32,
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 32,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildIllustration(),
-                      const SizedBox(height: 32),
-                      _buildInputCard(),
-                      const SizedBox(height: 20),
-                      _buildPrivacyNote(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.registerBackground),
+        child: SafeArea(
+          top: false,
+          // Toca fora de qualquer TextField → tira o foco de quem estiver
+          // focado e garante que nenhum outro campo assuma o foco em
+          // seguida (sem requestFocus posterior em nenhum listener, então
+          // não "volta" sozinho).
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (_, __) {
+                return Column(
+                  children: [
+                    _buildHeader(context),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.only(
+                          left: 20, right: 20, top: 32,
+                          bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildIllustration(),
+                            const SizedBox(height: 32),
+                            _buildInputCard(),
+                            const SizedBox(height: 20),
+                            _buildPrivacyNote(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -244,6 +227,23 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppTheme.backgroundColor,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      AppTheme.backgroundColor.withValues(alpha: 0.25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.all(10),
+                ),
+              ),
+              const SizedBox(width: 16),
               Text(
                 widget.isRegistrationFlow
                     ? 'VERIFICAR IDADE'
@@ -377,27 +377,6 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
               ],
             ),
 
-            const SizedBox(height: 12),
-
-            GestureDetector(
-              onTap: _pickFromCalendar,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: AppDecorations.ageVerificationCalendarButton,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.date_range_rounded,
-                        color: AppTheme.kidsPink, size: 18),
-                    SizedBox(width: 8),
-                    Text('Escolher pelo calendário',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                            color: AppTheme.kidsPink)),
-                  ],
-                ),
-              ),
-            ),
-
             if (hasDate) ...[
               const SizedBox(height: 16),
               _buildValidationFeedback(validation),
@@ -435,8 +414,8 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                color: Colors.grey.shade500, letterSpacing: 0.5)),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                color: AppTheme.kidsPurple, letterSpacing: 0.5)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
@@ -455,17 +434,17 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
           decoration: InputDecoration(
             hintText: hint,
             counterText: '',
-            hintStyle: TextStyle(fontSize: 16, color: Colors.grey.shade300,
+            hintStyle: TextStyle(fontSize: 16, color: AppTheme.kidsPurpleLight.withOpacity(0.45),
                 fontWeight: FontWeight.w700),
             filled: true,
-            fillColor: AppTheme.surfaceLight,
+            fillColor: AppTheme.bgPastelLavender,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
                 color: controller.text.isNotEmpty
                     ? AppTheme.kidsPink.withOpacity(0.5)
-                    : Colors.grey.shade200,
+                    : AppTheme.borderLavender,
                 width: 1.5,
               ),
             ),
@@ -486,7 +465,7 @@ class _AgeVerificationPageState extends State<AgeVerificationPage>
       padding: const EdgeInsets.only(top: 22, left: 8, right: 8),
       child: Text('/',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-              color: Colors.grey.shade300)),
+              color: AppTheme.kidsPurpleLight.withOpacity(0.6))),
     );
   }
 

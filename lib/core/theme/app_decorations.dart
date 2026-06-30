@@ -966,6 +966,7 @@ class AppDecorations {
           : [],
     );
   }
+  
   // ─── DonationItemFormSheet ────────────────────────────────────────────────────
   // Cole este bloco dentro de AppDecorations, antes do fechamento da classe.
 
