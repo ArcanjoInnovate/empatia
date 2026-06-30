@@ -1,0 +1,1072 @@
+diff --git a/lib/app.dart b/lib/app.dart
+index 6eb7728..ae02d28 100644
+--- a/lib/app.dart
++++ b/lib/app.dart
+@@ -10,10 +10,10 @@ import 'package:empatia/features/dream/data/repository/dream_repository.dart';
+ import 'package:empatia/features/dream/data/repository/dreams_feed_repository.dart';
+ import 'package:empatia/features/dream/data/service/dream_service.dart';
+ import 'package:empatia/features/profile/controller/profile_controller.dart';
+-import 'package:empatia/features/profile/data/repository/cloudinary_repository.dart';
++import 'package:empatia/features/profile/data/repository/storage_repository.dart';
+ import 'package:empatia/features/profile/data/repository/location_repository.dart';
+ import 'package:empatia/features/profile/data/repository/profile_repository.dart';
+-import 'package:empatia/features/profile/data/service/cloudinary_service.dart';
++import 'package:empatia/features/profile/data/service/storage_service.dart';
+ import 'package:empatia/features/profile/data/service/location_service.dart';
+ import 'package:empatia/features/profile/data/service/profile_service.dart';
+ import 'package:empatia/features/request/controller/request_controller.dart';
+@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
+         // ── 1. Repositórios ──────────────────────────────────
+         Provider<ProfileRepository>(create: (_) => ProfileRepository()),
+         Provider<LocationRepository>(create: (_) => LocationRepository()),
+-        Provider<CloudinaryRepository>(create: (_) => CloudinaryRepository()),
++        Provider<StorageRepository>(create: (_) => StorageRepository()),
+         Provider<DonationRepository>(create: (_) => DonationRepository()),
+         Provider<RequestRepository>(create: (_) => RequestRepository()),
+         Provider<DreamRepository>(create: (_) => DreamRepository()),
+@@ -49,26 +49,26 @@ class MyApp extends StatelessWidget {
+             create: (_) => SearchLocationRepository()),
+ 
+         // ── 2. Services ──────────────────────────────────────
+-        ProxyProvider<CloudinaryRepository, CloudinaryService>(
+-          update: (_, repo, __) => CloudinaryService(repo),
++        ProxyProvider<StorageRepository, StorageService>(
++          update: (_, repo, __) => StorageService(repo),
+         ),
+-        ProxyProvider2<ProfileRepository, CloudinaryService, ProfileService>(
+-          update: (_, profileRepo, cloudinary, __) =>
+-              ProfileService(profileRepo, cloudinary),
++        ProxyProvider2<ProfileRepository, StorageService, ProfileService>(
++          update: (_, profileRepo, storage, __) =>
++              ProfileService(profileRepo, storage),
+         ),
+         ProxyProvider<LocationRepository, LocationService>(
+           update: (_, repo, __) => LocationService(repo),
+         ),
+-        ProxyProvider2<DonationRepository, CloudinaryService, DonationService>(
+-          update: (_, repo, cloudinary, __) =>
+-              DonationService(repo, cloudinary),
++        ProxyProvider2<DonationRepository, StorageService, DonationService>(
++          update: (_, repo, storage, __) =>
++              DonationService(repo, storage),
+         ),
+         ProxyProvider<RequestRepository, RequestService>(
+           update: (_, repo, __) => RequestService(repo),
+         ),
+-        ProxyProvider3<DreamRepository, CloudinaryService, DreamsFeedRepository, DreamService>(
+-          update: (_, repo, cloudinary, feedRepo, __) =>
+-              DreamService(repo, cloudinary, feedRepo),
++        ProxyProvider3<DreamRepository, StorageService, DreamsFeedRepository, DreamService>(
++          update: (_, repo, storage, feedRepo, __) =>
++              DreamService(repo, storage, feedRepo),
+         ),
+ 
+         // ── 3. Stream do UserModel ───────────────────────────
+@@ -84,40 +84,40 @@ class MyApp extends StatelessWidget {
+           create: (_) => ProfileController(
+             ProfileService(
+               ProfileRepository(),
+-              CloudinaryService(CloudinaryRepository()),
++              StorageService(StorageRepository()),
+             ),
+             LocationService(LocationRepository()),
+           ),
+           update: (_, profileService, locationService, __) =>
+               ProfileController(profileService, locationService),
+         ),
+-        ChangeNotifierProxyProvider2<DonationRepository, CloudinaryService,
++        ChangeNotifierProxyProvider2<DonationRepository, StorageService,
+             DonationController>(
+           create: (_) => DonationController(
+             DonationService(
+               DonationRepository(),
+-              CloudinaryService(CloudinaryRepository()),
++              StorageService(StorageRepository()),
+             ),
+           ),
+-          update: (_, repo, cloudinary, __) =>
+-              DonationController(DonationService(repo, cloudinary)),
++          update: (_, repo, storage, __) =>
++              DonationController(DonationService(repo, storage)),
+         ),
+         ChangeNotifierProxyProvider<RequestService, RequestController>(
+           create: (_) =>
+               RequestController(RequestService(RequestRepository())),
+           update: (_, service, __) => RequestController(service),
+         ),
+-        ChangeNotifierProxyProvider3<DreamRepository, CloudinaryService,
++        ChangeNotifierProxyProvider3<DreamRepository, StorageService,
+             DreamsFeedRepository, DreamController>(
+           create: (_) => DreamController(
+             DreamService(
+               DreamRepository(),
+-              CloudinaryService(CloudinaryRepository()),
++              StorageService(StorageRepository()),
+               DreamsFeedRepository(),
+             ),
+           ),
+-          update: (_, repo, cloudinary, feedRepo, __) =>
+-              DreamController(DreamService(repo, cloudinary, feedRepo)),
++          update: (_, repo, storage, feedRepo, __) =>
++              DreamController(DreamService(repo, storage, feedRepo)),
+         ),
+         ChangeNotifierProxyProvider<SearchRepository, SearchController>(
+           create: (_) => SearchController(SearchRepository()),
+diff --git a/lib/core/widget/social_links_row.dart b/lib/core/widget/social_links_row.dart
+index 662c549..fa5d4d7 100644
+--- a/lib/core/widget/social_links_row.dart
++++ b/lib/core/widget/social_links_row.dart
+@@ -253,10 +253,11 @@ class _SocialIcon extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     // Responsivo (baseado na largura da tela, funciona em qualquer
+-    // dispositivo) e 50% maior que a versão fixa anterior de 68px
+-    // (ou seja, referência de ~102px em telas de celular comuns).
++    // dispositivo). Reduzido em 25% em relação à versão anterior
++    // (que ia de ~64px a 102px) — agora vai de ~48px a 76.5px.
+     final screenWidth = MediaQuery.of(context).size.width;
+-    final circleSize = (screenWidth * 0.19).clamp(64.0, 102.0);
++    // Reduzido 25% (era: 0.19 / clamp 64–102) a pedido do usuário.
++    final circleSize = (screenWidth * 0.1425).clamp(48.0, 76.5);
+     final iconSize = circleSize * 0.5;
+     final labelSize = circleSize * 0.46;
+ 
+diff --git a/lib/features/donation/data/model/donation_model.dart b/lib/features/donation/data/model/donation_model.dart
+index a7e2abb..d6ef5eb 100644
+--- a/lib/features/donation/data/model/donation_model.dart
++++ b/lib/features/donation/data/model/donation_model.dart
+@@ -18,7 +18,7 @@ class DonationModel {
+   /// Descrição detalhada do item (obrigatória)
+   final String? description;
+ 
+-  /// URL da foto do item no Cloudinary (obrigatória)
++  /// URL da foto do item no Firebase Storage (obrigatória)
+   final String? photoUrl;
+ 
+   /// Emoji representativo do item
+diff --git a/lib/features/donation/data/service/donation_service.dart b/lib/features/donation/data/service/donation_service.dart
+index b748001..2ca73fb 100644
+--- a/lib/features/donation/data/service/donation_service.dart
++++ b/lib/features/donation/data/service/donation_service.dart
+@@ -1,7 +1,7 @@
+ import 'package:empatia/core/data/models/user_model.dart';
+ import 'package:empatia/features/donation/data/repository/donation_repository.dart';
+ import 'package:empatia/features/donation/data/model/donation_model.dart';
+-import 'package:empatia/features/profile/data/service/cloudinary_service.dart';
++import 'package:empatia/features/profile/data/service/storage_service.dart';
+ import 'package:empatia/features/profile/data/service/profile_service.dart';
+ import 'package:image_picker/image_picker.dart'; // XFile
+ 
+@@ -11,9 +11,9 @@ import 'package:image_picker/image_picker.dart'; // XFile
+ /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
+ class DonationService {
+   final DonationRepository _repository;
+-  final CloudinaryService _cloudinaryService;
++  final StorageService _storageService;
+ 
+-  DonationService(this._repository, this._cloudinaryService);
++  DonationService(this._repository, this._storageService);
+ 
+   Stream<List<DonationModel>> watchMyDonations() =>
+       _repository.watchMyDonations();
+@@ -70,7 +70,7 @@ class DonationService {
+           '❌ Complete sua localização no perfil antes de criar uma oferta.');
+     }
+ 
+-    final photoUrl = await _cloudinaryService.uploadProfileImage(photo);
++    final photoUrl = await _storageService.uploadProfileImage(photo);
+ 
+     final donation = DonationModel(
+       title: trimmedTitle,
+@@ -112,7 +112,7 @@ class DonationService {
+ 
+     String? photoUrl = currentPhotoUrl;
+     if (newPhoto != null) {
+-      photoUrl = await _cloudinaryService.uploadProfileImage(
++      photoUrl = await _storageService.uploadProfileImage(
+         newPhoto,
+         oldImageUrl: currentPhotoUrl,
+       );
+@@ -140,7 +140,7 @@ class DonationService {
+ 
+   Future<void> deleteDonation(String donationId, {String? photoUrl}) async {
+     if (photoUrl != null && photoUrl.isNotEmpty) {
+-      await _cloudinaryService.deleteProfileImage(photoUrl);
++      await _storageService.deleteProfileImage(photoUrl);
+     }
+     await _repository.deleteDonation(donationId);
+   }
+diff --git a/lib/features/dream/data/service/dream_service.dart b/lib/features/dream/data/service/dream_service.dart
+index b6491bb..f13b19b 100644
+--- a/lib/features/dream/data/service/dream_service.dart
++++ b/lib/features/dream/data/service/dream_service.dart
+@@ -1,6 +1,6 @@
+ import 'package:empatia/core/data/models/dream_model.dart';
+ import 'package:empatia/core/data/models/user_model.dart';
+-import 'package:empatia/features/profile/data/service/cloudinary_service.dart';
++import 'package:empatia/features/profile/data/service/storage_service.dart';
+ import 'package:empatia/features/profile/data/service/profile_service.dart';
+ import 'package:image_picker/image_picker.dart';
+ import '../repository/dream_repository.dart';
+@@ -17,10 +17,10 @@ import '../repository/dreams_feed_repository.dart';
+ ///   • Dreams/{id}              — feed global (denormalizado)
+ class DreamService {
+   final DreamRepository _repository;
+-  final CloudinaryService _cloudinaryService;
++  final StorageService _storageService;
+   final DreamsFeedRepository _feedRepository;
+ 
+-  DreamService(this._repository, this._cloudinaryService, this._feedRepository);
++  DreamService(this._repository, this._storageService, this._feedRepository);
+ 
+   Stream<List<DreamModel>> watchDreams() => _repository.watchDreams();
+ 
+@@ -75,7 +75,7 @@ class DreamService {
+ 
+     String? imageUrl;
+     if (photo != null) {
+-      imageUrl = await _cloudinaryService.uploadProfileImage(photo);
++      imageUrl = await _storageService.uploadProfileImage(photo);
+     }
+ 
+     // Deriva o emoji da categoria — o usuário não escolhe mais o emoji
+@@ -151,11 +151,11 @@ class DreamService {
+ 
+     if (removeImage) {
+       if (currentImageUrl != null && currentImageUrl.isNotEmpty) {
+-        await _cloudinaryService.deleteProfileImage(currentImageUrl);
++        await _storageService.deleteProfileImage(currentImageUrl);
+       }
+       imageUrl = null;
+     } else if (newPhoto != null) {
+-      imageUrl = await _cloudinaryService.uploadProfileImage(
++      imageUrl = await _storageService.uploadProfileImage(
+         newPhoto,
+         oldImageUrl: currentImageUrl,
+       );
+@@ -209,7 +209,7 @@ class DreamService {
+ 
+   Future<void> deleteDream(String dreamId, {String? imageUrl}) async {
+     if (imageUrl != null && imageUrl.isNotEmpty) {
+-      await _cloudinaryService.deleteProfileImage(imageUrl);
++      await _storageService.deleteProfileImage(imageUrl);
+     }
+     await Future.wait([
+       _repository.deleteDream(dreamId),
+diff --git a/lib/features/dream/presentation/pages/dream_page.dart b/lib/features/dream/presentation/pages/dream_page.dart
+index c0a32ed..ded16e7 100644
+--- a/lib/features/dream/presentation/pages/dream_page.dart
++++ b/lib/features/dream/presentation/pages/dream_page.dart
+@@ -362,41 +362,62 @@ class _StatBubble extends StatelessWidget {
+ // ABA 1 — SONHOS
+ // ══════════════════════════════════════════════════════════════════════════════
+ 
+-class _TabSonhos extends StatelessWidget {
++class _TabSonhos extends StatefulWidget {
+   final UserModel? currentUser;
+   const _TabSonhos({this.currentUser});
+ 
++  @override
++  State<_TabSonhos> createState() => _TabSonhosState();
++}
++
++class _TabSonhosState extends State<_TabSonhos> {
++  // Trocar a key força o StreamBuilder a recriar a subscription,
++  // ou seja, faz um "force refresh" mesmo a stream sendo realtime.
++  Key _streamKey = UniqueKey();
++
++  Future<void> _onRefresh() async {
++    setState(() => _streamKey = UniqueKey());
++    // pequeno delay para o RefreshIndicator dar feedback visual
++    await Future.delayed(const Duration(milliseconds: 500));
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     final ctrl = context.read<DreamController>();
+-    return StreamBuilder<List<DreamModel>>(
+-      stream: ctrl.watchDreams(),
+-      builder: (context, snapshot) {
+-        final dreams = snapshot.data ?? [];
+-        return ListView(
+-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+-          children: [
+-            if (dreams.isEmpty)
+-              _EmptyState(
+-                emoji: '🌙',
+-                title: 'Que sonho você tem?',
+-                subtitle: 'Toque no botão ✨ para adicionar seu primeiro sonho!',
+-                borderColor: AppTheme.accentPurple,
+-              )
+-            else
+-              ...dreams.map((d) => Padding(
+-                    padding: const EdgeInsets.only(bottom: 12),
+-                    child: DreamCardWidget(
+-                      dream: d,
+-                      editable: true,
+-                      onEdit: currentUser == null
+-                          ? null
+-                          : () => showDreamFormSheet(context, currentUser: currentUser!, dream: d),
+-                    ),
+-                  )),
+-          ],
+-        );
+-      },
++    return RefreshIndicator(
++      onRefresh: _onRefresh,
++      color: AppTheme.accentPurple,
++      child: StreamBuilder<List<DreamModel>>(
++        key: _streamKey,
++        stream: ctrl.watchDreams(),
++        builder: (context, snapshot) {
++          final dreams = snapshot.data ?? [];
++          return ListView(
++            physics: const AlwaysScrollableScrollPhysics(),
++            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
++            children: [
++              if (dreams.isEmpty)
++                _EmptyState(
++                  emoji: '🌙',
++                  title: 'Que sonho você tem?',
++                  subtitle: 'Toque no botão ✨ para adicionar seu primeiro sonho!',
++                  borderColor: AppTheme.accentPurple,
++                )
++              else
++                ...dreams.map((d) => Padding(
++                      padding: const EdgeInsets.only(bottom: 12),
++                      child: DreamCardWidget(
++                        dream: d,
++                        editable: true,
++                        onEdit: widget.currentUser == null
++                            ? null
++                            : () => showDreamFormSheet(context, currentUser: widget.currentUser!, dream: d),
++                      ),
++                    )),
++            ],
++          );
++        },
++      ),
+     );
+   }
+ }
+@@ -405,48 +426,67 @@ class _TabSonhos extends StatelessWidget {
+ // ABA 2 — DOAÇÕES
+ // ══════════════════════════════════════════════════════════════════════════════
+ 
+-class _TabDoacoes extends StatelessWidget {
++class _TabDoacoes extends StatefulWidget {
+   final UserModel? currentUser;
+   const _TabDoacoes({this.currentUser});
+ 
++  @override
++  State<_TabDoacoes> createState() => _TabDoacoesState();
++}
++
++class _TabDoacoesState extends State<_TabDoacoes> {
++  Key _streamKey = UniqueKey();
++
++  Future<void> _onRefresh() async {
++    setState(() => _streamKey = UniqueKey());
++    await Future.delayed(const Duration(milliseconds: 500));
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     final ctrl = context.read<DonationController>();
+-    return StreamBuilder<List<DonationModel>>(
+-      stream: ctrl.watchMyDonations(),
+-      builder: (context, snapshot) {
+-        final donations = snapshot.data ?? [];
+-        if (donations.isEmpty) {
+-          return ListView(
+-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+-            children: [
+-              _EmptyState(
+-                emoji: '🧸',
+-                title: 'Nenhuma doação ainda!',
+-                subtitle: 'Compartilhe brinquedos e itens que você não usa 💕',
+-                borderColor: AppTheme.accentPink,
+-              ),
+-            ],
++    return RefreshIndicator(
++      onRefresh: _onRefresh,
++      color: AppTheme.accentPink,
++      child: StreamBuilder<List<DonationModel>>(
++        key: _streamKey,
++        stream: ctrl.watchMyDonations(),
++        builder: (context, snapshot) {
++          final donations = snapshot.data ?? [];
++          if (donations.isEmpty) {
++            return ListView(
++              physics: const AlwaysScrollableScrollPhysics(),
++              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
++              children: [
++                _EmptyState(
++                  emoji: '🧸',
++                  title: 'Nenhuma doação ainda!',
++                  subtitle: 'Compartilhe brinquedos e itens que você não usa 💕',
++                  borderColor: AppTheme.accentPink,
++                ),
++              ],
++            );
++          }
++          return GridView.builder(
++            physics: const AlwaysScrollableScrollPhysics(),
++            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
++            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
++              crossAxisCount: 2,      // era 3 — muito apertado para imagem + texto
++              crossAxisSpacing: 12,
++              mainAxisSpacing: 12,
++              childAspectRatio: 0.82, // mais altura por card para título e categoria
++            ),
++            itemCount: donations.length,
++            itemBuilder: (_, i) => DonationCardWidget(
++              donation: donations[i],
++              onEdit: () {
++                if (widget.currentUser == null) return;
++                showDonationItemFormSheet(context, currentUser: widget.currentUser!, donation: donations[i]);
++              },
++            ),
+           );
+-        }
+-        return GridView.builder(
+-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+-            crossAxisCount: 2,      // era 3 — muito apertado para imagem + texto
+-            crossAxisSpacing: 12,
+-            mainAxisSpacing: 12,
+-            childAspectRatio: 0.82, // mais altura por card para título e categoria
+-          ),
+-          itemCount: donations.length,
+-          itemBuilder: (_, i) => DonationCardWidget(
+-            donation: donations[i],
+-            onEdit: () {
+-              if (currentUser == null) return;
+-              showDonationItemFormSheet(context, currentUser: currentUser!, donation: donations[i]);
+-            },
+-          ),
+-        );
+-      },
++        },
++      ),
+     );
+   }
+ }
+@@ -455,71 +495,90 @@ class _TabDoacoes extends StatelessWidget {
+ // ABA 3 — HISTÓRICO
+ // ══════════════════════════════════════════════════════════════════════════════
+ 
+-class _TabHistorico extends StatelessWidget {
++class _TabHistorico extends StatefulWidget {
+   final String? myUid;
+   const _TabHistorico({this.myUid});
+ 
++  @override
++  State<_TabHistorico> createState() => _TabHistoricoState();
++}
++
++class _TabHistoricoState extends State<_TabHistorico> {
++  Key _streamKey = UniqueKey();
++
++  Future<void> _onRefresh() async {
++    setState(() => _streamKey = UniqueKey());
++    await Future.delayed(const Duration(milliseconds: 500));
++  }
++
+   @override
+   Widget build(BuildContext context) {
+-    if (myUid == null) {
++    if (widget.myUid == null) {
+       return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
+     }
+ 
+-    return StreamBuilder<List<DonationHistoryEntry>>(
+-      stream: _HistoryRepository.watch(myUid!),
+-      builder: (context, snap) {
+-        if (snap.connectionState == ConnectionState.waiting) {
+-          return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
+-        }
+-
+-        final all      = snap.data ?? [];
+-        final donated  = all.where((e) => e.isDonated).toList();
+-        final received = all.where((e) => e.isReceived).toList();
++    return RefreshIndicator(
++      onRefresh: _onRefresh,
++      color: AppTheme.accentTeal,
++      child: StreamBuilder<List<DonationHistoryEntry>>(
++        key: _streamKey,
++        stream: _HistoryRepository.watch(widget.myUid!),
++        builder: (context, snap) {
++          if (snap.connectionState == ConnectionState.waiting) {
++            return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
++          }
++
++          final all      = snap.data ?? [];
++          final donated  = all.where((e) => e.isDonated).toList();
++          final received = all.where((e) => e.isReceived).toList();
++
++          if (all.isEmpty) {
++            return ListView(
++              physics: const AlwaysScrollableScrollPhysics(),
++              padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
++              children: [
++                _EmptyState(
++                  emoji: '📋',
++                  title: 'Histórico vazio',
++                  subtitle: 'Quando você concluir uma doação, ela aparecerá aqui para ambos os participantes.',
++                  borderColor: AppTheme.accentTeal,
++                ),
++              ],
++            );
++          }
+ 
+-        if (all.isEmpty) {
+           return ListView(
+-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
++            physics: const AlwaysScrollableScrollPhysics(),
++            padding: const EdgeInsets.fromLTRB(0, 0, 0, 100),
+             children: [
+-              _EmptyState(
+-                emoji: '📋',
+-                title: 'Histórico vazio',
+-                subtitle: 'Quando você concluir uma doação, ela aparecerá aqui para ambos os participantes.',
+-                borderColor: AppTheme.accentTeal,
+-              ),
++              // ── Resumo ──────────────────────────────────────────────
++              _HistoricoResumo(total: all.length, donated: donated.length, received: received.length),
++
++              // ── Itens Recebidos ──────────────────────────────────────
++              if (received.isNotEmpty) ...[
++                _HistoricoSectionHeader(
++                  emoji: '🎁',
++                  label: 'Recebi',
++                  count: received.length,
++                  color: AppTheme.accentGreen,
++                ),
++                ...received.map((e) => _HistoricoCard(entry: e)),
++              ],
++
++              // ── Doações Feitas ───────────────────────────────────────
++              if (donated.isNotEmpty) ...[
++                _HistoricoSectionHeader(
++                  emoji: '💝',
++                  label: 'Doei',
++                  count: donated.length,
++                  color: AppTheme.accentPink,
++                ),
++                ...donated.map((e) => _HistoricoCard(entry: e)),
++              ],
+             ],
+           );
+-        }
+-
+-        return ListView(
+-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 100),
+-          children: [
+-            // ── Resumo ──────────────────────────────────────────────
+-            _HistoricoResumo(total: all.length, donated: donated.length, received: received.length),
+-
+-            // ── Itens Recebidos ──────────────────────────────────────
+-            if (received.isNotEmpty) ...[
+-              _HistoricoSectionHeader(
+-                emoji: '🎁',
+-                label: 'Recebi',
+-                count: received.length,
+-                color: AppTheme.accentGreen,
+-              ),
+-              ...received.map((e) => _HistoricoCard(entry: e)),
+-            ],
+-
+-            // ── Doações Feitas ───────────────────────────────────────
+-            if (donated.isNotEmpty) ...[
+-              _HistoricoSectionHeader(
+-                emoji: '💝',
+-                label: 'Doei',
+-                count: donated.length,
+-                color: AppTheme.accentPink,
+-              ),
+-              ...donated.map((e) => _HistoricoCard(entry: e)),
+-            ],
+-          ],
+-        );
+-      },
++        },
++      ),
+     );
+   }
+ }
+diff --git a/lib/features/profile/data/repository/cloudinary_repository.dart b/lib/features/profile/data/repository/cloudinary_repository.dart
+deleted file mode 100644
+index c737403..0000000
+--- a/lib/features/profile/data/repository/cloudinary_repository.dart
++++ /dev/null
+@@ -1,140 +0,0 @@
+-import 'dart:convert';
+-import 'dart:typed_data';
+-import 'package:flutter/material.dart';
+-import 'package:http/http.dart' as http;
+-import 'package:http_parser/http_parser.dart';
+-
+-/// 📤 CLOUDINARY REPOSITORY
+-///
+-/// É o CARTEIRO que envia fotos para a nuvem.
+-/// Conversa diretamente com a API do Cloudinary.
+-///
+-/// Usa [Uint8List] em vez de [File] para funcionar no web e no mobile.
+-///
+-/// RESPONSABILIDADES:
+-/// - Fazer upload de imagens
+-/// - Retornar URL pública da imagem
+-/// - Extrair public_id de URLs
+-class CloudinaryRepository {
+-  static const String _cloudName   = 'dc09lenom';
+-  static const String _uploadPreset = 'ml_default';
+-
+-  /// Faz upload de uma imagem para o Cloudinary
+-  ///
+-  /// [bytes]    = bytes da imagem (lidos via XFile.readAsBytes())
+-  /// [fileName] = nome do arquivo com extensão (ex: "foto.jpg")
+-  ///
+-  /// Retorna a URL pública da imagem ou lança exceção em caso de erro.
+-  Future<String> uploadImage(Uint8List bytes, {String fileName = 'image.jpg'}) async {
+-    try {
+-      final url = Uri.parse(
+-        'https://api.cloudinary.com/v1_1/$_cloudName/image/upload',
+-      );
+-
+-      final request = http.MultipartRequest('POST', url);
+-
+-      // fromBytes funciona no web e no mobile (fromPath só funciona no mobile)
+-      request.files.add(
+-        http.MultipartFile.fromBytes(
+-          'file',
+-          bytes,
+-          filename: fileName,
+-          contentType: _mediaTypeFromFileName(fileName),
+-        ),
+-      );
+-
+-      request.fields['upload_preset'] = _uploadPreset;
+-
+-      final response = await request.send();
+-      final responseData = await response.stream.bytesToString();
+-
+-      if (response.statusCode == 200) {
+-        final jsonResponse = jsonDecode(responseData);
+-        final imageUrl = jsonResponse['secure_url'] as String;
+-        debugPrint('✅ Upload concluído: $imageUrl');
+-        return imageUrl;
+-      } else {
+-        debugPrint('❌ Erro no upload: ${response.statusCode}');
+-        debugPrint('Resposta: $responseData');
+-        throw Exception('Erro ao fazer upload da imagem');
+-      }
+-    } catch (e) {
+-      debugPrint('❌ Erro no upload: $e');
+-      throw Exception('Não foi possível enviar a imagem. Tente novamente.');
+-    }
+-  }
+-
+-  /// Detecta o MediaType pelo nome do arquivo
+-  MediaType _mediaTypeFromFileName(String fileName) {
+-    final lower = fileName.toLowerCase();
+-    if (lower.endsWith('.png'))  return MediaType('image', 'png');
+-    if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+-    return MediaType('image', 'jpeg'); // .jpg / .jpeg / fallback
+-  }
+-
+-  /// Extrai o public_id de uma URL do Cloudinary
+-  ///
+-  /// Exemplo:
+-  /// URL: https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg
+-  /// public_id: sample
+-  String? extractPublicId(String imageUrl) {
+-    try {
+-      if (!imageUrl.contains('cloudinary.com')) {
+-        debugPrint('⚠️ URL não é do Cloudinary: $imageUrl');
+-        return null;
+-      }
+-
+-      final parts = imageUrl.split('/');
+-      final uploadIndex = parts.indexOf('upload');
+-      if (uploadIndex == -1) {
+-        debugPrint('⚠️ Segmento "upload" não encontrado na URL');
+-        return null;
+-      }
+-
+-      final afterUpload = parts.skip(uploadIndex + 1).toList();
+-
+-      // Remove versão (v1234567890) se existir
+-      if (afterUpload.isNotEmpty && afterUpload.first.startsWith('v')) {
+-        afterUpload.removeAt(0);
+-      }
+-
+-      final publicIdWithExtension = afterUpload.join('/');
+-      final publicId = publicIdWithExtension.split('.').first;
+-
+-      debugPrint('📝 Public ID extraído: $publicId');
+-      return publicId;
+-    } catch (e) {
+-      debugPrint('❌ Erro ao extrair public_id: $e');
+-      return null;
+-    }
+-  }
+-
+-  /// Remove uma imagem do Cloudinary via Cloud Function
+-  Future<void> deleteImageViaFunction(String publicId) async {
+-    try {
+-      debugPrint('🗑️ Solicitando deleção de: $publicId');
+-
+-      const functionUrl =
+-          'https://southamerica-east1-empatia-34400.cloudfunctions.net/deleteCloudinaryImage';
+-
+-      final response = await http.post(
+-        Uri.parse(functionUrl),
+-        headers: {'Content-Type': 'application/json'},
+-        body: jsonEncode({'publicId': publicId}),
+-      );
+-
+-      if (response.statusCode == 200) {
+-        final data = jsonDecode(response.body);
+-        debugPrint('✅ Imagem deletada: ${data['message']}');
+-      } else if (response.statusCode == 404) {
+-        debugPrint('⚠️ Imagem não encontrada (pode já ter sido deletada)');
+-      } else {
+-        debugPrint('⚠️ Erro ao deletar: ${response.statusCode}');
+-        debugPrint('Resposta: ${response.body}');
+-      }
+-    } catch (e) {
+-      debugPrint('❌ Erro ao deletar imagem: $e');
+-      // Não lança exceção — falha na deleção não deve bloquear o upload
+-    }
+-  }
+-}
+\ No newline at end of file
+diff --git a/lib/features/profile/data/repository/profile_repository.dart b/lib/features/profile/data/repository/profile_repository.dart
+index 3c0ae96..0aeb7e6 100644
+--- a/lib/features/profile/data/repository/profile_repository.dart
++++ b/lib/features/profile/data/repository/profile_repository.dart
+@@ -141,13 +141,50 @@ class ProfileRepository {
+   }
+ 
+   /// 🔄 Atualiza childName/childEmoji/childAge em todos os sonhos
+-  /// vinculados a [child] (Dreams/{dreamId} com childId == child.id).
++  /// vinculados a [child], nos DOIS nós onde eles vivem:
+   ///
+-  /// Requer índice em `childId` no nó `Dreams` (regras do Realtime
+-  /// Database): "Dreams": { ".indexOn": ["userId", "childId"] }
++  ///   • Users/{uid}/dreams/{id} — nó PRIVADO, lido pela DreamPage
++  ///     (tela "Meus Sonhos" do próprio usuário)
++  ///   • Dreams/{id}             — nó PÚBLICO/feed, lido pela vitrine
++  ///     pública (PublicProfilePage) e pela busca
++  ///
++  /// IMPORTANTE: antes só sincronizávamos o nó público `Dreams`. Isso
++  /// fazia o feed público refletir a edição do filho, mas a própria
++  /// DreamPage do usuário continuava mostrando nome/idade/avatar antigos
++  /// — porque ela lê de `Users/{uid}/dreams`, que nunca era tocado aqui.
++  ///
++  /// Requer índice em `childId` em ambos os nós (regras do Realtime
++  /// Database):
++  ///   "Dreams": { ".indexOn": ["userId", "childId"] }
++  ///   "Users/$uid/dreams": { ".indexOn": ["childId"] }  (ou ".indexOn": ["$uid"]... ajustar conforme regras)
+   Future<void> _syncChildDreams(ChildModel child) async {
+     if (child.id == null) return;
+ 
++    final updates = <String, dynamic>{};
++
++    // ── 1) Nó privado: Users/{uid}/dreams ───────────────────────────────────
++    try {
++      final privateSnap = await _userRef
++          .child('dreams')
++          .orderByChild('childId')
++          .equalTo(child.id)
++          .get();
++
++      if (privateSnap.exists && privateSnap.value is Map) {
++        final privateMap = Map<dynamic, dynamic>.from(privateSnap.value as Map);
++        for (final dreamId in privateMap.keys) {
++          updates['Users/$_uid/dreams/$dreamId/childName']  = child.name;
++          updates['Users/$_uid/dreams/$dreamId/childEmoji'] = child.emoji;
++          updates['Users/$_uid/dreams/$dreamId/childAge']   = child.age;
++        }
++        debugPrint(
++            '✅ ${privateMap.length} sonho(s) privado(s) sincronizado(s) para o filho ${child.name}');
++      }
++    } catch (e) {
++      debugPrint('⚠️ Erro ao sincronizar sonhos privados do filho (continuando): $e');
++    }
++
++    // ── 2) Nó público: Dreams (feed) ─────────────────────────────────────────
+     try {
+       final dreamsSnap = await _db
+           .ref('Dreams')
+@@ -155,27 +192,30 @@ class ProfileRepository {
+           .equalTo(child.id)
+           .get();
+ 
+-      if (!dreamsSnap.exists || dreamsSnap.value is! Map) return;
++      if (dreamsSnap.exists && dreamsSnap.value is Map) {
++        final dreamsMap = Map<dynamic, dynamic>.from(dreamsSnap.value as Map);
++        for (final dreamId in dreamsMap.keys) {
++          updates['Dreams/$dreamId/childName']  = child.name;
++          updates['Dreams/$dreamId/childEmoji'] = child.emoji;
++          updates['Dreams/$dreamId/childAge']   = child.age;
++        }
++        debugPrint(
++            '✅ ${dreamsMap.length} sonho(s) público(s) sincronizado(s) para o filho ${child.name}');
++      }
++    } catch (e) {
++      debugPrint('⚠️ Erro ao sincronizar sonhos públicos do filho (continuando): $e');
++    }
+ 
+-      final dreamsMap = Map<dynamic, dynamic>.from(dreamsSnap.value as Map);
+-      if (dreamsMap.isEmpty) return;
++    if (updates.isEmpty) return;
+ 
+-      // Multi-path update: grava em vários sonhos numa única chamada
++    try {
++      // Multi-path update: grava em ambos os nós numa única chamada
+       // atômica, em vez de um await por sonho.
+-      final updates = <String, dynamic>{};
+-      for (final dreamId in dreamsMap.keys) {
+-        updates['Dreams/$dreamId/childName']  = child.name;
+-        updates['Dreams/$dreamId/childEmoji'] = child.emoji;
+-        updates['Dreams/$dreamId/childAge']   = child.age;
+-      }
+-
+       await _db.ref().update(updates);
+-      debugPrint(
+-          '✅ ${dreamsMap.length} sonho(s) sincronizado(s) para o filho ${child.name}');
+     } catch (e) {
+       // Não falha a edição do filho se a sincronização dos sonhos der
+       // erro — os dados do filho já foram salvos corretamente acima.
+-      debugPrint('⚠️ Erro ao sincronizar sonhos do filho (continuando): $e');
++      debugPrint('⚠️ Erro ao gravar sincronização dos sonhos do filho (continuando): $e');
+     }
+   }
+ 
+diff --git a/lib/features/profile/data/repository/storage_repository.dart b/lib/features/profile/data/repository/storage_repository.dart
+new file mode 100644
+index 0000000..490b46f
+--- /dev/null
++++ b/lib/features/profile/data/repository/storage_repository.dart
+@@ -0,0 +1,100 @@
++import 'dart:math';
++import 'dart:typed_data';
++import 'package:firebase_storage/firebase_storage.dart';
++import 'package:flutter/material.dart';
++
++/// 📤 STORAGE REPOSITORY
++///
++/// É o CARTEIRO que envia fotos para a nuvem.
++/// Conversa diretamente com o Firebase Storage (substitui o antigo
++/// CloudinaryRepository).
++///
++/// Usa [Uint8List] em vez de [File] para funcionar no web e no mobile.
++///
++/// RESPONSABILIDADES:
++/// - Fazer upload de imagens
++/// - Retornar URL pública (download URL) da imagem
++/// - Deletar imagens a partir da própria URL pública
++class StorageRepository {
++  final FirebaseStorage _storage = FirebaseStorage.instance;
++  static final Random _random = Random();
++
++  /// Pasta raiz dentro do bucket onde as imagens enviadas pelo app
++  /// são armazenadas (perfis, filhos, sonhos, doações — tudo cai aqui,
++  /// separado por um nome de arquivo único).
++  static const String _rootFolder = 'uploads';
++
++  /// Faz upload de uma imagem para o Firebase Storage
++  ///
++  /// [bytes]    = bytes da imagem (lidos via XFile.readAsBytes())
++  /// [fileName] = nome do arquivo com extensão (ex: "foto.jpg") — usado
++  ///              apenas para derivar a extensão e o content-type.
++  ///
++  /// Retorna a URL pública (download URL) da imagem ou lança exceção
++  /// em caso de erro.
++  Future<String> uploadImage(Uint8List bytes, {String fileName = 'image.jpg'}) async {
++    try {
++      final extension = _extensionFromFileName(fileName);
++      final uniqueName =
++          '${DateTime.now().millisecondsSinceEpoch}_${_random.nextInt(1000000)}$extension';
++
++      final ref = _storage.ref().child(_rootFolder).child(uniqueName);
++
++      final metadata = SettableMetadata(
++        contentType: _contentTypeFromFileName(fileName),
++      );
++
++      await ref.putData(bytes, metadata);
++      final imageUrl = await ref.getDownloadURL();
++
++      debugPrint('✅ Upload concluído: $imageUrl');
++      return imageUrl;
++    } catch (e) {
++      debugPrint('❌ Erro no upload: $e');
++      throw Exception('Não foi possível enviar a imagem. Tente novamente.');
++    }
++  }
++
++  /// Detecta a extensão do arquivo a partir do nome (com o ponto incluído)
++  String _extensionFromFileName(String fileName) {
++    final lower = fileName.toLowerCase();
++    if (lower.endsWith('.png'))  return '.png';
++    if (lower.endsWith('.webp')) return '.webp';
++    if (lower.endsWith('.jpeg')) return '.jpeg';
++    return '.jpg'; // fallback
++  }
++
++  /// Detecta o content-type pelo nome do arquivo
++  String _contentTypeFromFileName(String fileName) {
++    final lower = fileName.toLowerCase();
++    if (lower.endsWith('.png'))  return 'image/png';
++    if (lower.endsWith('.webp')) return 'image/webp';
++    return 'image/jpeg'; // .jpg / .jpeg / fallback
++  }
++
++  /// Remove uma imagem do Firebase Storage a partir da sua URL pública
++  /// (download URL). Diferente do Cloudinary, o Storage permite
++  /// reconstruir a referência (`Reference`) direto a partir da URL —
++  /// não precisamos extrair nenhum "public_id" manualmente nem passar
++  /// por uma Cloud Function.
++  Future<void> deleteImageByUrl(String imageUrl) async {
++    try {
++      debugPrint('🗑️ Solicitando deleção de: $imageUrl');
++
++      final ref = _storage.refFromURL(imageUrl);
++      await ref.delete();
++
++      debugPrint('✅ Imagem deletada: ${ref.fullPath}');
++    } on FirebaseException catch (e) {
++      if (e.code == 'object-not-found') {
++        debugPrint('⚠️ Imagem não encontrada (pode já ter sido deletada)');
++        return;
++      }
++      debugPrint('⚠️ Erro ao deletar: ${e.code} — ${e.message}');
++      // Não lança exceção — falha na deleção não deve bloquear o fluxo
++      // que está chamando (ex: upload de uma nova foto).
++    } catch (e) {
++      debugPrint('❌ Erro ao deletar imagem: $e');
++    }
++  }
++}
+diff --git a/lib/features/profile/data/service/profile_service.dart b/lib/features/profile/data/service/profile_service.dart
+index da47427..4a83710 100644
+--- a/lib/features/profile/data/service/profile_service.dart
++++ b/lib/features/profile/data/service/profile_service.dart
+@@ -2,7 +2,7 @@ import 'package:empatia/core/data/models/child_model.dart';
+ import 'package:empatia/core/data/models/user_model.dart';
+ import 'package:image_picker/image_picker.dart'; // XFile
+ import '../repository/profile_repository.dart';
+-import 'cloudinary_service.dart';
++import 'storage_service.dart';
+ 
+ /// 👤 PROFILE SERVICE
+ ///
+@@ -10,9 +10,9 @@ import 'cloudinary_service.dart';
+ /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
+ class ProfileService {
+   final ProfileRepository _repository;
+-  final CloudinaryService _cloudinaryService;
++  final StorageService _storageService;
+ 
+-  ProfileService(this._repository, this._cloudinaryService);
++  ProfileService(this._repository, this._storageService);
+ 
+   Stream<UserModel?> watchUser() => _repository.watchUser();
+ 
+@@ -119,7 +119,7 @@ class ProfileService {
+     bool clearPhoto = false;
+ 
+     if (profilePhoto != null) {
+-      profileImageUrl = await _cloudinaryService.uploadProfileImage(
++      profileImageUrl = await _storageService.uploadProfileImage(
+         profilePhoto,
+         oldImageUrl: currentUser.profileImage,
+       );
+diff --git a/lib/features/profile/data/service/cloudinary_service.dart b/lib/features/profile/data/service/storage_service.dart
+similarity index 80%
+rename from lib/features/profile/data/service/cloudinary_service.dart
+rename to lib/features/profile/data/service/storage_service.dart
+index a08254b..4053271 100644
+--- a/lib/features/profile/data/service/cloudinary_service.dart
++++ b/lib/features/profile/data/service/storage_service.dart
+@@ -1,11 +1,12 @@
+ import 'package:flutter/material.dart';
+ import 'package:image_picker/image_picker.dart'; // XFile
+-import '../repository/cloudinary_repository.dart';
++import '../repository/storage_repository.dart';
+ 
+-/// 📸 CLOUDINARY SERVICE
++/// 📸 STORAGE SERVICE
+ ///
+ /// É o GERENTE de fotos.
+-/// Valida imagens antes de enviar para o Cloudinary.
++/// Valida imagens antes de enviar para o Firebase Storage (substitui o
++/// antigo CloudinaryService).
+ ///
+ /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
+ ///
+@@ -14,10 +15,15 @@ import '../repository/cloudinary_repository.dart';
+ /// - Chamar o Repository para upload
+ /// - Deletar imagens antigas antes de fazer novo upload
+ /// - Garantir que dados estão corretos
+-class CloudinaryService {
+-  final CloudinaryRepository _repository;
++///
++/// Mantém os mesmos nomes de método do antigo CloudinaryService
++/// (uploadProfileImage / deleteProfileImage) para que ProfileService,
++/// DonationService e DreamService não precisem mudar nada além do
++/// import e do tipo da dependência injetada.
++class StorageService {
++  final StorageRepository _repository;
+ 
+-  CloudinaryService(this._repository);
++  StorageService(this._repository);
+ 
+   /// Tamanho máximo: 5MB
+   static const int _maxSizeBytes = 5 * 1024 * 1024;
+@@ -83,21 +89,11 @@ class CloudinaryService {
+     return imageUrl;
+   }
+ 
+-  /// Deleta uma imagem antiga do Cloudinary
++  /// Deleta uma imagem antiga do Firebase Storage
+   Future<void> _deleteOldImage(String imageUrl) async {
+     try {
+       debugPrint('🗑️ Tentando deletar imagem antiga...');
+-
+-      final publicId = _repository.extractPublicId(imageUrl);
+-
+-      if (publicId == null) {
+-        debugPrint('⚠️ Não foi possível extrair public_id da URL');
+-        return;
+-      }
+-
+-      await _repository.deleteImageViaFunction(publicId);
+-
+-      debugPrint('✅ Imagem antiga removida: $publicId');
++      await _repository.deleteImageByUrl(imageUrl);
+     } catch (e) {
+       // Não falha se deleção não funcionar
+       debugPrint('⚠️ Erro ao deletar imagem antiga (continuando): $e');
+@@ -108,4 +104,4 @@ class CloudinaryService {
+   Future<void> deleteProfileImage(String imageUrl) async {
+     await _deleteOldImage(imageUrl);
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/pubspec.yaml b/pubspec.yaml
+index d0a5b7e..59ff46b 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -15,6 +15,7 @@ dependencies:
+   # Firebase - VERSÕES COMPATÍVEIS
+   firebase_core: ^3.15.0
+   firebase_auth: ^5.3.4
++  firebase_storage: ^12.4.7
+   
+   google_sign_in: ^6.2.1
+   firebase_database: ^11.3.10

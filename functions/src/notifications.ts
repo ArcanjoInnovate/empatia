@@ -1,22 +1,32 @@
 // functions/src/notifications.ts
+//
+// ⚠️  Assim como em index.ts: NÃO chame initializeApp()/getDatabase() no
+//     topo do módulo. O Firebase CLI carrega este arquivo para descobrir
+//     as funções exportadas; I/O no topo (initializeApp síncrono tentando
+//     detectar credenciais/projeto) pode travar essa descoberta e gerar
+//     o erro "Cannot determine backend specification. Timeout after 10000".
+//     Por isso a inicialização do Admin SDK é sempre lazy, dentro de getDB().
+// ─────────────────────────────────────────────────────────────
 
 import { onValueCreated, onValueUpdated } from 'firebase-functions/v2/database';
 import { onSchedule }                     from 'firebase-functions/v2/scheduler';
 import * as logger                         from 'firebase-functions/logger';
-import { initializeApp, getApps }         from 'firebase-admin/app';
-import { getDatabase }                     from 'firebase-admin/database';
-import { getMessaging }                    from 'firebase-admin/messaging';
-
-if (getApps().length === 0) {
-  initializeApp();
-}
+import { getAdminApp }                     from './shared';
 
 // ══════════════════════════════════════════════════════════════
 // HELPERS LOCAIS
 // ══════════════════════════════════════════════════════════════
 
 function getDB() {
+  getAdminApp();
+  const { getDatabase } = require('firebase-admin/database');
   return getDatabase();
+}
+
+function getFCM() {
+  getAdminApp();
+  const { getMessaging } = require('firebase-admin/messaging');
+  return getMessaging();
 }
 
 function weekKey(): string {
@@ -71,7 +81,7 @@ async function writeNotification(
       ).length;
     }
 
-    const result = await getMessaging().send({
+    const result = await getFCM().send({
       token,
       notification: {
         title: payload['title'] as string,

@@ -12,9 +12,10 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   
-  # Firebase - VERSÕES COMPATÍVEIS
+  # Firebase - VERSÃ•ES COMPATÃVEIS
   firebase_core: ^3.15.0
   firebase_auth: ^5.3.4
+  firebase_storage: ^12.4.7
   
   google_sign_in: ^6.2.1
   firebase_database: ^11.3.10

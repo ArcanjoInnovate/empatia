@@ -10,10 +10,10 @@ import 'package:empatia/features/dream/data/repository/dream_repository.dart';
 import 'package:empatia/features/dream/data/repository/dreams_feed_repository.dart';
 import 'package:empatia/features/dream/data/service/dream_service.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
-import 'package:empatia/features/profile/data/repository/cloudinary_repository.dart';
+import 'package:empatia/features/profile/data/repository/storage_repository.dart';
 import 'package:empatia/features/profile/data/repository/location_repository.dart';
 import 'package:empatia/features/profile/data/repository/profile_repository.dart';
-import 'package:empatia/features/profile/data/service/cloudinary_service.dart';
+import 'package:empatia/features/profile/data/service/storage_service.dart';
 import 'package:empatia/features/profile/data/service/location_service.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/request/controller/request_controller.dart';
@@ -35,10 +35,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // ── 1. Repositórios ──────────────────────────────────
+        // â”€â”€ 1. RepositÃ³rios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Provider<ProfileRepository>(create: (_) => ProfileRepository()),
         Provider<LocationRepository>(create: (_) => LocationRepository()),
-        Provider<CloudinaryRepository>(create: (_) => CloudinaryRepository()),
+        Provider<StorageRepository>(create: (_) => StorageRepository()),
         Provider<DonationRepository>(create: (_) => DonationRepository()),
         Provider<RequestRepository>(create: (_) => RequestRepository()),
         Provider<DreamRepository>(create: (_) => DreamRepository()),
@@ -48,76 +48,76 @@ class MyApp extends StatelessWidget {
         Provider<SearchLocationRepository>(
             create: (_) => SearchLocationRepository()),
 
-        // ── 2. Services ──────────────────────────────────────
-        ProxyProvider<CloudinaryRepository, CloudinaryService>(
-          update: (_, repo, __) => CloudinaryService(repo),
+        // â”€â”€ 2. Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        ProxyProvider<StorageRepository, StorageService>(
+          update: (_, repo, __) => StorageService(repo),
         ),
-        ProxyProvider2<ProfileRepository, CloudinaryService, ProfileService>(
-          update: (_, profileRepo, cloudinary, __) =>
-              ProfileService(profileRepo, cloudinary),
+        ProxyProvider2<ProfileRepository, StorageService, ProfileService>(
+          update: (_, profileRepo, storage, __) =>
+              ProfileService(profileRepo, storage),
         ),
         ProxyProvider<LocationRepository, LocationService>(
           update: (_, repo, __) => LocationService(repo),
         ),
-        ProxyProvider2<DonationRepository, CloudinaryService, DonationService>(
-          update: (_, repo, cloudinary, __) =>
-              DonationService(repo, cloudinary),
+        ProxyProvider2<DonationRepository, StorageService, DonationService>(
+          update: (_, repo, storage, __) =>
+              DonationService(repo, storage),
         ),
         ProxyProvider<RequestRepository, RequestService>(
           update: (_, repo, __) => RequestService(repo),
         ),
-        ProxyProvider3<DreamRepository, CloudinaryService, DreamsFeedRepository, DreamService>(
-          update: (_, repo, cloudinary, feedRepo, __) =>
-              DreamService(repo, cloudinary, feedRepo),
+        ProxyProvider3<DreamRepository, StorageService, DreamsFeedRepository, DreamService>(
+          update: (_, repo, storage, feedRepo, __) =>
+              DreamService(repo, storage, feedRepo),
         ),
 
-        // ── 3. Stream do UserModel ───────────────────────────
+        // â”€â”€ 3. Stream do UserModel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         StreamProvider<UserModel?>(
           create: (context) => context.read<UserRepository>().watchCurrentUser(),
           initialData: null,
           catchError: (_, __) => null,
         ),
 
-        // ── 4. Controllers ───────────────────────────────────
+        // â”€â”€ 4. Controllers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ChangeNotifierProxyProvider2<ProfileService, LocationService,
             ProfileController>(
           create: (_) => ProfileController(
             ProfileService(
               ProfileRepository(),
-              CloudinaryService(CloudinaryRepository()),
+              StorageService(StorageRepository()),
             ),
             LocationService(LocationRepository()),
           ),
           update: (_, profileService, locationService, __) =>
               ProfileController(profileService, locationService),
         ),
-        ChangeNotifierProxyProvider2<DonationRepository, CloudinaryService,
+        ChangeNotifierProxyProvider2<DonationRepository, StorageService,
             DonationController>(
           create: (_) => DonationController(
             DonationService(
               DonationRepository(),
-              CloudinaryService(CloudinaryRepository()),
+              StorageService(StorageRepository()),
             ),
           ),
-          update: (_, repo, cloudinary, __) =>
-              DonationController(DonationService(repo, cloudinary)),
+          update: (_, repo, storage, __) =>
+              DonationController(DonationService(repo, storage)),
         ),
         ChangeNotifierProxyProvider<RequestService, RequestController>(
           create: (_) =>
               RequestController(RequestService(RequestRepository())),
           update: (_, service, __) => RequestController(service),
         ),
-        ChangeNotifierProxyProvider3<DreamRepository, CloudinaryService,
+        ChangeNotifierProxyProvider3<DreamRepository, StorageService,
             DreamsFeedRepository, DreamController>(
           create: (_) => DreamController(
             DreamService(
               DreamRepository(),
-              CloudinaryService(CloudinaryRepository()),
+              StorageService(StorageRepository()),
               DreamsFeedRepository(),
             ),
           ),
-          update: (_, repo, cloudinary, feedRepo, __) =>
-              DreamController(DreamService(repo, cloudinary, feedRepo)),
+          update: (_, repo, storage, feedRepo, __) =>
+              DreamController(DreamService(repo, storage, feedRepo)),
         ),
         ChangeNotifierProxyProvider<SearchRepository, SearchController>(
           create: (_) => SearchController(SearchRepository()),

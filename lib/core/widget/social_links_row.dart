@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// 🌐 SOCIAL LINKS ROW
+/// ðŸŒ SOCIAL LINKS ROW
 ///
-/// Fileira de ícones de redes sociais (Facebook, Instagram, X) — usada
-/// tanto no próprio perfil (ProfileHeaderWidget) quanto no perfil
-/// público de outros usuários (PublicProfilePage).
+/// Fileira de Ã­cones de redes sociais (Facebook, Instagram, X) â€” usada
+/// tanto no prÃ³prio perfil (ProfileHeaderWidget) quanto no perfil
+/// pÃºblico de outros usuÃ¡rios (PublicProfilePage).
 ///
-/// Cada ícone só aparece se o link correspondente estiver preenchido.
+/// Cada Ã­cone sÃ³ aparece se o link correspondente estiver preenchido.
 /// Ao tocar, abre o link no navegador/app correspondente via
-/// [url_launcher] — se o app nativo (Facebook/Instagram/X) estiver
+/// [url_launcher] â€” se o app nativo (Facebook/Instagram/X) estiver
 /// instalado, o sistema operacional abre ele direto.
 class SocialLinksRow extends StatelessWidget {
   final String? facebook;
   final String? instagram;
   final String? x;
 
-  /// Cor de fundo dos círculos quando usados sobre fundo claro.
+  /// Cor de fundo dos cÃ­rculos quando usados sobre fundo claro.
   /// Sobre o header gradiente (rosa/roxo), passe `light: true`.
   final bool light;
 
@@ -28,8 +28,8 @@ class SocialLinksRow extends StatelessWidget {
     this.light = false,
   }) : super(key: key);
 
-  /// Facebook está temporariamente fora da exibição (o domínio não é
-  /// padronizável como instagram.com/x.com — ver SocialConfirmCard).
+  /// Facebook estÃ¡ temporariamente fora da exibiÃ§Ã£o (o domÃ­nio nÃ£o Ã©
+  /// padronizÃ¡vel como instagram.com/x.com â€” ver SocialConfirmCard).
   /// Mantemos o campo no modelo/banco para reativar facilmente depois.
   bool get hasAny =>
       (instagram?.trim().isNotEmpty ?? false) ||
@@ -42,7 +42,7 @@ class SocialLinksRow extends StatelessWidget {
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível abrir o link.'),
+          content: Text('NÃ£o foi possÃ­vel abrir o link.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -56,7 +56,7 @@ class SocialLinksRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Facebook temporariamente desativado — ver comentário em hasAny.
+        // Facebook temporariamente desativado â€” ver comentÃ¡rio em hasAny.
         if (instagram?.trim().isNotEmpty ?? false)
           _SocialIcon(
             icon: Icons.camera_alt_rounded,
@@ -70,7 +70,7 @@ class SocialLinksRow extends StatelessWidget {
           if (instagram?.trim().isNotEmpty ?? false)
             const SizedBox(width: 12),
           _SocialIcon(
-            label: '𝕏',
+            label: 'ð•',
             color: Colors.black,
             light: light,
             onTap: () => _open(context, x!.trim()),
@@ -81,15 +81,15 @@ class SocialLinksRow extends StatelessWidget {
   }
 }
 
-/// 🔎 SOCIAL CONFIRM CARD
+/// ðŸ”Ž SOCIAL CONFIRM CARD
 ///
 /// Card que aparece embaixo de um campo de rede social assim que o
-/// usuário digita algo — mostra um preview do link e um botão "Abrir e
-/// conferir" para a pessoa visualmente confirmar que é o perfil dela
-/// mesma antes de salvar (não há como validar isso automaticamente).
+/// usuÃ¡rio digita algo â€” mostra um preview do link e um botÃ£o "Abrir e
+/// conferir" para a pessoa visualmente confirmar que Ã© o perfil dela
+/// mesma antes de salvar (nÃ£o hÃ¡ como validar isso automaticamente).
 class SocialConfirmCard extends StatelessWidget {
   final String platform; // 'Instagram' | 'X'
-  final String rawValue; // só o @usuario, sem domínio
+  final String rawValue; // sÃ³ o @usuario, sem domÃ­nio
 
   const SocialConfirmCard({
     Key? key,
@@ -102,9 +102,9 @@ class SocialConfirmCard extends StatelessWidget {
     'X': 'x.com',
   };
 
-  /// Limpa o que a pessoa digitou: remove @ na frente, espaços, e se
-  /// colar sem querer um link completo, extrai só o último pedaço (o
-  /// nome de usuário em si).
+  /// Limpa o que a pessoa digitou: remove @ na frente, espaÃ§os, e se
+  /// colar sem querer um link completo, extrai sÃ³ o Ãºltimo pedaÃ§o (o
+  /// nome de usuÃ¡rio em si).
   String get _cleanUsername {
     var v = rawValue.trim();
     if (v.contains('/')) {
@@ -135,7 +135,7 @@ class SocialConfirmCard extends StatelessWidget {
         );
       case 'X':
       default:
-        return (icon: null, label: '𝕏', color: Colors.black, gradient: null);
+        return (icon: null, label: 'ð•', color: Colors.black, gradient: null);
     }
   }
 
@@ -169,7 +169,7 @@ class SocialConfirmCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confira se é o link certo',
+                  'Confira se Ã© o link certo',
                   style: const TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
@@ -198,7 +198,7 @@ class SocialConfirmCard extends StatelessWidget {
               if (!ok && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Não foi possível abrir o link.'),
+                    content: Text('NÃ£o foi possÃ­vel abrir o link.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -253,10 +253,11 @@ class _SocialIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Responsivo (baseado na largura da tela, funciona em qualquer
-    // dispositivo) e 50% maior que a versão fixa anterior de 68px
-    // (ou seja, referência de ~102px em telas de celular comuns).
+    // dispositivo). Reduzido em 25% em relaÃ§Ã£o Ã  versÃ£o anterior
+    // (que ia de ~64px a 102px) â€” agora vai de ~48px a 76.5px.
     final screenWidth = MediaQuery.of(context).size.width;
-    final circleSize = (screenWidth * 0.19).clamp(64.0, 102.0);
+    // Reduzido 25% (era: 0.19 / clamp 64â€“102) a pedido do usuÃ¡rio.
+    final circleSize = (screenWidth * 0.1425).clamp(48.0, 76.5);
     final iconSize = circleSize * 0.5;
     final labelSize = circleSize * 0.46;
 

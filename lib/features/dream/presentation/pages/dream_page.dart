@@ -362,41 +362,62 @@ class _StatBubble extends StatelessWidget {
 // ABA 1 — SONHOS
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _TabSonhos extends StatelessWidget {
+class _TabSonhos extends StatefulWidget {
   final UserModel? currentUser;
   const _TabSonhos({this.currentUser});
 
   @override
+  State<_TabSonhos> createState() => _TabSonhosState();
+}
+
+class _TabSonhosState extends State<_TabSonhos> {
+  // Trocar a key força o StreamBuilder a recriar a subscription,
+  // ou seja, faz um "force refresh" mesmo a stream sendo realtime.
+  Key _streamKey = UniqueKey();
+
+  Future<void> _onRefresh() async {
+    setState(() => _streamKey = UniqueKey());
+    // pequeno delay para o RefreshIndicator dar feedback visual
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ctrl = context.read<DreamController>();
-    return StreamBuilder<List<DreamModel>>(
-      stream: ctrl.watchDreams(),
-      builder: (context, snapshot) {
-        final dreams = snapshot.data ?? [];
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-          children: [
-            if (dreams.isEmpty)
-              _EmptyState(
-                emoji: '🌙',
-                title: 'Que sonho você tem?',
-                subtitle: 'Toque no botão ✨ para adicionar seu primeiro sonho!',
-                borderColor: AppTheme.accentPurple,
-              )
-            else
-              ...dreams.map((d) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: DreamCardWidget(
-                      dream: d,
-                      editable: true,
-                      onEdit: currentUser == null
-                          ? null
-                          : () => showDreamFormSheet(context, currentUser: currentUser!, dream: d),
-                    ),
-                  )),
-          ],
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      color: AppTheme.accentPurple,
+      child: StreamBuilder<List<DreamModel>>(
+        key: _streamKey,
+        stream: ctrl.watchDreams(),
+        builder: (context, snapshot) {
+          final dreams = snapshot.data ?? [];
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+            children: [
+              if (dreams.isEmpty)
+                _EmptyState(
+                  emoji: '🌙',
+                  title: 'Que sonho você tem?',
+                  subtitle: 'Toque no botão ✨ para adicionar seu primeiro sonho!',
+                  borderColor: AppTheme.accentPurple,
+                )
+              else
+                ...dreams.map((d) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: DreamCardWidget(
+                        dream: d,
+                        editable: true,
+                        onEdit: widget.currentUser == null
+                            ? null
+                            : () => showDreamFormSheet(context, currentUser: widget.currentUser!, dream: d),
+                      ),
+                    )),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -405,48 +426,67 @@ class _TabSonhos extends StatelessWidget {
 // ABA 2 — DOAÇÕES
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _TabDoacoes extends StatelessWidget {
+class _TabDoacoes extends StatefulWidget {
   final UserModel? currentUser;
   const _TabDoacoes({this.currentUser});
 
   @override
+  State<_TabDoacoes> createState() => _TabDoacoesState();
+}
+
+class _TabDoacoesState extends State<_TabDoacoes> {
+  Key _streamKey = UniqueKey();
+
+  Future<void> _onRefresh() async {
+    setState(() => _streamKey = UniqueKey());
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ctrl = context.read<DonationController>();
-    return StreamBuilder<List<DonationModel>>(
-      stream: ctrl.watchMyDonations(),
-      builder: (context, snapshot) {
-        final donations = snapshot.data ?? [];
-        if (donations.isEmpty) {
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-            children: [
-              _EmptyState(
-                emoji: '🧸',
-                title: 'Nenhuma doação ainda!',
-                subtitle: 'Compartilhe brinquedos e itens que você não usa 💕',
-                borderColor: AppTheme.accentPink,
-              ),
-            ],
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      color: AppTheme.accentPink,
+      child: StreamBuilder<List<DonationModel>>(
+        key: _streamKey,
+        stream: ctrl.watchMyDonations(),
+        builder: (context, snapshot) {
+          final donations = snapshot.data ?? [];
+          if (donations.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+              children: [
+                _EmptyState(
+                  emoji: '🧸',
+                  title: 'Nenhuma doação ainda!',
+                  subtitle: 'Compartilhe brinquedos e itens que você não usa 💕',
+                  borderColor: AppTheme.accentPink,
+                ),
+              ],
+            );
+          }
+          return GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,      // era 3 — muito apertado para imagem + texto
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.82, // mais altura por card para título e categoria
+            ),
+            itemCount: donations.length,
+            itemBuilder: (_, i) => DonationCardWidget(
+              donation: donations[i],
+              onEdit: () {
+                if (widget.currentUser == null) return;
+                showDonationItemFormSheet(context, currentUser: widget.currentUser!, donation: donations[i]);
+              },
+            ),
           );
-        }
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,      // era 3 — muito apertado para imagem + texto
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.82, // mais altura por card para título e categoria
-          ),
-          itemCount: donations.length,
-          itemBuilder: (_, i) => DonationCardWidget(
-            donation: donations[i],
-            onEdit: () {
-              if (currentUser == null) return;
-              showDonationItemFormSheet(context, currentUser: currentUser!, donation: donations[i]);
-            },
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 }
@@ -455,71 +495,90 @@ class _TabDoacoes extends StatelessWidget {
 // ABA 3 — HISTÓRICO
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _TabHistorico extends StatelessWidget {
+class _TabHistorico extends StatefulWidget {
   final String? myUid;
   const _TabHistorico({this.myUid});
 
   @override
+  State<_TabHistorico> createState() => _TabHistoricoState();
+}
+
+class _TabHistoricoState extends State<_TabHistorico> {
+  Key _streamKey = UniqueKey();
+
+  Future<void> _onRefresh() async {
+    setState(() => _streamKey = UniqueKey());
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (myUid == null) {
+    if (widget.myUid == null) {
       return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
     }
 
-    return StreamBuilder<List<DonationHistoryEntry>>(
-      stream: _HistoryRepository.watch(myUid!),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
-        }
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      color: AppTheme.accentTeal,
+      child: StreamBuilder<List<DonationHistoryEntry>>(
+        key: _streamKey,
+        stream: _HistoryRepository.watch(widget.myUid!),
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppTheme.accentPurple, strokeWidth: 2));
+          }
 
-        final all      = snap.data ?? [];
-        final donated  = all.where((e) => e.isDonated).toList();
-        final received = all.where((e) => e.isReceived).toList();
+          final all      = snap.data ?? [];
+          final donated  = all.where((e) => e.isDonated).toList();
+          final received = all.where((e) => e.isReceived).toList();
 
-        if (all.isEmpty) {
+          if (all.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+              children: [
+                _EmptyState(
+                  emoji: '📋',
+                  title: 'Histórico vazio',
+                  subtitle: 'Quando você concluir uma doação, ela aparecerá aqui para ambos os participantes.',
+                  borderColor: AppTheme.accentTeal,
+                ),
+              ],
+            );
+          }
+
           return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 100),
             children: [
-              _EmptyState(
-                emoji: '📋',
-                title: 'Histórico vazio',
-                subtitle: 'Quando você concluir uma doação, ela aparecerá aqui para ambos os participantes.',
-                borderColor: AppTheme.accentTeal,
-              ),
+              // ── Resumo ──────────────────────────────────────────────
+              _HistoricoResumo(total: all.length, donated: donated.length, received: received.length),
+
+              // ── Itens Recebidos ──────────────────────────────────────
+              if (received.isNotEmpty) ...[
+                _HistoricoSectionHeader(
+                  emoji: '🎁',
+                  label: 'Recebi',
+                  count: received.length,
+                  color: AppTheme.accentGreen,
+                ),
+                ...received.map((e) => _HistoricoCard(entry: e)),
+              ],
+
+              // ── Doações Feitas ───────────────────────────────────────
+              if (donated.isNotEmpty) ...[
+                _HistoricoSectionHeader(
+                  emoji: '💝',
+                  label: 'Doei',
+                  count: donated.length,
+                  color: AppTheme.accentPink,
+                ),
+                ...donated.map((e) => _HistoricoCard(entry: e)),
+              ],
             ],
           );
-        }
-
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 100),
-          children: [
-            // ── Resumo ──────────────────────────────────────────────
-            _HistoricoResumo(total: all.length, donated: donated.length, received: received.length),
-
-            // ── Itens Recebidos ──────────────────────────────────────
-            if (received.isNotEmpty) ...[
-              _HistoricoSectionHeader(
-                emoji: '🎁',
-                label: 'Recebi',
-                count: received.length,
-                color: AppTheme.accentGreen,
-              ),
-              ...received.map((e) => _HistoricoCard(entry: e)),
-            ],
-
-            // ── Doações Feitas ───────────────────────────────────────
-            if (donated.isNotEmpty) ...[
-              _HistoricoSectionHeader(
-                emoji: '💝',
-                label: 'Doei',
-                count: donated.length,
-                color: AppTheme.accentPink,
-              ),
-              ...donated.map((e) => _HistoricoCard(entry: e)),
-            ],
-          ],
-        );
-      },
+        },
+      ),
     );
   }
 }
