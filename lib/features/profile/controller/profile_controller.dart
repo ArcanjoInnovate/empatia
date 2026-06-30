@@ -44,9 +44,13 @@ class ProfileController extends ChangeNotifier {
     required String? profileEmoji,
     required String? sexo,
     required UserModel currentUser,
+    String? socialFacebook,
+    String? socialInstagram,
+    String? socialX,
     double? latitude,
     double? longitude,
     XFile? profilePhoto,
+    bool usePhoto = true,
   }) async {
     _saveState = SaveState.loading;
     notifyListeners();
@@ -62,9 +66,13 @@ class ProfileController extends ChangeNotifier {
         profileEmoji: profileEmoji,
         sexo: sexo,
         currentUser: currentUser,
+        socialFacebook: socialFacebook,
+        socialInstagram: socialInstagram,
+        socialX: socialX,
         latitude: latitude,
         longitude: longitude,
         profilePhoto: profilePhoto,
+        usePhoto: usePhoto,
       );
       _saveState = SaveState.success;
       notifyListeners();

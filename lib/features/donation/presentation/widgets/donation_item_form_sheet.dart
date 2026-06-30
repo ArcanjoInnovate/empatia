@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/donation/controller/donation_controller.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
-import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';

@@ -351,8 +351,6 @@ class ChatRepository {
       updatesOpen['Dreams/$itemId/updatedAt']   = now;
       updatesOpen['Dreams/$itemId/fulfilledBy'] = donorUid;
       updatesOpen['Dreams/$itemId/fulfilledAt'] = now;
-      // Atualiza dentro do perfil do DONO DO SONHO (confirmingUid),
-      // que é quem confirmou o recebimento — não o doador.
       updatesOpen['Users/$confirmingUid/dreams/$itemId/progress']    = 1.0;
       updatesOpen['Users/$confirmingUid/dreams/$itemId/status']      = 'fulfilled';
       updatesOpen['Users/$confirmingUid/dreams/$itemId/updatedAt']   = now;

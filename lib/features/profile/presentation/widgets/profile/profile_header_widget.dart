@@ -1,4 +1,6 @@
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
+import 'package:empatia/core/widget/social_links_row.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/profile/presentation/page/edit_profile/edit_profile.dart';
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/account_settings_page.dart';
@@ -16,7 +18,7 @@ class ProfileHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 320,
+      expandedHeight: 360,
       pinned: true,
       stretch: true,
       backgroundColor: AppTheme.kidsPink,
@@ -78,10 +80,11 @@ class _HeaderBackground extends StatelessWidget {
 
             // ── Conteúdo principal ──
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
+                reverse: true,
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -116,6 +119,16 @@ class _HeaderBackground extends StatelessWidget {
                       const SizedBox(height: 12),
                       ProfileStatusBannerWidget(user: user),
                     ],
+                    if ((user.socialFacebook?.isNotEmpty ?? false) ||
+                        (user.socialInstagram?.isNotEmpty ?? false) ||
+                        (user.socialX?.isNotEmpty ?? false)) ...[
+                      const SizedBox(height: 12),
+                      SocialLinksRow(
+                        facebook: user.socialFacebook,
+                        instagram: user.socialInstagram,
+                        x: user.socialX,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -139,8 +152,6 @@ class _HeaderBackground extends StatelessWidget {
   }
 }
 
-// ── Avatar ───────────────────────────────────────────────────────────────────
-
 class ProfileAvatarWidget extends StatelessWidget {
   final UserModel user;
   const ProfileAvatarWidget({Key? key, required this.user}) : super(key: key);
@@ -159,16 +170,12 @@ class ProfileAvatarWidget extends StatelessWidget {
                 user.profileImage!,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    _emojiCenter(user.profileEmoji ?? '👤', 48),
+                    AvatarRender(value: user.profileEmoji, size: 88),
               )
-            : _emojiCenter(user.profileEmoji ?? '👤', 48),
+            : AvatarRender(value: user.profileEmoji, size: 88),
       ),
     );
   }
-
-  Widget _emojiCenter(String emoji, double size) => Center(
-        child: Text(emoji, style: TextStyle(fontSize: size)),
-      );
 }
 
 // ── Verification chip ────────────────────────────────────────────────────────

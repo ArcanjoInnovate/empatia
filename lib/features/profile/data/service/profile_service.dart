@@ -16,6 +16,26 @@ class ProfileService {
 
   Stream<UserModel?> watchUser() => _repository.watchUser();
 
+  /// Constrói a URL completa de uma rede social a partir do que a pessoa
+  /// digitou no campo (só o "@usuario", sem domínio):
+  ///   • vazio/em branco → null (remove o link salvo)
+  ///   • remove @ e barras que tenham sobrado
+  ///   • monta "https://{domain}/{usuario}"
+  ///
+  /// O domínio NUNCA vem do usuário (evita link incorreto/malicioso) —
+  /// é sempre o fixo da própria plataforma, escolhido por código.
+  static String? _buildSocialUrl(String? rawUsername, String domain) {
+    var v = rawUsername?.trim();
+    if (v == null || v.isEmpty) return null;
+    if (v.contains('/')) {
+      final parts = v.split('/').where((p) => p.trim().isNotEmpty).toList();
+      if (parts.isNotEmpty) v = parts.last;
+    }
+    v = v.replaceAll('@', '').trim();
+    if (v.isEmpty) return null;
+    return 'https://$domain/$v';
+  }
+
   // ── Campos obrigatórios para o perfil ser considerado completo ──────────────
   //
   // Para [isProfileComplete] retornar true, o usuário precisa ter:
@@ -68,9 +88,13 @@ class ProfileService {
     required String? profileEmoji,
     required String? sexo,
     required UserModel currentUser,
+    String? socialFacebook,
+    String? socialInstagram,
+    String? socialX,
     double? latitude,
     double? longitude,
     XFile? profilePhoto,
+    bool usePhoto = true,
   }) async {
     final trimmedName = name?.trim() ?? '';
     if (trimmedName.isEmpty) {
@@ -92,12 +116,18 @@ class ProfileService {
     }
 
     String? profileImageUrl = currentUser.profileImage;
+    bool clearPhoto = false;
 
     if (profilePhoto != null) {
       profileImageUrl = await _cloudinaryService.uploadProfileImage(
         profilePhoto,
         oldImageUrl: currentUser.profileImage,
       );
+    } else if (!usePhoto) {
+      // Usuário trocou explicitamente para o modo "Avatar" (sem foto nova
+      // selecionada) — limpa a foto antiga para o avatar prevalecer.
+      profileImageUrl = null;
+      clearPhoto = true;
     }
 
     final updatedUser = currentUser.copyWith(
@@ -110,9 +140,15 @@ class ProfileService {
           neighborhood?.trim().isEmpty == true ? null : neighborhood?.trim(),
       profileEmoji: profileEmoji,
       sexo: sexo,
+      // Facebook: sem campo de edição ativo no momento — não enviamos
+      // socialFacebook aqui, então o UserModel.copyWith preserva o que
+      // já estava salvo (ver comentário no copyWith).
+      socialInstagram: _buildSocialUrl(socialInstagram, 'instagram.com'),
+      socialX: _buildSocialUrl(socialX, 'x.com'),
       latitude: latitude,
       longitude: longitude,
       profileImage: profileImageUrl,
+      clearProfileImage: clearPhoto,
     );
 
     await _repository.updateProfile(updatedUser);

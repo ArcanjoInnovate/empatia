@@ -1,6 +1,8 @@
 // lib/features/chat/presentation/widgets/chat_list_tile.dart
 
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/features/chat/data/models/chat_model.dart';
 import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
 import 'package:flutter/material.dart';
@@ -527,6 +529,19 @@ class _AvatarImage extends StatelessWidget {
   }
 
   Widget _fallback() {
+    // Se temos um avatar ilustrado (novo formato), mostra a imagem.
+    if (AppAvatars.isAssetPath(emoji)) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: 50, height: 50,
+          color: AppTheme.surfaceBlueTint,
+          child: AvatarRender(value: emoji, size: 50),
+        ),
+      );
+    }
+
+    // Fallback: emoji legado ou inicial do nome.
     final letter = name?.isNotEmpty == true ? name![0].toUpperCase() : null;
     return Container(
       width: 50, height: 50,

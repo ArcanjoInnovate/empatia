@@ -1,12 +1,12 @@
 import 'package:empatia/core/data/models/child_model.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-const _childEmojis = ['👦', '👧', '👶', '🧒', '👦🏽', '👧🏽'];
 
 /// 👨‍👩‍👧‍👦 CHILDREN SECTION
 class ChildrenSection extends StatelessWidget {
@@ -87,7 +87,7 @@ class ChildrenSection extends StatelessWidget {
         confirmLabel: 'Salvar',
         initialName: child.name,
         initialAge: child.age?.toString(),
-        initialEmoji: child.emoji ?? '👶',
+        initialEmoji: child.emoji ?? AppAvatars.defaultChildAvatar,
         onConfirm: (name, age, emoji) async {
           return controller.updateChild(
             childId: child.id!,
@@ -130,9 +130,8 @@ class _ChildCard extends StatelessWidget {
               width: 54,
               height: 54,
               decoration: AppDecorations.childEditAvatar,
-              child: Center(
-                child: Text(child.emoji ?? '👶',
-                    style: const TextStyle(fontSize: 30)),
+              child: ClipOval(
+                child: AvatarRender(value: child.emoji, size: 54),
               ),
             ),
           ),
@@ -231,7 +230,7 @@ class _ChildFormSheet extends StatefulWidget {
     required this.onConfirm,
     this.initialName,
     this.initialAge,
-    this.initialEmoji = '👶',
+    this.initialEmoji = AppAvatars.defaultChildAvatar,
   });
 
   @override
@@ -242,6 +241,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _ageCtrl;
   late String _selectedEmoji;
+  late String _selectedGenero; // 'menino' | 'menina'
 
   // ── Erros inline ─────────────────────────────────────────────
   String? _nameError;
@@ -254,6 +254,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
     _nameCtrl      = TextEditingController(text: widget.initialName);
     _ageCtrl       = TextEditingController(text: widget.initialAge);
     _selectedEmoji = widget.initialEmoji;
+    _selectedGenero = _selectedEmoji.contains('/girl/') ? 'menina' : 'menino';
   }
 
   @override
@@ -358,24 +359,55 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
           ),
           const SizedBox(height: 20),
 
-          // ── Emoji picker ──────────────────────────────────────────
+          // ── Gênero + Avatar picker ───────────────────────────────
           Center(
-            child: Wrap(
-              spacing: 10,
-              children: _childEmojis.map((e) {
-                final sel = e == _selectedEmoji;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedEmoji = e),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 50, height: 50,
-                    decoration: AppDecorations.childEmojiOption(selected: sel),
-                    child: Center(
-                      child: Text(e, style: const TextStyle(fontSize: 28)),
-                    ),
-                  ),
-                );
-              }).toList(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _GeneroChip(
+                  label: 'Menino',
+                  selected: _selectedGenero == 'menino',
+                  onTap: () => setState(() {
+                    _selectedGenero = 'menino';
+                    _selectedEmoji = AppAvatars.boy.first;
+                  }),
+                ),
+                const SizedBox(width: 10),
+                _GeneroChip(
+                  label: 'Menina',
+                  selected: _selectedGenero == 'menina',
+                  onTap: () => setState(() {
+                    _selectedGenero = 'menina';
+                    _selectedEmoji = AppAvatars.girl.first;
+                  }),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 140,
+            child: SingleChildScrollView(
+              child: Center(
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: AppAvatars.forGenero(_selectedGenero).map((path) {
+                    final sel = path == _selectedEmoji;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedEmoji = path),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 50, height: 50,
+                        decoration: AppDecorations.childEmojiOption(selected: sel),
+                        child: ClipOval(
+                          child: AvatarRender(value: path, size: 50),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -444,6 +476,47 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Chip de gênero (menino/menina) ──────────────────────────────────────────
+
+class _GeneroChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _GeneroChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.kidsPink : AppTheme.surfaceBlueTint,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppTheme.kidsPink : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: selected ? AppTheme.backgroundColor : Colors.grey.shade600,
+          ),
+        ),
       ),
     );
   }

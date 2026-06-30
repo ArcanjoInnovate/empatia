@@ -4,13 +4,14 @@
 // ─────────────────────────────────────────────────────────────────────
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/donation/data/model/donation_model.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
-import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/home/data/models/feed_item_.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -393,9 +394,8 @@ class _DreamHero extends StatelessWidget {
               bottom: 14,
               child: Row(
                 children: [
-                  Text(
-                    item.childEmoji ?? '⭐',
-                    style: const TextStyle(fontSize: 22),
+                  ClipOval(
+                    child: AvatarRender(value: item.childEmoji, size: 26),
                   ),
                   const SizedBox(width: 8),
                   Flexible(
@@ -1318,7 +1318,9 @@ class _ChildPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 11)),
+            ClipOval(
+              child: AvatarRender(value: emoji, size: 16),
+            ),
             const SizedBox(width: 4),
             Text(
               name,
@@ -1411,9 +1413,7 @@ class _AuthorAvatar extends StatelessWidget {
           color: _K.purple.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Center(
-          child: Text(emoji ?? '👤', style: const TextStyle(fontSize: 18)),
-        ),
+        child: AvatarRender(value: emoji, size: 38),
       );
 }
 

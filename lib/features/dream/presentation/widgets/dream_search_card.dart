@@ -2,7 +2,6 @@ import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
-import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:flutter/material.dart';

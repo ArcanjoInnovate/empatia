@@ -1,11 +1,12 @@
 // lib/features/search/presentation/widgets/search_result_card.dart
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/widget/verification_block_dialog.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
-import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:flutter/material.dart';
@@ -16,19 +17,19 @@ import 'package:provider/provider.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 abstract final class _C {
-  static const pink      = Color(0xFFFF5C8D);
-  static const pinkDeep  = Color(0xFFE0457A);
-  static const blue      = Color(0xFF2563EB);
-  static const blueDeep  = Color(0xFF1D4ED8);
-  static const navy      = Color(0xFF1E3A5F);
-  static const green     = Color(0xFF16A34A);
-  static const amber     = Color(0xFFF59E0B);
-  static const white     = Colors.white;
-  static const r16       = 16.0;
-  static const r20       = 20.0;
+  static const pink = Color(0xFFFF5C8D);
+  static const pinkDeep = Color(0xFFE0457A);
+  static const blue = Color(0xFF2563EB);
+  static const blueDeep = Color(0xFF1D4ED8);
+  static const navy = Color(0xFF1E3A5F);
+  static const green = Color(0xFF16A34A);
+  static const amber = Color(0xFFF59E0B);
+  static const white = Colors.white;
+  static const r16 = 16.0;
+  static const r20 = 20.0;
 
   // "Meu item" badge
-  static const myItemBg     = Color(0xFF0EA5E9);
+  static const myItemBg = Color(0xFF0EA5E9);
   static const myItemBorder = Color(0xFF0284C7);
 }
 
@@ -42,35 +43,35 @@ class _MyItemBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: _C.myItemBg,
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: _C.myItemBorder, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: _C.myItemBg.withValues(alpha: 0.45),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+    decoration: BoxDecoration(
+      color: _C.myItemBg,
+      borderRadius: BorderRadius.circular(99),
+      border: Border.all(color: _C.myItemBorder, width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: _C.myItemBg.withValues(alpha: 0.45),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
         ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('✏️', style: TextStyle(fontSize: 9)),
-            SizedBox(width: 3),
-            Text(
-              'Meu item',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ],
+      ],
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('✏️', style: TextStyle(fontSize: 9)),
+        SizedBox(width: 3),
+        Text(
+          'Meu item',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,11 +85,8 @@ class SearchResultCard extends StatelessWidget {
   /// "Meu item" no card.
   final String? currentUserId;
 
-  const SearchResultCard({
-    Key? key,
-    required this.result,
-    this.currentUserId,
-  }) : super(key: key);
+  const SearchResultCard({Key? key, required this.result, this.currentUserId})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +115,8 @@ class _DreamCard extends StatelessWidget {
   ];
 
   List<Color> _gradient(String? id) {
-    final idx = (id?.codeUnits.fold(0, (a, b) => a + b) ?? 0) %
-        _gradients.length;
+    final idx =
+        (id?.codeUnits.fold(0, (a, b) => a + b) ?? 0) % _gradients.length;
     return _gradients[idx];
   }
 
@@ -129,16 +127,16 @@ class _DreamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final heroTag    = 'search_dream_${result.id}';
-    final childName  = result.childName?.trim()  ?? '';
+    final heroTag = 'search_dream_${result.id}';
+    final childName = result.childName?.trim() ?? '';
     final childEmoji = result.childEmoji?.trim() ?? '⭐';
     final dreamEmoji = result.dreamEmoji?.trim() ?? '✨';
-    final title      = result.title?.trim()      ?? '';
-    final city       = result.city?.trim()       ?? '';
-    final state      = result.state?.trim()      ?? '';
-    final photoUrl   = result.photoUrl;
-    final location   = [
-      if (city.isNotEmpty)  city,
+    final title = result.title?.trim() ?? '';
+    final city = result.city?.trim() ?? '';
+    final state = result.state?.trim() ?? '';
+    final photoUrl = result.photoUrl;
+    final location = [
+      if (city.isNotEmpty) city,
       if (state.isNotEmpty) state,
     ].join(', ');
     final colors = _gradient(result.id);
@@ -157,7 +155,6 @@ class _DreamCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-
               // ── Fundo: foto ou gradiente afetivo ──────────────────
               if (photoUrl != null && photoUrl.isNotEmpty)
                 Image.network(
@@ -196,7 +193,9 @@ class _DreamCard extends StatelessWidget {
                     // Dream emoji pill
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 4),
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(99),
@@ -207,8 +206,10 @@ class _DreamCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(dreamEmoji,
-                              style: const TextStyle(fontSize: 11)),
+                          Text(
+                            dreamEmoji,
+                            style: const TextStyle(fontSize: 11),
+                          ),
                           const SizedBox(width: 4),
                           const Text(
                             'Sonho',
@@ -228,8 +229,9 @@ class _DreamCard extends StatelessWidget {
                     else if (childEmoji.isNotEmpty && photoUrl == null)
                       const SizedBox.shrink()
                     else
-                      Text(childEmoji,
-                          style: const TextStyle(fontSize: 18)),
+                      ClipOval(
+                        child: AvatarRender(value: childEmoji, size: 18),
+                      ),
                   ],
                 ),
               ),
@@ -243,12 +245,13 @@ class _DreamCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-
                     if (childName.isNotEmpty) ...[
                       Row(
                         children: [
                           Text(
-                            childName,
+                            result.childAge != null
+                                ? '$childName, ${result.childAge} anos'
+                                : childName,
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
@@ -284,9 +287,7 @@ class _DreamCard extends StatelessWidget {
 
                     Row(
                       children: [
-                        Expanded(
-                          child: _EmotionalMicrocopy(id: result.id),
-                        ),
+                        Expanded(child: _EmotionalMicrocopy(id: result.id)),
                       ],
                     ),
 
@@ -294,8 +295,11 @@ class _DreamCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_rounded,
-                              size: 10, color: Colors.white60),
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 10,
+                            color: Colors.white60,
+                          ),
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(
@@ -323,7 +327,7 @@ class _DreamCard extends StatelessWidget {
   }
 }
 
-/// Fundo gradiente com emoji grande centralizado
+/// Fundo gradiente com avatar da criança centralizado
 class _DreamGradientBg extends StatelessWidget {
   final List<Color> colors;
   final String emoji;
@@ -331,29 +335,15 @@ class _DreamGradientBg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: colors,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            emoji,
-            style: TextStyle(
-              fontSize: 56,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.20),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: colors,
+      ),
+    ),
+    child: Center(child: AvatarRender(value: emoji, size: 84)),
+  );
 }
 
 /// Microcopy rotativo — cada card tem uma frase diferente
@@ -371,8 +361,8 @@ class _EmotionalMicrocopy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final idx = ((id?.codeUnits.fold(0, (a, b) => a + b) ?? 0) + 2) %
-        _copies.length;
+    final idx =
+        ((id?.codeUnits.fold(0, (a, b) => a + b) ?? 0) + 2) % _copies.length;
     return Text(
       _copies[idx],
       maxLines: 1,
@@ -396,7 +386,7 @@ class _DonationCard extends StatelessWidget {
   const _DonationCard({required this.result, this.currentUserId});
 
   bool get _isUnavailable =>
-      result.status == 'donated'   ||
+      result.status == 'donated' ||
       result.status == 'fulfilled' ||
       result.status == 'reserved';
 
@@ -407,12 +397,12 @@ class _DonationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final heroTag  = 'search_donation_${result.id}';
-    final title    = result.title?.trim() ?? 'Sem título';
-    final city     = result.city?.trim()  ?? '';
-    final state    = result.state?.trim() ?? '';
+    final heroTag = 'search_donation_${result.id}';
+    final title = result.title?.trim() ?? 'Sem título';
+    final city = result.city?.trim() ?? '';
+    final state = result.state?.trim() ?? '';
     final location = [
-      if (city.isNotEmpty)  city,
+      if (city.isNotEmpty) city,
       if (state.isNotEmpty) state,
     ].join(', ');
 
@@ -428,7 +418,6 @@ class _DonationCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-
             // ── Foto ou placeholder ────────────────────────────────
             _DonationBg(result: result, heroTag: heroTag),
 
@@ -477,11 +466,7 @@ class _DonationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-
-                  _DonationMicrocopy(
-                    status: result.status,
-                    id: result.id,
-                  ),
+                  _DonationMicrocopy(status: result.status, id: result.id),
 
                   const SizedBox(height: 4),
 
@@ -505,8 +490,11 @@ class _DonationCard extends StatelessWidget {
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_rounded,
-                            size: 10, color: Colors.white60),
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 10,
+                          color: Colors.white60,
+                        ),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
@@ -575,20 +563,19 @@ class _DonationPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFF0F6), Color(0xFFEFF6FF)],
-          ),
-        ),
-        child: Center(
-          child: loading
-              ? const CircularProgressIndicator(
-                  strokeWidth: 2, color: _C.pink)
-              : const Text('🎁', style: TextStyle(fontSize: 42)),
-        ),
-      );
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFF0F6), Color(0xFFEFF6FF)],
+      ),
+    ),
+    child: Center(
+      child: loading
+          ? const CircularProgressIndicator(strokeWidth: 2, color: _C.pink)
+          : const Text('🎁', style: TextStyle(fontSize: 42)),
+    ),
+  );
 }
 
 /// Badge topo-esquerdo — disponibilidade com linguagem emocional
@@ -598,9 +585,8 @@ class _DonationTopBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final available = status == null ||
-        status!.isEmpty ||
-        status == 'available';
+    final available =
+        status == null || status!.isEmpty || status == 'available';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -613,10 +599,7 @@ class _DonationTopBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            available ? '🎁' : '📦',
-            style: const TextStyle(fontSize: 10),
-          ),
+          Text(available ? '🎁' : '📦', style: const TextStyle(fontSize: 10)),
           const SizedBox(width: 4),
           Text(
             'Doação',
@@ -644,29 +627,33 @@ class _UnavailableBadge extends StatelessWidget {
 
   String get _label {
     switch (status) {
-      case 'reserved':  return '✨ Reservado';
-      case 'donated':   return '🎉 Doado';
-      case 'fulfilled': return '❤️ Realizado';
-      default:          return status ?? '';
+      case 'reserved':
+        return '✨ Reservado';
+      case 'donated':
+        return '🎉 Doado';
+      case 'fulfilled':
+        return '❤️ Realizado';
+      default:
+        return status ?? '';
     }
   }
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: _color.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(
-          _label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+    decoration: BoxDecoration(
+      color: _color.withValues(alpha: 0.88),
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Text(
+      _label,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+    ),
+  );
 }
 
 /// Microcopy emocional de oportunidade — varia por status e ID
@@ -700,7 +687,7 @@ class _DonationMicrocopy extends StatelessWidget {
       default:
         final idx =
             ((id?.codeUnits.fold(0, (a, b) => a + b) ?? 0) + 1) %
-                _available.length;
+            _available.length;
         copy = _available[idx];
     }
 

@@ -7,6 +7,8 @@
 import 'dart:async';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
+import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:empatia/features/ranking/controller/ranking_controller.dart';
 import 'package:empatia/features/ranking/data/repository/ranking_repository.dart';
 import 'package:empatia/features/ranking/presentation/page/ranking_page.dart';
@@ -240,7 +242,22 @@ class _RankSlide extends StatelessWidget {
         ? entry.score - nextEntry!.score
         : null;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        PublicProfilePage.route(
+          uid: entry.uid,
+          fallbackName: entry.name,
+          fallbackAvatar: entry.profileEmoji,
+          fallbackImage: entry.profileImage,
+          fallbackCity: entry.city,
+          fallbackState: entry.state,
+          score: entry.score,
+          donationsCount: entry.count,
+          position: entry.position,
+        ),
+      ),
+      child: Container(
       margin: EdgeInsets.zero,
       decoration: AppDecorations.rankingSlide(position),
       clipBehavior: Clip.hardEdge,
@@ -343,6 +360,7 @@ class _RankSlide extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -478,23 +496,13 @@ class RankAvatar extends StatelessWidget {
             ? Image.network(
                 entry.profileImage!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _EmojiCell(
-                    emoji: entry.avatarEmoji, fontSize: size * 0.46),
+                errorBuilder: (_, __, ___) =>
+                    AvatarRender(value: entry.avatarEmoji, size: size),
               )
-            : _EmojiCell(emoji: entry.avatarEmoji, fontSize: size * 0.46),
+            : AvatarRender(value: entry.avatarEmoji, size: size),
       ),
     );
   }
-}
-
-class _EmojiCell extends StatelessWidget {
-  final String emoji;
-  final double fontSize;
-  const _EmojiCell({required this.emoji, required this.fontSize});
-
-  @override
-  Widget build(BuildContext context) =>
-      Center(child: Text(emoji, style: TextStyle(fontSize: fontSize)));
 }
 
 class _VerticalBadge extends StatelessWidget {

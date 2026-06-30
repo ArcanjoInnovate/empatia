@@ -22,6 +22,11 @@ class UserModel {
   final String? sexo;
   final bool? isVerified;
 
+  // ── Redes sociais (URLs completas, opcionais) ─────────────
+  final String? socialFacebook;
+  final String? socialInstagram;
+  final String? socialX;
+
   // ── Verificações individuais ──────────────────────────────
   final bool? phoneVerified;       // telefone confirmado via SMS
   final bool? emailVerified;       // e-mail confirmado
@@ -49,6 +54,9 @@ class UserModel {
     this.profileImage,
     this.sexo,
     this.isVerified,
+    this.socialFacebook,
+    this.socialInstagram,
+    this.socialX,
     this.activeMode,
     this.phoneVerified,
     this.emailVerified,
@@ -86,6 +94,9 @@ class UserModel {
       profileImage: map['profileImage']?.toString(),
       sexo: map['sexo']?.toString(),
       isVerified: map['isVerified'] == true,
+      socialFacebook: map['socialFacebook']?.toString(),
+      socialInstagram: map['socialInstagram']?.toString(),
+      socialX: map['socialX']?.toString(),
       phoneVerified:       map['phoneVerified'] == true,
       emailVerified:       map['emailVerified'] == true,
       birthDateVerified:   map['birthDateVerified'] == true,
@@ -136,9 +147,15 @@ class UserModel {
       'latitude': latitude,
       'longitude': longitude,
       if (profileEmoji != null) 'profileEmoji': profileEmoji,
-      if (profileImage != null) 'profileImage': profileImage,
+      // Sempre incluído (mesmo null): permite REMOVER a foto explicitamente.
+      // No Firebase RTDB, update() com valor null APAGA a chave.
+      'profileImage': profileImage,
       if (sexo != null) 'sexo': sexo,
       if (isVerified != null) 'isVerified': isVerified,
+      // Sempre incluídos (mesmo null): permite REMOVER o link salvo.
+      'socialFacebook': socialFacebook,
+      'socialInstagram': socialInstagram,
+      'socialX': socialX,
       // Não escrevemos os campos de verificação aqui — eles são gravados
       // por métodos dedicados no Repository (markProfileCompleted, etc.)
       // para evitar sobrescrever acidentalmente com null num update de perfil.
@@ -158,8 +175,16 @@ class UserModel {
     double? longitude,
     String? profileEmoji,
     String? profileImage,
+    /// Quando true, força [profileImage] para null mesmo que o parâmetro
+    /// acima não tenha sido informado (usado para REMOVER a foto salva,
+    /// já que `profileImage ?? this.profileImage` nunca limparia um
+    /// valor existente só passando null).
+    bool clearProfileImage = false,
     String? activeMode,
     String? sexo,
+    String? socialFacebook,
+    String? socialInstagram,
+    String? socialX,
     bool? isVerified,
     bool? phoneVerified,
     bool? emailVerified,
@@ -183,8 +208,16 @@ class UserModel {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       profileEmoji: profileEmoji ?? this.profileEmoji,
-      profileImage: profileImage ?? this.profileImage,
+      profileImage:
+          clearProfileImage ? null : (profileImage ?? this.profileImage),
       sexo: sexo ?? this.sexo,
+      // socialFacebook: SEM controle de UI no momento (campo oculto
+      // temporariamente) — preserva o valor já salvo em vez de apagar.
+      socialFacebook: socialFacebook ?? this.socialFacebook,
+      // Instagram/X têm controle de UI ativo, então sobrescrevem direto
+      // (permite remover o link salvo limpando o campo).
+      socialInstagram: socialInstagram,
+      socialX: socialX,
       activeMode: activeMode ?? this.activeMode,
       isVerified: isVerified ?? this.isVerified,
       phoneVerified: phoneVerified ?? this.phoneVerified,

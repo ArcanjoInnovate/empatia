@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
@@ -11,6 +12,13 @@ import 'package:empatia/features/profile/data/service/profile_service.dart';
 /// Navega para [route] somente se [currentUser] estiver com o perfil
 /// totalmente verificado (e-mail confirmado + perfil completo).
 /// Caso contrário, exibe o [showVerificationRequiredDialog] em vez de navegar.
+///
+/// ⚠️ IMPORTANTE: `currentUser == null` é AMBÍGUO — pode significar
+/// "usuário deslogado" OU "ainda carregando" (o StreamProvider global
+/// começa com `initialData: null` e só preenche quando o primeiro evento
+/// do Firebase chega). Para não bloquear usuários verificados só porque
+/// os dados ainda não chegaram, distinguimos os dois casos usando o
+/// FirebaseAuth.instance.currentUser (síncrono, sempre correto).
 ///
 /// Uso:
 ///   pushIfVerified(
@@ -25,11 +33,31 @@ void pushIfVerified(
   required String feature,
   required Route<void> route,
 }) {
-  if (currentUser == null || !ProfileService.isFullyVerified(currentUser)) {
-    showVerificationRequiredDialog(context, feature: feature);
+  // Caso 1: dados já carregados — decide normalmente.
+  if (currentUser != null) {
+    if (!ProfileService.isFullyVerified(currentUser)) {
+      showVerificationRequiredDialog(context, feature: feature);
+      return;
+    }
+    Navigator.push(context, route);
     return;
   }
-  Navigator.push(context, route);
+
+  // Caso 2: currentUser == null, mas o Firebase Auth mostra que HÁ alguém
+  // logado → os dados do perfil ainda não chegaram (corrida de inicialização),
+  // não é falta de verificação. Avisa e não bloqueia com o diálogo pesado.
+  if (FirebaseAuth.instance.currentUser != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Carregando seu perfil... tente de novo em um instante.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
+
+  // Caso 3: realmente deslogado.
+  showVerificationRequiredDialog(context, feature: feature);
 }
 
 /// 🔒 VERIFICATION REQUIRED DIALOG

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:empatia/core/data/models/child_model.dart';
 import 'package:empatia/core/data/models/dream_model.dart';
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
@@ -345,6 +346,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
         childId:         _selectedChild!.id!,
         childName:       _selectedChild!.name ?? '',
         childEmoji:      _selectedChild!.emoji ?? '👶',
+        childAge:        _selectedChild!.age,
         currentUser:     widget.currentUser,
       );
     } else {
@@ -357,6 +359,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
         childId:     _selectedChild!.id!,
         childName:   _selectedChild!.name ?? '',
         childEmoji:  _selectedChild!.emoji ?? '👶',
+        childAge:    _selectedChild!.age,
       );
     }
 
@@ -619,8 +622,9 @@ class _ChildSelector extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(child.emoji ?? '👶',
-                          style: const TextStyle(fontSize: 18)),
+                      ClipOval(
+                        child: AvatarRender(value: child.emoji, size: 18),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         child.name ?? '',

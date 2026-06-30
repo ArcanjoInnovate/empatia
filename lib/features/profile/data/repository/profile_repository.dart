@@ -44,9 +44,28 @@ class ProfileRepository {
       'uid': _uid,
       if (user.name != null) 'name': user.name,
       if (user.profileEmoji != null) 'profileEmoji': user.profileEmoji,
-      if (user.profileImage != null) 'profileImage': user.profileImage,
+      // Sempre incluído (mesmo null): mantém UsersPublic em sincronia
+      // quando o usuário remove a foto e volta para o avatar.
+      'profileImage': user.profileImage,
       if (user.city != null) 'city': user.city,
       if (user.state != null) 'state': user.state,
+      if (user.sexo != null) 'sexo': user.sexo,
+      if (user.age != null) 'age': user.age,
+      // Status pode ser limpo (ficar null) — sempre incluído para refletir
+      // a remoção no perfil público também.
+      'status': user.status,
+      // Sempre incluídos (mesmo null): permite remover um link salvo
+      // também no perfil público.
+      'socialFacebook': user.socialFacebook,
+      'socialInstagram': user.socialInstagram,
+      'socialX': user.socialX,
+      // Verificação: espelha os dois booleans + o resultado calculado
+      // (mais simples de ler direto no perfil público sem reimplementar
+      // a regra de negócio lá).
+      'emailVerified': user.emailVerified == true,
+      'profileCompleted': user.profileCompleted == true,
+      'fullyVerified':
+          (user.emailVerified == true) && (user.profileCompleted == true),
     };
     await _db.ref('UsersPublic/$_uid').update(publicData);
   }
@@ -78,7 +97,8 @@ class ProfileRepository {
 
     // ── Cross-check: e-mail também verificado? → isVerified ─────────────
     final emailSnap = await _userRef.child('emailVerified').get();
-    if (emailSnap.value == true) {
+    final emailVerified = emailSnap.value == true;
+    if (emailVerified) {
       await _userRef.update({
         'isVerified':   true,
         'isVerifiedAt': DateTime.now().millisecondsSinceEpoch,
@@ -87,6 +107,14 @@ class ProfileRepository {
       debugPrint('✅ isVerified = true gravado no Firebase');
     }
     // ─────────────────────────────────────────────────────────────────────
+
+    // Mantém UsersPublic em sincronia — sem isso, o perfil público
+    // continuaria mostrando "não verificado" até o próximo saveProfile().
+    await _db.ref('UsersPublic/$_uid').update({
+      'profileCompleted': true,
+      'emailVerified': emailVerified,
+      'fullyVerified': emailVerified, // profileCompleted já é true aqui
+    });
   }
 
   /// ➕ Adiciona filho

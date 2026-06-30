@@ -1,4 +1,5 @@
 import 'package:empatia/core/data/models/child_model.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/features/profile/presentation/widgets/profile/profile_shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:empatia/core/theme/app_theme.dart';
@@ -102,7 +103,9 @@ class _ProfileChildrenWidgetState extends State<ProfileChildrenWidget>
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(c.emoji ?? '👶'),
+                      ClipOval(
+                        child: AvatarRender(value: c.emoji, size: 18),
+                      ),
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(c.name ?? 'Filho',
@@ -163,9 +166,9 @@ class ChildCardWidget extends StatelessWidget {
               color: AppTheme.childCardBg,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Center(
-              child: Text(child.emoji ?? '👶',
-                  style: const TextStyle(fontSize: 30)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AvatarRender(value: child.emoji, size: 60),
             ),
           ),
           const SizedBox(width: 16),

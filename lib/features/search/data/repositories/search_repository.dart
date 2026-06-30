@@ -18,6 +18,7 @@ class SearchResult {
   // ── Campos exclusivos de Dream ──────────────────────────────────────────
   final String? childName;
   final String? childEmoji;
+  final int? childAge;
   final String? dreamEmoji;
   final String? dreamDate;
   final double? dreamProgress;
@@ -48,6 +49,7 @@ class SearchResult {
     this.longitude,
     this.childName,
     this.childEmoji,
+    this.childAge,
     this.dreamEmoji,
     this.dreamDate,
     this.dreamProgress,
@@ -57,6 +59,12 @@ class SearchResult {
     this.ownerId,
   });
 
+  /// 🔧 FIX: antes este construtor não propagava `ownerName`, `ownerPhotoUrl`,
+  /// `category`, `latitude` e `longitude` do [DonationModel] de origem.
+  /// Isso fazia o card "Quem está doando" (e o redirecionamento para o
+  /// perfil/chat) sumir sempre que o SearchResult era montado a partir de
+  /// um DonationModel local (ex.: stream "Minhas doações"), em vez de vir
+  /// direto do Firebase via [SearchResult.fromMap].
   factory SearchResult.fromDonation(DonationModel d) => SearchResult(
         id: d.id ?? '',
         type: 'donation',
@@ -67,7 +75,12 @@ class SearchResult {
         state: d.state,
         status: d.status,
         createdAt: d.createdAt,
+        latitude: d.latitude,
+        longitude: d.longitude,
+        category: d.category,
         ownerId: d.userId,
+        ownerName: d.ownerName,
+        ownerPhotoUrl: d.ownerPhotoUrl,
       );
 
   factory SearchResult.fromMap(Map map, String id, String type) {
@@ -107,6 +120,7 @@ class SearchResult {
       longitude: (map['longitude'] as num?)?.toDouble(),
       childName: map['childName'] as String?,
       childEmoji: map['childEmoji'] as String?,
+      childAge: (map['childAge'] as num?)?.toInt(),
       dreamEmoji: map['emoji'] as String?,
       dreamDate: map['date'] as String?,
       dreamProgress: dreamProgress,

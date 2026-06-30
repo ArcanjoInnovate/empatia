@@ -6,6 +6,7 @@
 
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:empatia/features/ranking/controller/ranking_controller.dart';
 import 'package:empatia/features/ranking/data/repository/ranking_repository.dart';
 import 'package:empatia/features/ranking/presentation/widget/weekly_ranking_widget.dart'
@@ -392,6 +393,27 @@ class _FullPodium extends StatelessWidget {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// NAVEGAÇÃO PARA PERFIL PÚBLICO
+// ══════════════════════════════════════════════════════════════
+
+void _openPublicProfile(BuildContext context, RankingEntry entry) {
+  Navigator.push(
+    context,
+    PublicProfilePage.route(
+      uid: entry.uid,
+      fallbackName: entry.name,
+      fallbackAvatar: entry.profileEmoji,
+      fallbackImage: entry.profileImage,
+      fallbackCity: entry.city,
+      fallbackState: entry.state,
+      score: entry.score,
+      donationsCount: entry.count,
+      position: entry.position,
+    ),
+  );
+}
+
 class _PodiumCol extends StatelessWidget {
   final RankingEntry? entry;
   final int position;
@@ -469,7 +491,9 @@ class _PodiumCol extends StatelessWidget {
       );
     }
 
-    return AnimatedBuilder(
+    return GestureDetector(
+      onTap: () => _openPublicProfile(context, entry!),
+      child: AnimatedBuilder(
       animation: anim,
       builder: (_, child) {
         final t     = ((anim.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
@@ -559,6 +583,7 @@ class _PodiumCol extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -584,7 +609,9 @@ class _RunnerUpRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
+    return GestureDetector(
+      onTap: () => _openPublicProfile(context, entry),
+      child: AnimatedBuilder(
       animation: anim,
       builder: (_, child) {
         final t  = ((anim.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
@@ -726,6 +753,7 @@ class _RunnerUpRow extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

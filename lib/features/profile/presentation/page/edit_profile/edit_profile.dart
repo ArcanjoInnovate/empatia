@@ -1,15 +1,18 @@
 import 'dart:ui';
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/widget/social_links_row.dart';
 import 'package:empatia/features/profile/controller/profile_controller.dart';
 import 'package:empatia/features/profile/data/service/location_service.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/children_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/location_section.dart';
 import 'package:empatia/features/profile/presentation/widgets/edit/profile_photo_section.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -30,41 +33,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _ageController          = TextEditingController();
   final _statusController       = TextEditingController();
   final _neighborhoodController = TextEditingController();
+  final _instagramController    = TextEditingController();
+  final _xController            = TextEditingController();
 
   // ── Estado de seleção ──────────────────────────────────────
-  String  _selectedEmoji      = '👩';
+  String  _selectedEmoji      = AppAvatars.defaultParentAvatar;
   String? _selectedSexo;
   String? _selectedEstado;
   String? _selectedCidade;
   double? _cityLat;
   double? _cityLng;
   XFile?   _selectedProfilePhoto; // ← NOVO: foto de perfil selecionada
+  bool _usePhoto = false; // true = manter/usar foto; false = usar avatar
 
   /// true = usuário selecionou bairro da lista (ou veio do banco)
   bool _neighborhoodConfirmed = false;
 
   ProfileController? _profileController;
 
-  // ── Listas de emojis ───────────────────────────────────────
-  static const _emojisFemininos = [
-    '👩','👩‍🦰','👩‍🦱','👩‍🦳','👩‍🦲','👱‍♀️','🧕','👸',
-    '🧝‍♀️','🧚‍♀️','🧜‍♀️','🧙‍♀️','👩‍🎤','👩‍🏫','👩‍⚕️',
-    '👩‍💼','👩‍🍳','🥷','👩‍🦸','🙍‍♀️',
-  ];
-  static const _emojisMasculinos = [
-    '👨','👨‍🦰','👨‍🦱','👨‍🦳','👨‍🦲','👱‍♂️','🧔','🧔‍♂️',
-    '🤴','🧝‍♂️','🧙‍♂️','👨‍🎤','👨‍🏫','👨‍⚕️','👨‍💼',
-    '👨‍🍳','👨‍🦸','🙍‍♂️','👲','🕵️‍♂️',
-  ];
-  static const _emojisNeutros = [
-    '🧑','🧑‍🦰','🧑‍🦱','🧑‍🦳','🧑‍🦲','🧏','🧛','🧟','👤','🫥',
-  ];
-
-  List<String> get _emojisAtivos {
-    if (_selectedSexo == 'masculino') return _emojisMasculinos;
-    if (_selectedSexo == 'outro')     return _emojisNeutros;
-    return _emojisFemininos;
-  }
+  // ── Listas de avatares (ilustrações, não emojis) ────────────
+  List<String> get _emojisAtivos => AppAvatars.forSexo(_selectedSexo);
 
   // ══════════════════════════════════════════════════════════
   // LIFECYCLE
@@ -95,6 +83,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _ageController.dispose();
     _statusController.dispose();
     _neighborhoodController.dispose();
+    _instagramController.dispose();
+    _xController.dispose();
     super.dispose();
   }
 
@@ -114,8 +104,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _ageController.text          = user.age?.toString() ?? '';
     _statusController.text       = user.status ?? '';
     _neighborhoodController.text = user.neighborhood ?? '';
+    _instagramController.text    = user.socialInstagram ?? '';
+    _xController.text            = user.socialX ?? '';
 
     if (user.profileEmoji != null) _selectedEmoji = user.profileEmoji!;
+    _usePhoto = (user.profileImage?.trim().isNotEmpty ?? false);
     _selectedSexo   = user.sexo ?? 'feminino';
     _selectedEstado = user.state;
     _selectedCidade = user.city;
@@ -154,9 +147,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       profileEmoji: _selectedEmoji,
       currentUser:  widget.currentUser,
       sexo:         _selectedSexo,
+      socialInstagram: _instagramController.text,
+      socialX:         _xController.text,
       latitude:     _cityLat,
       longitude:    _cityLng,
       profilePhoto: _selectedProfilePhoto,
+      usePhoto:     _usePhoto,
     );
 
     // Remove o overlay
@@ -252,10 +248,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           currentPhotoUrl: widget.currentUser.profileImage,
           currentEmoji: _selectedEmoji,
           availableEmojis: _emojisAtivos,
-          onPhotoChanged: (photo, emoji) {
+          onPhotoChanged: (photo, emoji, usePhoto) {
             setState(() {
               _selectedProfilePhoto = photo;
               _selectedEmoji = emoji;
+              _usePhoto = usePhoto;
             });
           },
         ),
@@ -282,6 +279,45 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _buildField(label: 'Status', emoji: '💖',
             controller: _statusController,
             hint: 'Ex: Mãe feliz, Super mãe...'),
+        const SizedBox(height: 20),
+
+        // ── Redes sociais ──
+        _buildFieldLabel('🌐', 'Redes Sociais (opcional)'),
+        const SizedBox(height: 4),
+        Text(
+          'Digite só o seu nome de usuário — sem o link completo.',
+          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+        ),
+        const SizedBox(height: 10),
+        _buildHandleField(
+          label: 'Instagram',
+          emoji: '📷',
+          domain: 'instagram.com/',
+          controller: _instagramController,
+          hint: 'seu_usuario',
+        ),
+        ListenableBuilder(
+          listenable: _instagramController,
+          builder: (_, __) => SocialConfirmCard(
+            platform: 'Instagram',
+            rawValue: _instagramController.text,
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildHandleField(
+          label: 'X (Twitter)',
+          emoji: '✖️',
+          domain: 'x.com/',
+          controller: _xController,
+          hint: 'seu_usuario',
+        ),
+        ListenableBuilder(
+          listenable: _xController,
+          builder: (_, __) => SocialConfirmCard(
+            platform: 'X',
+            rawValue: _xController.text,
+          ),
+        ),
         const SizedBox(height: 20),
 
         // Localização — widget separado
@@ -432,6 +468,54 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Colors.grey.shade600)),
+      ],
+    );
+  }
+
+  /// Campo de rede social: domínio fixo (não-editável) + a pessoa digita
+  /// só o nome de usuário. Sanitiza automaticamente se ela colar @ ou um
+  /// link completo sem querer.
+  Widget _buildHandleField({
+    required String label,
+    required String emoji,
+    required String domain,
+    required TextEditingController controller,
+    String? hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFieldLabel(emoji, label),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.text,
+          autocorrect: false,
+          style: const TextStyle(
+              fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
+          inputFormatters: [
+            // Remove espaços e barras enquanto digita — só o usuário,
+            // sem domínio nem caminho.
+            FilteringTextInputFormatter.deny(RegExp(r'[\s/]')),
+          ],
+          decoration: InputDecoration(
+            prefixText: domain,
+            prefixStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade500,
+            ),
+            hintText: hint,
+            hintStyle: TextStyle(
+                color: Colors.grey.shade400, fontWeight: FontWeight.w500),
+            filled: true,
+            fillColor: AppTheme.surfaceBlueTint,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: AppDecorations.editProfileFieldBorder(focused: false),
+            focusedBorder: AppDecorations.editProfileFieldBorder(focused: true),
+          ),
+        ),
       ],
     );
   }

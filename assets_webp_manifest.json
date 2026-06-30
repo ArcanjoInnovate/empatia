@@ -1,0 +1,566 @@
+[
+  {
+    "original": "assets\\children\\boy\\1.png",
+    "converted": "assets_webp\\children\\boy\\1.webp",
+    "original_bytes": 1176516,
+    "converted_bytes": 19646
+  },
+  {
+    "original": "assets\\children\\boy\\10.png",
+    "converted": "assets_webp\\children\\boy\\10.webp",
+    "original_bytes": 1318821,
+    "converted_bytes": 45378
+  },
+  {
+    "original": "assets\\children\\boy\\11.png",
+    "converted": "assets_webp\\children\\boy\\11.webp",
+    "original_bytes": 946433,
+    "converted_bytes": 23640
+  },
+  {
+    "original": "assets\\children\\boy\\12.png",
+    "converted": "assets_webp\\children\\boy\\12.webp",
+    "original_bytes": 971695,
+    "converted_bytes": 16526
+  },
+  {
+    "original": "assets\\children\\boy\\13.png",
+    "converted": "assets_webp\\children\\boy\\13.webp",
+    "original_bytes": 1283386,
+    "converted_bytes": 22730
+  },
+  {
+    "original": "assets\\children\\boy\\14.png",
+    "converted": "assets_webp\\children\\boy\\14.webp",
+    "original_bytes": 836938,
+    "converted_bytes": 21786
+  },
+  {
+    "original": "assets\\children\\boy\\15.png",
+    "converted": "assets_webp\\children\\boy\\15.webp",
+    "original_bytes": 1358911,
+    "converted_bytes": 26330
+  },
+  {
+    "original": "assets\\children\\boy\\16.png",
+    "converted": "assets_webp\\children\\boy\\16.webp",
+    "original_bytes": 1093051,
+    "converted_bytes": 21714
+  },
+  {
+    "original": "assets\\children\\boy\\17.png",
+    "converted": "assets_webp\\children\\boy\\17.webp",
+    "original_bytes": 1297182,
+    "converted_bytes": 22926
+  },
+  {
+    "original": "assets\\children\\boy\\18.png",
+    "converted": "assets_webp\\children\\boy\\18.webp",
+    "original_bytes": 1199363,
+    "converted_bytes": 26880
+  },
+  {
+    "original": "assets\\children\\boy\\19.png",
+    "converted": "assets_webp\\children\\boy\\19.webp",
+    "original_bytes": 1204998,
+    "converted_bytes": 22484
+  },
+  {
+    "original": "assets\\children\\boy\\2.png",
+    "converted": "assets_webp\\children\\boy\\2.webp",
+    "original_bytes": 1193444,
+    "converted_bytes": 23484
+  },
+  {
+    "original": "assets\\children\\boy\\20.png",
+    "converted": "assets_webp\\children\\boy\\20.webp",
+    "original_bytes": 721458,
+    "converted_bytes": 20848
+  },
+  {
+    "original": "assets\\children\\boy\\21.png",
+    "converted": "assets_webp\\children\\boy\\21.webp",
+    "original_bytes": 1042929,
+    "converted_bytes": 19836
+  },
+  {
+    "original": "assets\\children\\boy\\22.png",
+    "converted": "assets_webp\\children\\boy\\22.webp",
+    "original_bytes": 1126639,
+    "converted_bytes": 20252
+  },
+  {
+    "original": "assets\\children\\boy\\23.png",
+    "converted": "assets_webp\\children\\boy\\23.webp",
+    "original_bytes": 1298984,
+    "converted_bytes": 21596
+  },
+  {
+    "original": "assets\\children\\boy\\24.png",
+    "converted": "assets_webp\\children\\boy\\24.webp",
+    "original_bytes": 1295886,
+    "converted_bytes": 26746
+  },
+  {
+    "original": "assets\\children\\boy\\25.png",
+    "converted": "assets_webp\\children\\boy\\25.webp",
+    "original_bytes": 1231019,
+    "converted_bytes": 22812
+  },
+  {
+    "original": "assets\\children\\boy\\3.png",
+    "converted": "assets_webp\\children\\boy\\3.webp",
+    "original_bytes": 139414,
+    "converted_bytes": 22906
+  },
+  {
+    "original": "assets\\children\\boy\\4.png",
+    "converted": "assets_webp\\children\\boy\\4.webp",
+    "original_bytes": 1245169,
+    "converted_bytes": 23410
+  },
+  {
+    "original": "assets\\children\\boy\\5.png",
+    "converted": "assets_webp\\children\\boy\\5.webp",
+    "original_bytes": 1198928,
+    "converted_bytes": 23064
+  },
+  {
+    "original": "assets\\children\\boy\\6.png",
+    "converted": "assets_webp\\children\\boy\\6.webp",
+    "original_bytes": 628773,
+    "converted_bytes": 18694
+  },
+  {
+    "original": "assets\\children\\boy\\7.png",
+    "converted": "assets_webp\\children\\boy\\7.webp",
+    "original_bytes": 761134,
+    "converted_bytes": 21256
+  },
+  {
+    "original": "assets\\children\\boy\\8.png",
+    "converted": "assets_webp\\children\\boy\\8.webp",
+    "original_bytes": 1269760,
+    "converted_bytes": 20120
+  },
+  {
+    "original": "assets\\children\\boy\\9.png",
+    "converted": "assets_webp\\children\\boy\\9.webp",
+    "original_bytes": 1358379,
+    "converted_bytes": 23046
+  },
+  {
+    "original": "assets\\children\\girl\\1.png",
+    "converted": "assets_webp\\children\\girl\\1.webp",
+    "original_bytes": 5314477,
+    "converted_bytes": 43786
+  },
+  {
+    "original": "assets\\children\\girl\\10.png",
+    "converted": "assets_webp\\children\\girl\\10.webp",
+    "original_bytes": 1226040,
+    "converted_bytes": 30072
+  },
+  {
+    "original": "assets\\children\\girl\\11.png",
+    "converted": "assets_webp\\children\\girl\\11.webp",
+    "original_bytes": 1517507,
+    "converted_bytes": 42112
+  },
+  {
+    "original": "assets\\children\\girl\\12.png",
+    "converted": "assets_webp\\children\\girl\\12.webp",
+    "original_bytes": 1166326,
+    "converted_bytes": 18092
+  },
+  {
+    "original": "assets\\children\\girl\\13.png",
+    "converted": "assets_webp\\children\\girl\\13.webp",
+    "original_bytes": 1331625,
+    "converted_bytes": 26136
+  },
+  {
+    "original": "assets\\children\\girl\\14.png",
+    "converted": "assets_webp\\children\\girl\\14.webp",
+    "original_bytes": 1427178,
+    "converted_bytes": 32706
+  },
+  {
+    "original": "assets\\children\\girl\\15.png",
+    "converted": "assets_webp\\children\\girl\\15.webp",
+    "original_bytes": 1311719,
+    "converted_bytes": 24186
+  },
+  {
+    "original": "assets\\children\\girl\\16.png",
+    "converted": "assets_webp\\children\\girl\\16.webp",
+    "original_bytes": 852810,
+    "converted_bytes": 25092
+  },
+  {
+    "original": "assets\\children\\girl\\17.png",
+    "converted": "assets_webp\\children\\girl\\17.webp",
+    "original_bytes": 1334535,
+    "converted_bytes": 25760
+  },
+  {
+    "original": "assets\\children\\girl\\18.png",
+    "converted": "assets_webp\\children\\girl\\18.webp",
+    "original_bytes": 1437417,
+    "converted_bytes": 26716
+  },
+  {
+    "original": "assets\\children\\girl\\19.png",
+    "converted": "assets_webp\\children\\girl\\19.webp",
+    "original_bytes": 1221662,
+    "converted_bytes": 24722
+  },
+  {
+    "original": "assets\\children\\girl\\2.png",
+    "converted": "assets_webp\\children\\girl\\2.webp",
+    "original_bytes": 5134401,
+    "converted_bytes": 38302
+  },
+  {
+    "original": "assets\\children\\girl\\20.png",
+    "converted": "assets_webp\\children\\girl\\20.webp",
+    "original_bytes": 1203778,
+    "converted_bytes": 25126
+  },
+  {
+    "original": "assets\\children\\girl\\21.png",
+    "converted": "assets_webp\\children\\girl\\21.webp",
+    "original_bytes": 1185633,
+    "converted_bytes": 17734
+  },
+  {
+    "original": "assets\\children\\girl\\22.png",
+    "converted": "assets_webp\\children\\girl\\22.webp",
+    "original_bytes": 1165576,
+    "converted_bytes": 18080
+  },
+  {
+    "original": "assets\\children\\girl\\23.png",
+    "converted": "assets_webp\\children\\girl\\23.webp",
+    "original_bytes": 1158378,
+    "converted_bytes": 19374
+  },
+  {
+    "original": "assets\\children\\girl\\24.png",
+    "converted": "assets_webp\\children\\girl\\24.webp",
+    "original_bytes": 1466910,
+    "converted_bytes": 34128
+  },
+  {
+    "original": "assets\\children\\girl\\25.png",
+    "converted": "assets_webp\\children\\girl\\25.webp",
+    "original_bytes": 1120000,
+    "converted_bytes": 29138
+  },
+  {
+    "original": "assets\\children\\girl\\3.png",
+    "converted": "assets_webp\\children\\girl\\3.webp",
+    "original_bytes": 5170257,
+    "converted_bytes": 44544
+  },
+  {
+    "original": "assets\\children\\girl\\4.png",
+    "converted": "assets_webp\\children\\girl\\4.webp",
+    "original_bytes": 5789672,
+    "converted_bytes": 53826
+  },
+  {
+    "original": "assets\\children\\girl\\5.png",
+    "converted": "assets_webp\\children\\girl\\5.webp",
+    "original_bytes": 1253544,
+    "converted_bytes": 22554
+  },
+  {
+    "original": "assets\\children\\girl\\6.png",
+    "converted": "assets_webp\\children\\girl\\6.webp",
+    "original_bytes": 1221455,
+    "converted_bytes": 45288
+  },
+  {
+    "original": "assets\\children\\girl\\7.png",
+    "converted": "assets_webp\\children\\girl\\7.webp",
+    "original_bytes": 1400803,
+    "converted_bytes": 35020
+  },
+  {
+    "original": "assets\\children\\girl\\8.png",
+    "converted": "assets_webp\\children\\girl\\8.webp",
+    "original_bytes": 1148247,
+    "converted_bytes": 22698
+  },
+  {
+    "original": "assets\\children\\girl\\9.png",
+    "converted": "assets_webp\\children\\girl\\9.webp",
+    "original_bytes": 1074286,
+    "converted_bytes": 28664
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_02.png",
+    "converted": "assets_webp\\parents\\man\\avatar_02.webp",
+    "original_bytes": 4839513,
+    "converted_bytes": 28864
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_04.png",
+    "converted": "assets_webp\\parents\\man\\avatar_04.webp",
+    "original_bytes": 5359139,
+    "converted_bytes": 40496
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_07.png",
+    "converted": "assets_webp\\parents\\man\\avatar_07.webp",
+    "original_bytes": 5030037,
+    "converted_bytes": 29662
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_09.png",
+    "converted": "assets_webp\\parents\\man\\avatar_09.webp",
+    "original_bytes": 4924729,
+    "converted_bytes": 31208
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_11.png",
+    "converted": "assets_webp\\parents\\man\\avatar_11.webp",
+    "original_bytes": 5516638,
+    "converted_bytes": 38610
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_15.png",
+    "converted": "assets_webp\\parents\\man\\avatar_15.webp",
+    "original_bytes": 4928634,
+    "converted_bytes": 33616
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_17.png",
+    "converted": "assets_webp\\parents\\man\\avatar_17.webp",
+    "original_bytes": 5216065,
+    "converted_bytes": 33676
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_20.png",
+    "converted": "assets_webp\\parents\\man\\avatar_20.webp",
+    "original_bytes": 5111687,
+    "converted_bytes": 30586
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_22.png",
+    "converted": "assets_webp\\parents\\man\\avatar_22.webp",
+    "original_bytes": 5377498,
+    "converted_bytes": 32106
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_24.png",
+    "converted": "assets_webp\\parents\\man\\avatar_24.webp",
+    "original_bytes": 1358136,
+    "converted_bytes": 22524
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_27.png",
+    "converted": "assets_webp\\parents\\man\\avatar_27.webp",
+    "original_bytes": 5322328,
+    "converted_bytes": 31082
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_29.png",
+    "converted": "assets_webp\\parents\\man\\avatar_29.webp",
+    "original_bytes": 5315778,
+    "converted_bytes": 34130
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_31.png",
+    "converted": "assets_webp\\parents\\man\\avatar_31.webp",
+    "original_bytes": 5283481,
+    "converted_bytes": 41766
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_34.png",
+    "converted": "assets_webp\\parents\\man\\avatar_34.webp",
+    "original_bytes": 4873784,
+    "converted_bytes": 28828
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_36.png",
+    "converted": "assets_webp\\parents\\man\\avatar_36.webp",
+    "original_bytes": 5268575,
+    "converted_bytes": 34500
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_38.png",
+    "converted": "assets_webp\\parents\\man\\avatar_38.webp",
+    "original_bytes": 5225909,
+    "converted_bytes": 30804
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_42.png",
+    "converted": "assets_webp\\parents\\man\\avatar_42.webp",
+    "original_bytes": 4869218,
+    "converted_bytes": 26248
+  },
+  {
+    "original": "assets\\parents\\man\\avatar_44.png",
+    "converted": "assets_webp\\parents\\man\\avatar_44.webp",
+    "original_bytes": 5001804,
+    "converted_bytes": 31300
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_06.png",
+    "converted": "assets_webp\\parents\\other\\avatar_06.webp",
+    "original_bytes": 4483570,
+    "converted_bytes": 34922
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_13.png",
+    "converted": "assets_webp\\parents\\other\\avatar_13.webp",
+    "original_bytes": 5282331,
+    "converted_bytes": 32444
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_19.png",
+    "converted": "assets_webp\\parents\\other\\avatar_19.webp",
+    "original_bytes": 5207699,
+    "converted_bytes": 38622
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_26.png",
+    "converted": "assets_webp\\parents\\other\\avatar_26.webp",
+    "original_bytes": 4711778,
+    "converted_bytes": 33650
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_33.png",
+    "converted": "assets_webp\\parents\\other\\avatar_33.webp",
+    "original_bytes": 5034942,
+    "converted_bytes": 34500
+  },
+  {
+    "original": "assets\\parents\\other\\avatar_40.png",
+    "converted": "assets_webp\\parents\\other\\avatar_40.webp",
+    "original_bytes": 5820330,
+    "converted_bytes": 52902
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_01.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_01.webp",
+    "original_bytes": 5924579,
+    "converted_bytes": 52550
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_03.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_03.webp",
+    "original_bytes": 5450224,
+    "converted_bytes": 40116
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_05.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_05.webp",
+    "original_bytes": 4885339,
+    "converted_bytes": 28314
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_08.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_08.webp",
+    "original_bytes": 5068622,
+    "converted_bytes": 30952
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_10.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_10.webp",
+    "original_bytes": 4819718,
+    "converted_bytes": 29166
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_12.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_12.webp",
+    "original_bytes": 5845792,
+    "converted_bytes": 50268
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_14.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_14.webp",
+    "original_bytes": 4720722,
+    "converted_bytes": 26448
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_16.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_16.webp",
+    "original_bytes": 5242153,
+    "converted_bytes": 37032
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_18.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_18.webp",
+    "original_bytes": 4964385,
+    "converted_bytes": 28432
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_21.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_21.webp",
+    "original_bytes": 1453045,
+    "converted_bytes": 32808
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_23.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_23.webp",
+    "original_bytes": 5006065,
+    "converted_bytes": 31900
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_25.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_25.webp",
+    "original_bytes": 5010316,
+    "converted_bytes": 42002
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_28.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_28.webp",
+    "original_bytes": 5215852,
+    "converted_bytes": 35070
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_30.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_30.webp",
+    "original_bytes": 5163731,
+    "converted_bytes": 40696
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_32.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_32.webp",
+    "original_bytes": 4506267,
+    "converted_bytes": 29678
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_35.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_35.webp",
+    "original_bytes": 5055493,
+    "converted_bytes": 24942
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_37.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_37.webp",
+    "original_bytes": 5508831,
+    "converted_bytes": 45482
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_39.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_39.webp",
+    "original_bytes": 5692395,
+    "converted_bytes": 46188
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_43.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_43.webp",
+    "original_bytes": 5172355,
+    "converted_bytes": 31762
+  },
+  {
+    "original": "assets\\parents\\woman\\avatar_45.png",
+    "converted": "assets_webp\\parents\\woman\\avatar_45.webp",
+    "original_bytes": 5749686,
+    "converted_bytes": 49688
+  }
+]

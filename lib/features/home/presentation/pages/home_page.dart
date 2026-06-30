@@ -3,6 +3,8 @@
 import 'dart:async';
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/home/controllers/feed_controller.dart';
@@ -573,7 +575,6 @@ class _UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPhoto = user.profileImage != null && user.profileImage!.isNotEmpty;
-    final emoji = user.profileEmoji ?? '👤';
 
     return Container(
       width: 62,
@@ -591,29 +592,20 @@ class _UserAvatar extends StatelessWidget {
         ],
       ),
       child: ClipOval(
-        child: hasPhoto
-            ? Image.network(
-                user.profileImage!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _EmojiAvatar(emoji: emoji),
-              )
-            : _EmojiAvatar(emoji: emoji),
+        child: Container(
+          color: Colors.white.withValues(alpha: 0.15),
+          child: hasPhoto
+              ? Image.network(
+                  user.profileImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      AvatarRender(value: user.profileEmoji, size: 62),
+                )
+              : AvatarRender(value: user.profileEmoji, size: 62),
+        ),
       ),
     );
   }
-}
-
-class _EmojiAvatar extends StatelessWidget {
-  final String emoji;
-  const _EmojiAvatar({required this.emoji});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        color: Colors.white.withValues(alpha: 0.15),
-        child: Center(
-          child: Text(emoji, style: const TextStyle(fontSize: 30)),
-        ),
-      );
 }
 
 class _HeaderIconBtn extends StatelessWidget {

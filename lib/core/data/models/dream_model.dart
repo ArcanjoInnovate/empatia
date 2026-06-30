@@ -25,6 +25,7 @@ class DreamModel {
   final String? childId;
   final String? childName;
   final String? childEmoji;
+  final int? childAge;
 
   const DreamModel({
     this.id,
@@ -39,6 +40,7 @@ class DreamModel {
     this.childId,
     this.childName,
     this.childEmoji,
+    this.childAge,
   });
 
   factory DreamModel.fromMap(Map<dynamic, dynamic> map, String id) {
@@ -65,6 +67,7 @@ class DreamModel {
       childId: map['childId'] as String?,
       childName: map['childName'] as String?,
       childEmoji: map['childEmoji'] as String?,
+      childAge: (map['childAge'] as num?)?.toInt(),
     );
   }
 
@@ -82,6 +85,7 @@ class DreamModel {
       if (childId != null) 'childId': childId,
       if (childName != null) 'childName': childName,
       if (childEmoji != null) 'childEmoji': childEmoji,
+      if (childAge != null) 'childAge': childAge,
     };
   }
 
@@ -98,6 +102,7 @@ class DreamModel {
     String? childId,
     String? childName,
     String? childEmoji,
+    int? childAge,
   }) {
     return DreamModel(
       id:         id         ?? this.id,
@@ -112,6 +117,7 @@ class DreamModel {
       childId:    childId    ?? this.childId,
       childName:  childName  ?? this.childName,
       childEmoji: childEmoji ?? this.childEmoji,
+      childAge:   childAge   ?? this.childAge,
     );
   }
 }

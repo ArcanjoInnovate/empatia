@@ -2,6 +2,10 @@ class ChildModel {
   final String? id;
   final String? name;
   final int? age;
+
+  /// Caminho do asset de avatar (ex: "assets/children/girl/3.webp").
+  /// Mantém o nome `emoji` por compatibilidade com o banco já existente,
+  /// mas o valor agora é um caminho de imagem, não mais um emoji.
   final String? emoji;
 
   const ChildModel({this.id, this.name, this.age, this.emoji});
@@ -23,6 +27,10 @@ class ChildModel {
     };
   }
 
+  /// Deriva o gênero do avatar a partir do caminho do asset salvo,
+  /// usado para abrir o seletor já no grupo correto ao editar.
+  String get genero => (emoji ?? '').contains('/girl/') ? 'menina' : 'menino';
+
   ChildModel copyWith({String? id, String? name, int? age, String? emoji}) {
     return ChildModel(
       id: id ?? this.id,
@@ -32,4 +40,3 @@ class ChildModel {
     );
   }
 }
-

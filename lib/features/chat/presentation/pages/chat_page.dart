@@ -1,6 +1,10 @@
 // lib/features/chat/presentation/pages/chat_page.dart
 
 import 'package:empatia/core/data/models/user_model.dart';
+import 'package:empatia/core/widget/verification_block_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/features/chat/controller/chat_controller.dart';
 import 'package:empatia/features/chat/data/models/chat_message_model.dart';
@@ -9,7 +13,6 @@ import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
 import 'package:empatia/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:empatia/features/donation/presentation/pages/donation_detail_page.dart';
 import 'package:empatia/features/dream/presentation/pages/dream_detail_page.dart';
-import 'package:empatia/features/dream/presentation/pages/verification_block_dialog.dart';
 import 'package:empatia/features/profile/data/service/profile_service.dart';
 import 'package:empatia/features/search/data/repositories/search_repository.dart';
 import 'package:flutter/material.dart';
@@ -901,6 +904,15 @@ class _AvatarContent extends StatelessWidget {
     final letter = chat.otherName?.isNotEmpty == true
         ? chat.otherName![0].toUpperCase()
         : null;
+
+    if (AppAvatars.isAssetPath(emoji)) {
+      return Container(
+        width: size, height: size,
+        color: Colors.white.withValues(alpha: 0.15),
+        child: AvatarRender(value: emoji, size: size),
+      );
+    }
+
     return Container(
       width: size, height: size,
       color: Colors.white.withValues(alpha: 0.15),
@@ -1061,7 +1073,25 @@ class _ContextCardState extends State<_ContextCard> {
     if (!context.mounted) return;
 
     final currentUser = context.read<UserModel?>();
-    if (currentUser == null || !ProfileService.isFullyVerified(currentUser)) {
+    if (currentUser == null) {
+      if (FirebaseAuth.instance.currentUser != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Carregando seu perfil... tente de novo em um instante.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      showVerificationRequiredDialog(
+        context,
+        feature: isDream
+            ? 'ver os detalhes deste sonho'
+            : 'ver os detalhes desta doação',
+      );
+      return;
+    }
+    if (!ProfileService.isFullyVerified(currentUser)) {
       showVerificationRequiredDialog(
         context,
         feature: isDream

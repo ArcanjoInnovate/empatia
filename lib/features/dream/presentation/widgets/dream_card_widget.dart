@@ -1,4 +1,6 @@
 import 'package:empatia/core/data/models/dream_model.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
+import 'package:empatia/core/theme/app_avatars.dart';
 import 'package:empatia/features/dream/controller/dream_controller.dart';
 import 'package:empatia/features/dream/presentation/pages/full_screen_image_page.dart';
 import 'package:flutter/material.dart';
@@ -166,7 +168,9 @@ class _ChildChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 14)),
+          ClipOval(
+            child: AvatarRender(value: emoji, size: 14),
+          ),
           const SizedBox(width: 5),
           Text(
             name,

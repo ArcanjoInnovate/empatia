@@ -6,15 +6,19 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_icons.dart';
 import 'package:empatia/core/theme/app_theme.dart';
+import 'package:empatia/core/widget/avatar_render.dart';
 
 /// 📸 PROFILE PHOTO SECTION
 ///
-/// Widget para escolher foto de perfil OU emoji.
+/// Widget para escolher foto de perfil OU avatar ilustrado (substituiu
+/// o antigo seletor de emoji). `currentEmoji`/`availableEmojis` mantêm o
+/// nome por compatibilidade, mas agora carregam caminhos de asset
+/// (ex: "assets/parents/woman/avatar_01.webp").
 /// Usa [XFile] em vez de [File] para funcionar no web e no mobile.
 class ProfilePhotoSection extends StatefulWidget {
   final String? currentPhotoUrl;
   final String currentEmoji;
-  final Function(XFile? photo, String emoji) onPhotoChanged;
+  final Function(XFile? photo, String emoji, bool usePhoto) onPhotoChanged;
   final List<String> availableEmojis;
 
   const ProfilePhotoSection({
@@ -125,7 +129,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
           _selectedPhoto = image;
           _usePhoto = true;
         });
-        widget.onPhotoChanged(_selectedPhoto, _selectedEmoji);
+        widget.onPhotoChanged(_selectedPhoto, _selectedEmoji, true);
       }
     } catch (e) {
       debugPrint('❌ Erro ao selecionar imagem: $e');
@@ -138,7 +142,7 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
       _selectedPhoto = null;
       _usePhoto = false;
     });
-    widget.onPhotoChanged(null, _selectedEmoji);
+    widget.onPhotoChanged(null, _selectedEmoji, false);
   }
 
   void _showImageSourceSheet() {
@@ -260,19 +264,19 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
             ),
             const SizedBox(width: 12),
             _buildModeChip(
-              icon: '😀',
-              label: 'Emoji',
+              icon: '🧑‍🎨',
+              label: 'Avatar',
               selected: !_usePhoto,
               onTap: () {
                 setState(() => _usePhoto = false);
-                widget.onPhotoChanged(null, _selectedEmoji);
+                widget.onPhotoChanged(null, _selectedEmoji, false);
               },
             ),
           ],
         ),
         const SizedBox(height: 16),
         Center(
-          child: _usePhoto ? _buildPhotoPreview() : _buildEmojiPicker(),
+          child: _usePhoto ? _buildPhotoPreview() : _buildAvatarPicker(),
         ),
       ],
     );
@@ -386,35 +390,35 @@ class _ProfilePhotoSectionState extends State<ProfilePhotoSection> {
     );
   }
 
-  Widget _buildEmojiPicker() {
+  Widget _buildAvatarPicker() {
     return Column(
       children: [
         Container(
           width: 120,
           height: 120,
           decoration: AppDecorations.photoPreviewCircle,
-          child: Center(
-            child: Text(_selectedEmoji, style: const TextStyle(fontSize: 60)),
+          child: ClipOval(
+            child: AvatarRender(value: _selectedEmoji, size: 120),
           ),
         ),
         const SizedBox(height: 20),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: widget.availableEmojis.map((emoji) {
-            final selected = emoji == _selectedEmoji;
+          children: widget.availableEmojis.map((avatarPath) {
+            final selected = avatarPath == _selectedEmoji;
             return GestureDetector(
               onTap: () {
-                setState(() => _selectedEmoji = emoji);
-                widget.onPhotoChanged(null, _selectedEmoji);
+                setState(() => _selectedEmoji = avatarPath);
+                widget.onPhotoChanged(null, _selectedEmoji, false);
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 width: 50,
                 height: 50,
                 decoration: AppDecorations.childEmojiOption(selected: selected),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                child: ClipOval(
+                  child: AvatarRender(value: avatarPath, size: 50),
                 ),
               ),
             );

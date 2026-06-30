@@ -3,9 +3,11 @@ import 'dart:ui';
 import 'package:empatia/features/chat/data/models/chat_model.dart';
 import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
 import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
+import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -458,15 +460,14 @@ class _PageBody extends StatelessWidget {
         ],
 
         // ③ Quem está doando
-        if (ownerName.isNotEmpty) ...[
+        // Mostra o card sempre que houver pelo menos o ownerId — mesmo sem
+        // ownerName/ownerPhotoUrl, o _DonorCard busca o fallback em
+        // UsersPublic/{ownerId} (mesmo nó usado pelo PublicProfilePage).
+        if (ownerName.isNotEmpty || (result.ownerId?.isNotEmpty ?? false)) ...[
           const SizedBox(height: 28),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _DonorCard(
-              ownerName: ownerName,
-              ownerPhotoUrl: result.ownerPhotoUrl,
-              city: city,
-            ),
+            child: _DonorCard(result: result),
           ),
         ],
 
@@ -813,113 +814,195 @@ class _DonorSignature extends StatelessWidget {
 // ③ QUEM ESTÁ DOANDO — card de confiança
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DonorCard extends StatelessWidget {
-  final String ownerName;
-  final String? ownerPhotoUrl;
-  final String city;
-  const _DonorCard({
-    required this.ownerName,
-    required this.ownerPhotoUrl,
-    required this.city,
-  });
+class _DonorCard extends StatefulWidget {
+  final SearchResult result;
+  const _DonorCard({required this.result});
+
+  @override
+  State<_DonorCard> createState() => _DonorCardState();
+}
+
+class _DonorCardState extends State<_DonorCard> {
+  // Valores efetivos exibidos — começam com o que já veio no SearchResult
+  // e são completados pelo fallback caso estejam vazios.
+  late String? _name = widget.result.ownerName?.trim();
+  late String? _photoUrl = widget.result.ownerPhotoUrl?.trim();
+  late String? _city = widget.result.city?.trim();
+  bool _loadingFallback = false;
+
+  String get _ownerId => widget.result.ownerId ?? '';
+
+  bool get _needsFallback =>
+      _ownerId.isNotEmpty && ((_name == null || _name!.isEmpty));
+
+  @override
+  void initState() {
+    super.initState();
+    if (_needsFallback) _fetchFallback();
+  }
+
+  /// 🔧 FIX: alguns DonationModel/SearchResult chegam sem `ownerName`/
+  /// `ownerPhotoUrl` (ex.: doações legadas, ou SearchResult montado via
+  /// `SearchResult.fromDonation` antes da correção). Em vez de esconder o
+  /// card, buscamos o mesmo nó público que o PublicProfilePage usa.
+  Future<void> _fetchFallback() async {
+    setState(() => _loadingFallback = true);
+    try {
+      final snap =
+          await FirebaseDatabase.instance.ref('UsersPublic/$_ownerId').get();
+      if (!mounted) return;
+      if (snap.exists && snap.value is Map) {
+        final m = Map<dynamic, dynamic>.from(snap.value as Map);
+        setState(() {
+          _name = (m['name']?.toString().trim().isNotEmpty ?? false)
+              ? m['name'].toString().trim()
+              : _name;
+          _photoUrl = (m['profileImage']?.toString().trim().isNotEmpty ?? false)
+              ? m['profileImage'].toString().trim()
+              : _photoUrl;
+          _city = (m['city']?.toString().trim().isNotEmpty ?? false)
+              ? m['city'].toString().trim()
+              : _city;
+        });
+      }
+    } catch (_) {
+      // Silencioso — card cai no estado "doador" genérico abaixo.
+    } finally {
+      if (mounted) setState(() => _loadingFallback = false);
+    }
+  }
+
+  void _openProfile() {
+    if (_ownerId.isEmpty) return;
+    Navigator.push(
+      context,
+      PublicProfilePage.route(
+        uid: _ownerId,
+        fallbackName: _name,
+        fallbackImage: _photoUrl,
+        fallbackCity: _city,
+        fallbackState: widget.result.state,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final ownerName = _name?.trim() ?? '';
+    final city = _city?.trim() ?? '';
+    final hasOwnerId = _ownerId.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionHeader(emoji: '🤝', label: 'Quem está doando'),
         const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: _T.surface,
-            borderRadius: BorderRadius.circular(_T.r20),
-            border: Border.all(color: _T.border),
-          ),
-          child: Row(
-            children: [
-              // Avatar com foto ou inicial
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: _T.pinkLight,
-                backgroundImage: ownerPhotoUrl != null
-                    ? NetworkImage(ownerPhotoUrl!)
-                    : null,
-                child: ownerPhotoUrl == null
-                    ? Text(
+        GestureDetector(
+          onTap: hasOwnerId ? _openProfile : null,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _T.surface,
+              borderRadius: BorderRadius.circular(_T.r20),
+              border: Border.all(color: _T.border),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: _T.pinkLight,
+                  backgroundImage: (_photoUrl?.isNotEmpty ?? false)
+                      ? NetworkImage(_photoUrl!)
+                      : null,
+                  child: (_photoUrl?.isNotEmpty ?? false)
+                      ? null
+                      : (_loadingFallback
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _T.pink,
+                              ),
+                            )
+                          : Text(
+                              ownerName.isNotEmpty
+                                  ? ownerName[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: _T.pink,
+                              ),
+                            )),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         ownerName.isNotEmpty
-                            ? ownerName[0].toUpperCase()
-                            : '?',
+                            ? ownerName
+                            : (_loadingFallback
+                                ? 'Carregando...'
+                                : 'Doador da comunidade'),
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: _T.pink,
+                          color: _T.navy,
                         ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ownerName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: _T.navy,
                       ),
-                    ),
-                    if (city.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_rounded,
-                              size: 12, color: _T.subtle),
-                          const SizedBox(width: 3),
-                          Text(
-                            city,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: _T.muted,
-                              fontWeight: FontWeight.w500,
+                      if (city.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_rounded,
+                                size: 12, color: _T.subtle),
+                            const SizedBox(width: 3),
+                            Text(
+                              city,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _T.muted,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _T.pinkLight,
+                          borderRadius: BorderRadius.circular(_T.r99),
+                          border: Border.all(color: _T.pinkBorder),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('❤️', style: TextStyle(fontSize: 11)),
+                            SizedBox(width: 4),
+                            Text(
+                              'Membro da comunidade Empatia',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: _T.pinkDeep,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    // Selo de confiança
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _T.pinkLight,
-                        borderRadius: BorderRadius.circular(_T.r99),
-                        border: Border.all(color: _T.pinkBorder),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('❤️', style: TextStyle(fontSize: 11)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Membro da comunidade Empatia',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: _T.pinkDeep,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                if (hasOwnerId)
+                  const Icon(Icons.chevron_right_rounded, color: _T.subtle),
+              ],
+            ),
           ),
         ),
       ],

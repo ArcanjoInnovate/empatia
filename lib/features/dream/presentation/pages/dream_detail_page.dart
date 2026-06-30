@@ -1,8 +1,10 @@
 import 'dart:ui';
 
+import 'package:empatia/core/widget/avatar_render.dart';
 import 'package:empatia/features/chat/data/models/chat_model.dart';
 import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
 import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
+import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:empatia/features/search/controller/search_controller.dart'
     show SearchResult;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,43 +17,112 @@ import 'package:flutter/services.dart';
 
 abstract final class _T {
   // Brand
-  static const pink        = Color(0xFFFF5C8D);
-  static const pinkDeep    = Color(0xFFE0457A);
-  static const pinkLight   = Color(0xFFFFF0F6);
-  static const pinkBorder  = Color(0xFFFFD6E7);
+  static const pink = Color(0xFFFF5C8D);
+  static const pinkDeep = Color(0xFFE0457A);
+  static const pinkLight = Color(0xFFFFF0F6);
+  static const pinkBorder = Color(0xFFFFD6E7);
 
-  static const blue        = Color(0xFF2563EB);
+  static const blue = Color(0xFF2563EB);
 
   // Semantic
-  static const green       = Color(0xFF16A34A);
-  static const greenLight  = Color(0xFFDCFCE7);
-  static const amber       = Color(0xFFF59E0B);
-  static const amberLight  = Color(0xFFFEF3C7);
+  static const green = Color(0xFF16A34A);
+  static const greenLight = Color(0xFFDCFCE7);
+  static const amber = Color(0xFFF59E0B);
+  static const amberLight = Color(0xFFFEF3C7);
 
   // Text
-  static const navy        = Color(0xFF1E3A5F);
-  static const body        = Color(0xFF374151);
-  static const muted       = Color(0xFF6B7280);
-  static const subtle      = Color(0xFF9CA3AF);
+  static const navy = Color(0xFF1E3A5F);
+  static const body = Color(0xFF374151);
+  static const muted = Color(0xFF6B7280);
+  static const subtle = Color(0xFF9CA3AF);
 
   // Surface
-  static const white       = Colors.white;
-  static const surface     = Color(0xFFF9FAFB);
+  static const white = Colors.white;
+  static const surface = Color(0xFFF9FAFB);
   // Creme suave — transmite acolhimento, papel, carta
-  static const cream       = Color(0xFFFFFBF5);
+  static const cream = Color(0xFFFFFBF5);
   static const creamBorder = Color(0xFFF0E6D3);
-  static const creamDeep   = Color(0xFFE8D5B7);
+  static const creamDeep = Color(0xFFE8D5B7);
 
-  static const border      = Color(0xFFE5E7EB);
-  static const borderWarm  = Color(0xFFFFD6E7);
+  static const border = Color(0xFFE5E7EB);
+  static const borderWarm = Color(0xFFFFD6E7);
 
   // Radius
-  static const r8  = 8.0;
+  static const r8 = 8.0;
   static const r12 = 12.0;
   static const r16 = 16.0;
   static const r20 = 20.0;
   static const r24 = 24.0;
   static const r99 = 99.0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MINI PERFIL DA CRIANÇA — bottom sheet compartilhado
+// (mesmo padrão visual do PublicProfilePage)
+// ─────────────────────────────────────────────────────────────────────────────
+
+void _showChildMiniProfile(
+  BuildContext context, {
+  required String name,
+  String? avatar,
+  int? age,
+}) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 36),
+      decoration: const BoxDecoration(
+        color: _T.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _T.pinkBorder, width: 2.5),
+            ),
+            child: ClipOval(child: AvatarRender(value: avatar, size: 96)),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              color: _T.navy,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (age != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '$age ${age == 1 ? 'ano' : 'anos'}',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _T.muted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,14 +145,10 @@ class DreamDetailPage extends StatelessWidget {
     required SearchResult result,
     required String heroTag,
     bool hideCta = false,
-  }) =>
-      MaterialPageRoute(
-        builder: (_) => DreamDetailPage(
-          result: result,
-          heroTag: heroTag,
-          hideCta: hideCta,
-        ),
-      );
+  }) => MaterialPageRoute(
+    builder: (_) =>
+        DreamDetailPage(result: result, heroTag: heroTag, hideCta: hideCta),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -110,8 +177,13 @@ class DreamDetailPage extends StatelessWidget {
             // CTA fixo — oculto quando aberto via contexto do chat
             if (!hideCta)
               Positioned(
-                left: 0, right: 0, bottom: 0,
-                child: _CtaBar(childName: result.childName?.trim() ?? '', result: result),
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _CtaBar(
+                  childName: result.childName?.trim() ?? '',
+                  result: result,
+                ),
               ),
           ],
         ),
@@ -155,40 +227,40 @@ class _CollapsedTitle extends StatelessWidget {
   const _CollapsedTitle({required this.title});
   @override
   Widget build(BuildContext context) => Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: _T.white,
-        ),
-      );
+    title,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      color: _T.white,
+    ),
+  );
 }
 
 class _BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(10),
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: ClipOval(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                width: 38,
-                height: 38,
-                color: Colors.black.withValues(alpha: 0.25),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: _T.white,
-                  size: 16,
-                ),
-              ),
+    padding: const EdgeInsets.all(10),
+    child: GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            width: 38,
+            height: 38,
+            color: Colors.black.withValues(alpha: 0.25),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: _T.white,
+              size: 16,
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _HeroBackground extends StatelessWidget {
@@ -198,15 +270,15 @@ class _HeroBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url        = result.photoUrl;
-    final childName  = result.childName?.trim()  ?? '';
+    final url = result.photoUrl;
+    final childName = result.childName?.trim() ?? '';
     final childEmoji = result.childEmoji?.trim() ?? '⭐';
     final dreamEmoji = result.dreamEmoji?.trim() ?? '';
-    final title      = result.title?.trim()      ?? '';
-    final city       = result.city?.trim()       ?? '';
-    final state      = result.state?.trim()      ?? '';
-    final location   = [
-      if (city.isNotEmpty)  city,
+    final title = result.title?.trim() ?? '';
+    final city = result.city?.trim() ?? '';
+    final state = result.state?.trim() ?? '';
+    final location = [
+      if (city.isNotEmpty) city,
       if (state.isNotEmpty) state,
     ].join(', ');
 
@@ -252,26 +324,59 @@ class _HeroBackground extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (childName.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Text(childEmoji,
-                          style: const TextStyle(fontSize: 30)),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          childName,
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            color: _T.white,
-                            height: 1.1,
-                            shadows: [
-                              Shadow(color: Colors.black54, blurRadius: 10),
+                  GestureDetector(
+                    onTap: () => _showChildMiniProfile(
+                      context,
+                      name: childName,
+                      avatar: childEmoji,
+                      age: result.childAge,
+                    ),
+                    child: Row(
+                      children: [
+                        ClipOval(
+                          child: AvatarRender(value: childEmoji, size: 30),
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                childName,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  color: _T.white,
+                                  height: 1.1,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black54,
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (result.childAge != null)
+                                Text(
+                                  '${result.childAge} ${result.childAge == 1 ? 'ano' : 'anos'}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withValues(alpha: 0.80),
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 6,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -279,8 +384,7 @@ class _HeroBackground extends StatelessWidget {
                   Row(
                     children: [
                       if (dreamEmoji.isNotEmpty) ...[
-                        Text(dreamEmoji,
-                            style: const TextStyle(fontSize: 15)),
+                        Text(dreamEmoji, style: const TextStyle(fontSize: 15)),
                         const SizedBox(width: 6),
                       ],
                       Flexible(
@@ -303,8 +407,11 @@ class _HeroBackground extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_rounded,
-                          size: 13, color: Colors.white70),
+                      const Icon(
+                        Icons.location_on_rounded,
+                        size: 13,
+                        color: Colors.white70,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         location,
@@ -330,17 +437,15 @@ class _HeroPlaceholder extends StatelessWidget {
   const _HeroPlaceholder();
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
-          ),
-        ),
-        child: const Center(
-          child: Text('⭐', style: TextStyle(fontSize: 80)),
-        ),
-      );
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
+      ),
+    ),
+    child: const Center(child: Text('⭐', style: TextStyle(fontSize: 80))),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -348,7 +453,7 @@ class _HeroPlaceholder extends StatelessWidget {
 //
 //  ① Âncora do sonho (título + emoji)
 //  ② RELATO DA FAMÍLIA ← DESTAQUE MÁXIMO
-//  ③ Impacto
+//  ③ Quem está pedindo (card do responsável)
 //  ④ Progresso
 //  ⑤ Prova social
 //  ⑥ Informações complementares
@@ -360,29 +465,29 @@ class _PageBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final childName   = result.childName?.trim()   ?? '';
-    final childEmoji  = result.childEmoji?.trim()  ?? '';
-    final dreamEmoji  = result.dreamEmoji?.trim()  ?? '✨';
-    final title       = result.title?.trim()       ?? '';
+    final childName = result.childName?.trim() ?? '';
+    final childEmoji = result.childEmoji?.trim() ?? '';
+    final childAge = result.childAge;
+    final dreamEmoji = result.dreamEmoji?.trim() ?? '✨';
+    final title = result.title?.trim() ?? '';
     final description = result.description?.trim() ?? '';
     // dreamDate contém o relato real da família
-    final familyStory = result.dreamDate?.trim()   ?? '';
-    final city        = result.city?.trim()        ?? '';
-    final state       = result.state?.trim()       ?? '';
-    final progress    = result.dreamProgress;
+    final familyStory = result.dreamDate?.trim() ?? '';
+    final city = result.city?.trim() ?? '';
+    final state = result.state?.trim() ?? '';
+    final progress = result.dreamProgress;
 
     // Usa o relato da família; fallback para description se dreamDate vazio
     final storyText = familyStory.isNotEmpty ? familyStory : description;
 
     final location = [
-      if (city.isNotEmpty)  city,
+      if (city.isNotEmpty) city,
       if (state.isNotEmpty) state,
     ].join(', ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         // ① Âncora: pill do sonho — transição suave do hero para o corpo
         _DreamAnchor(
           dreamEmoji: dreamEmoji,
@@ -397,30 +502,30 @@ class _PageBody extends StatelessWidget {
             description: storyText,
             childName: childName,
             childEmoji: childEmoji,
+            childAge: childAge,
           ),
         ],
 
+        // ③ Quem está pedindo — card do responsável (clicável → perfil público)
+        const SizedBox(height: 28),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _ParentCard(result: result),
+        ),
 
         // ④ Progresso inspirador
         if (progress != null && progress > 0) ...[
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _InspiringProgress(
-              progress: progress,
-              childName: childName,
-            ),
+            child: _InspiringProgress(progress: progress, childName: childName),
           ),
         ],
 
         // ⑥ Informações complementares
         if (location.isNotEmpty) ...[
           const SizedBox(height: 24),
-          _InfoSection(
-            city: city,
-            state: state,
-            title: title,
-          ),
+          _InfoSection(city: city, state: state, title: title),
         ],
 
         const SizedBox(height: 8),
@@ -486,8 +591,7 @@ class _DreamAnchor extends StatelessWidget {
                 Row(
                   children: [
                     if (dreamEmoji.isNotEmpty) ...[
-                      Text(dreamEmoji,
-                          style: const TextStyle(fontSize: 15)),
+                      Text(dreamEmoji, style: const TextStyle(fontSize: 15)),
                       const SizedBox(width: 6),
                     ],
                     Flexible(
@@ -524,11 +628,13 @@ class _FamilyStorySection extends StatelessWidget {
   final String description;
   final String childName;
   final String childEmoji;
+  final int? childAge;
 
   const _FamilyStorySection({
     required this.description,
     required this.childName,
     required this.childEmoji,
+    this.childAge,
   });
 
   @override
@@ -543,7 +649,9 @@ class _FamilyStorySection extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _T.navy,
                   borderRadius: BorderRadius.circular(_T.r99),
@@ -587,7 +695,11 @@ class _FamilyStorySection extends StatelessWidget {
                 height: 6,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFFFFD6E7), Color(0xFFFFE8B2), Color(0xFFD6EDFF)],
+                    colors: [
+                      Color(0xFFFFD6E7),
+                      Color(0xFFFFE8B2),
+                      Color(0xFFD6EDFF),
+                    ],
                   ),
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(_T.r24),
@@ -623,35 +735,26 @@ class _FamilyStorySection extends StatelessWidget {
                     // Divisor elegante
                     Row(
                       children: [
-                        Container(
-                          height: 1,
-                          width: 32,
-                          color: _T.creamDeep,
-                        ),
+                        Container(height: 1, width: 32, color: _T.creamDeep),
                         const SizedBox(width: 10),
                         const Text(
                           '✦',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: _T.creamDeep,
-                          ),
+                          style: TextStyle(fontSize: 10, color: _T.creamDeep),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Container(
-                            height: 1,
-                            color: _T.creamDeep,
-                          ),
+                          child: Container(height: 1, color: _T.creamDeep),
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Assinatura da família
+                    // Assinatura da família (clicável → mini perfil da criança)
                     _FamilySignature(
                       childName: childName,
                       childEmoji: childEmoji,
+                      childAge: childAge,
                     ),
                   ],
                 ),
@@ -665,8 +768,7 @@ class _FamilyStorySection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
           child: Row(
             children: [
-              const Icon(Icons.verified_rounded,
-                  size: 13, color: _T.pink),
+              const Icon(Icons.verified_rounded, size: 13, color: _T.pink),
               const SizedBox(width: 5),
               Text(
                 'Relato real compartilhado pela família',
@@ -690,105 +792,228 @@ class _OpeningQuote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Aspa principal grande
-          Text(
-            '"',
-            style: TextStyle(
-              fontSize: 80,
-              height: 0.6,
-              fontWeight: FontWeight.w900,
-              color: _T.pink.withValues(alpha: 0.20),
-              fontFamily: 'Georgia', // serif para elegância
-            ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Aspa principal grande
+      Text(
+        '"',
+        style: TextStyle(
+          fontSize: 80,
+          height: 0.6,
+          fontWeight: FontWeight.w900,
+          color: _T.pink.withValues(alpha: 0.20),
+          fontFamily: 'Georgia', // serif para elegância
+        ),
+      ),
+      const SizedBox(width: 6),
+      // Segunda aspa menor para profundidade
+      Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          '"',
+          style: TextStyle(
+            fontSize: 48,
+            height: 0.6,
+            fontWeight: FontWeight.w900,
+            color: _T.pink.withValues(alpha: 0.12),
+            fontFamily: 'Georgia',
           ),
-          const SizedBox(width: 6),
-          // Segunda aspa menor para profundidade
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              '"',
-              style: TextStyle(
-                fontSize: 48,
-                height: 0.6,
-                fontWeight: FontWeight.w900,
-                color: _T.pink.withValues(alpha: 0.12),
-                fontFamily: 'Georgia',
-              ),
-            ),
-          ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
-/// Assinatura da família ao final do relato
+/// Assinatura da família ao final do relato — toque abre o mini perfil
 class _FamilySignature extends StatelessWidget {
   final String childName;
   final String childEmoji;
+  final int? childAge;
   const _FamilySignature({
     required this.childName,
     required this.childEmoji,
+    this.childAge,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasName = childName.isNotEmpty;
-    final emoji   = childEmoji.isNotEmpty ? childEmoji : '👨‍👩‍👧';
 
-    return Row(
-      children: [
-        // Avatar da criança / família
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: _T.pinkLight,
-            shape: BoxShape.circle,
-            border: Border.all(color: _T.pinkBorder, width: 1.5),
-          ),
-          child: Center(
-            child: Text(emoji, style: const TextStyle(fontSize: 18)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              hasName ? 'Família de $childName' : 'A família',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: _T.navy,
-              ),
+    return GestureDetector(
+      onTap: hasName
+          ? () => _showChildMiniProfile(
+              context,
+              name: childName,
+              avatar: childEmoji,
+              age: childAge,
+            )
+          : null,
+      child: Row(
+        children: [
+          // Avatar da criança / família
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _T.pinkLight,
+              shape: BoxShape.circle,
+              border: Border.all(color: _T.pinkBorder, width: 1.5),
             ),
-            const SizedBox(height: 1),
-            Row(
-              children: [
-                const Icon(Icons.favorite_rounded,
-                    size: 10, color: _T.pink),
-                const SizedBox(width: 4),
-                Text(
-                  'Com muito amor',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: _T.muted,
-                    fontStyle: FontStyle.italic,
-                  ),
+            child: ClipOval(child: AvatarRender(value: childEmoji, size: 40)),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                hasName ? 'Família de $childName' : 'A família',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: _T.navy,
                 ),
-              ],
-            ),
-          ],
-        ),
-      ],
+              ),
+              const SizedBox(height: 1),
+              Row(
+                children: [
+                  const Icon(Icons.favorite_rounded, size: 10, color: _T.pink),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Com muito amor',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _T.muted,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ③ IMPACTO — o que a ação gera
+// ③ QUEM ESTÁ PEDINDO — card do responsável (pai/mãe)
+// Clicável → abre o PublicProfilePage do dono do sonho
 // ─────────────────────────────────────────────────────────────────────────────
+
+class _ParentCard extends StatelessWidget {
+  final SearchResult result;
+  const _ParentCard({required this.result});
+
+  void _openProfile(BuildContext context) {
+    final ownerId = result.ownerId ?? '';
+    if (ownerId.isEmpty) return;
+    Navigator.push(
+      context,
+      PublicProfilePage.route(
+        uid: ownerId,
+        fallbackName: result.ownerName,
+        fallbackImage: result.ownerPhotoUrl,
+        fallbackCity: result.city,
+        fallbackState: result.state,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ownerName = result.ownerName?.trim() ?? '';
+    if (ownerName.isEmpty) return const SizedBox.shrink();
+
+    final hasPhoto = result.ownerPhotoUrl?.isNotEmpty ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(emoji: '🤝', label: 'Quem está pedindo'),
+        const SizedBox(height: 14),
+        GestureDetector(
+          onTap: () => _openProfile(context),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _T.surface,
+              borderRadius: BorderRadius.circular(_T.r20),
+              border: Border.all(color: _T.border),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: _T.pinkLight,
+                  backgroundImage: hasPhoto
+                      ? NetworkImage(result.ownerPhotoUrl!)
+                      : null,
+                  child: hasPhoto
+                      ? null
+                      : Text(
+                          ownerName.isNotEmpty
+                              ? ownerName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: _T.pink,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ownerName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: _T.navy,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _T.pinkLight,
+                          borderRadius: BorderRadius.circular(_T.r99),
+                          border: Border.all(color: _T.pinkBorder),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('❤️', style: TextStyle(fontSize: 11)),
+                            SizedBox(width: 4),
+                            Text(
+                              'Membro da comunidade Empatia',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: _T.pinkDeep,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: _T.subtle),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ④ PROGRESSO INSPIRADOR
@@ -848,11 +1073,11 @@ class _InspiringProgressState extends State<_InspiringProgress>
 
   @override
   Widget build(BuildContext context) {
-    final p     = widget.progress.clamp(0.0, 1.0);
-    final pct   = (p * 100).round();
+    final p = widget.progress.clamp(0.0, 1.0);
+    final pct = (p * 100).round();
     final color = _color(p);
     final light = _lightColor(p);
-    final name  = widget.childName.isNotEmpty ? widget.childName : 'este sonho';
+    final name = widget.childName.isNotEmpty ? widget.childName : 'este sonho';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -977,13 +1202,14 @@ class _InfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = [
-      if (city.isNotEmpty)  city,
+      if (city.isNotEmpty) city,
       if (state.isNotEmpty) state,
     ].join(', ');
 
     final tiles = <_InfoTileData>[];
-    if (location.isNotEmpty) tiles.add(_InfoTileData('📍', 'Localização', location));
-    if (title.isNotEmpty)    tiles.add(_InfoTileData('🎁', 'Sonho',       title));
+    if (location.isNotEmpty)
+      tiles.add(_InfoTileData('📍', 'Localização', location));
+    if (title.isNotEmpty) tiles.add(_InfoTileData('🎁', 'Sonho', title));
 
     if (tiles.isEmpty) return const SizedBox.shrink();
 
@@ -1018,19 +1244,21 @@ class _InfoGrid extends StatelessWidget {
     for (var i = 0; i < tiles.length; i += 2) {
       final a = tiles[i];
       final b = i + 1 < tiles.length ? tiles[i + 1] : null;
-      rows.add(Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          children: [
-            Expanded(child: _InfoTile(data: a)),
-            if (b != null) ...[
-              const SizedBox(width: 10),
-              Expanded(child: _InfoTile(data: b)),
-            ] else
-              const Expanded(child: SizedBox()),
-          ],
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              Expanded(child: _InfoTile(data: a)),
+              if (b != null) ...[
+                const SizedBox(width: 10),
+                Expanded(child: _InfoTile(data: b)),
+              ] else
+                const Expanded(child: SizedBox()),
+            ],
+          ),
         ),
-      ));
+      );
     }
     return Column(children: rows);
   }
@@ -1042,46 +1270,46 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _T.surface,
-          borderRadius: BorderRadius.circular(_T.r16),
-          border: Border.all(color: _T.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: _T.surface,
+      borderRadius: BorderRadius.circular(_T.r16),
+      border: Border.all(color: _T.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Text(data.emoji, style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(
-                  data.label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _T.subtle,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
+            Text(data.emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
             Text(
-              data.value,
-              softWrap: true,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              data.label,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: _T.navy,
-                height: 1.3,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _T.subtle,
+                letterSpacing: 0.2,
               ),
             ),
           ],
         ),
-      );
+        const SizedBox(height: 6),
+        Text(
+          data.value,
+          softWrap: true,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: _T.navy,
+            height: 1.3,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1095,23 +1323,23 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: _T.navy,
-                height: 1.3,
-              ),
-            ),
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Text(emoji, style: const TextStyle(fontSize: 16)),
+      const SizedBox(width: 8),
+      Flexible(
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: _T.navy,
+            height: 1.3,
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1126,7 +1354,7 @@ class _CtaBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final name      = childName.isNotEmpty ? childName : 'esta criança';
+    final name = childName.isNotEmpty ? childName : 'esta criança';
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + bottomPad),
@@ -1228,11 +1456,11 @@ class _CtaButtonState extends State<_CtaButton>
     if (!mounted) return;
 
     final chatId = ChatModel.buildId(myUid, ownerId);
-    final sorted  = ([myUid, ownerId]..sort());
+    final sorted = ([myUid, ownerId]..sort());
     final chat = ChatModel(
       chatId: chatId,
-      user1:  sorted[0],
-      user2:  sorted[1],
+      user1: sorted[0],
+      user2: sorted[1],
       otherUid: ownerId,
       origin: ChatOrigin.dream,
       itemId: widget.result.id,
@@ -1243,7 +1471,10 @@ class _CtaButtonState extends State<_CtaButton>
       otherEmoji: userInfo['profileEmoji'],
     );
 
-    Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat, fromDetail: true));
+    Navigator.push(
+      context,
+      ChatPage.route(myUid: myUid, chat: chat, fromDetail: true),
+    );
   }
 
   @override

@@ -51,6 +51,7 @@ class DreamService {
     required String childId,
     required String childName,
     required String childEmoji,
+    int? childAge,
     String? date,
     double? progress,
     XFile? photo,
@@ -90,6 +91,7 @@ class DreamService {
       childId:    childId,
       childName:  childName,
       childEmoji: childEmoji,
+      childAge:   childAge,
       createdAt:  DateTime.now(),
     );
 
@@ -110,6 +112,7 @@ class DreamService {
       childId:          childId,
       childName:        childName,
       childEmoji:       childEmoji,
+      childAge:         childAge,
       city:             currentUser.city,
       state:            currentUser.state,
       latitude:         currentUser.latitude,
@@ -129,6 +132,7 @@ class DreamService {
     required String childName,
     required String childEmoji,
     required UserModel currentUser,
+    int? childAge,
     String? date,
     double? progress,
     String? currentImageUrl,
@@ -171,6 +175,7 @@ class DreamService {
       childId:    childId,
       childName:  childName,
       childEmoji: childEmoji,
+      childAge:   childAge,
     );
 
     await Future.wait([
@@ -186,6 +191,7 @@ class DreamService {
         childId:    childId,
         childName:  childName,
         childEmoji: childEmoji,
+        childAge:   childAge,
         city:       currentUser.city,
         state:      currentUser.state,
         latitude:   currentUser.latitude,

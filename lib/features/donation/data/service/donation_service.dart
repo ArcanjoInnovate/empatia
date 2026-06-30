@@ -83,6 +83,8 @@ class DonationService {
       state: currentUser.state,
       latitude: currentUser.latitude,
       longitude: currentUser.longitude,
+      ownerName: currentUser.name,
+      ownerPhotoUrl: currentUser.profileImage,
       createdAt: DateTime.now(),
     );
 

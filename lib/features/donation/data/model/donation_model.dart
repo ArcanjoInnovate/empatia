@@ -6,7 +6,8 @@
 /// Firebase structure:
 /// /Donations/{pushId}
 ///   userId, title, description, photoUrl, emoji, category, status,
-///   city, state, latitude, longitude, createdAt, updatedAt
+///   city, state, latitude, longitude, ownerName, ownerPhotoUrl,
+///   createdAt, updatedAt
 class DonationModel {
   final String? id;
   final String? userId;
@@ -36,6 +37,14 @@ class DonationModel {
   final double? latitude;
   final double? longitude;
 
+  /// Nome do doador no momento da criação — snapshot, não atualiza
+  /// retroativamente se o usuário mudar o nome depois.
+  final String? ownerName;
+
+  /// Foto de perfil do doador no momento da criação — mesmo raciocínio
+  /// do [ownerName].
+  final String? ownerPhotoUrl;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -52,6 +61,8 @@ class DonationModel {
     this.state,
     this.latitude,
     this.longitude,
+    this.ownerName,
+    this.ownerPhotoUrl,
     this.createdAt,
     this.updatedAt,
   });
@@ -74,6 +85,8 @@ class DonationModel {
       longitude: map['longitude'] != null
           ? double.tryParse(map['longitude'].toString())
           : null,
+      ownerName: map['ownerName']?.toString(),
+      ownerPhotoUrl: map['ownerPhotoUrl']?.toString(),
       createdAt: map['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(
               int.parse(map['createdAt'].toString()))
@@ -98,6 +111,8 @@ class DonationModel {
       if (state != null) 'state': state,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      if (ownerName != null) 'ownerName': ownerName,
+      if (ownerPhotoUrl != null) 'ownerPhotoUrl': ownerPhotoUrl,
       'createdAt': createdAt?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -117,6 +132,8 @@ class DonationModel {
     String? state,
     double? latitude,
     double? longitude,
+    String? ownerName,
+    String? ownerPhotoUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -133,6 +150,8 @@ class DonationModel {
       state: state ?? this.state,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      ownerName: ownerName ?? this.ownerName,
+      ownerPhotoUrl: ownerPhotoUrl ?? this.ownerPhotoUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

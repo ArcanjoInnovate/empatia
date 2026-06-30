@@ -30,6 +30,7 @@ class FeedItem {
   final bool likedByMe;
   final String? childName;
   final String? childEmoji;
+  final int? childAge;
 
   // ── Campos de doação ──────────────────────────────────────────────
   final String? description;
@@ -56,6 +57,7 @@ class FeedItem {
     this.likedByMe = false,
     this.childName,
     this.childEmoji,
+    this.childAge,
     this.description,
     this.category,
     this.status,
@@ -91,6 +93,7 @@ class FeedItem {
       likedByMe: liked,
       childName: map['childName']?.toString(),
       childEmoji: map['childEmoji']?.toString(),
+      childAge: (map['childAge'] as num?)?.toInt(),
       status: map['status']?.toString(),
     );
   }
@@ -131,6 +134,7 @@ class FeedItem {
           : null,
       childName: childName,
       childEmoji: childEmoji,
+      childAge: childAge,
       dreamEmoji: type == FeedItemType.dream ? emoji : null,
       dreamDate: date,
       dreamProgress: progress,
