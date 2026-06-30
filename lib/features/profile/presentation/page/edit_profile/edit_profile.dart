@@ -36,6 +36,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _instagramController    = TextEditingController();
   final _xController            = TextEditingController();
 
+  // ── Domínios usados para montar o link completo no momento de salvar ──
+  // O campo de texto SEMPRE mostra/recebe apenas o nome de usuário; a
+  // URL completa é montada aqui e só ela é enviada para o backend.
+  static const _instagramDomain = 'https://instagram.com/';
+  static const _xDomain         = 'https://x.com/';
+
   // ── Estado de seleção ──────────────────────────────────────
   String  _selectedEmoji      = AppAvatars.defaultParentAvatar;
   String? _selectedSexo;
@@ -104,8 +110,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _ageController.text          = user.age?.toString() ?? '';
     _statusController.text       = user.status ?? '';
     _neighborhoodController.text = user.neighborhood ?? '';
-    _instagramController.text    = user.socialInstagram ?? '';
-    _xController.text            = user.socialX ?? '';
+    // O banco guarda o link completo — aqui extraímos só o @usuario
+    // para exibir no campo de texto (a pessoa nunca vê/edita o domínio).
+    _instagramController.text    = _extractUsername(user.socialInstagram);
+    _xController.text            = _extractUsername(user.socialX);
 
     if (user.profileEmoji != null) _selectedEmoji = user.profileEmoji!;
     _usePhoto = (user.profileImage?.trim().isNotEmpty ?? false);
@@ -117,6 +125,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if ((user.neighborhood ?? '').trim().isNotEmpty) {
       _neighborhoodConfirmed = true;
     }
+  }
+
+  /// Extrai só o nome de usuário de um valor salvo no banco — que pode
+  /// já estar como link completo (https://instagram.com/fulana) ou,
+  /// de versões antigas, já como handle puro. Sempre devolve só o
+  /// nome de usuário, sem domínio nem barras.
+  String _extractUsername(String? saved) {
+    var v = (saved ?? '').trim();
+    if (v.isEmpty) return '';
+    if (v.contains('/')) {
+      final parts = v.split('/').where((p) => p.trim().isNotEmpty).toList();
+      if (parts.isNotEmpty) v = parts.last;
+    }
+    return v.replaceAll('@', '').trim();
+  }
+
+  /// Monta o link completo a partir do que a pessoa digitou no campo
+  /// (apenas o nome de usuário). Retorna null se o campo estiver vazio,
+  /// para não gravar um link "quebrado" no banco.
+  String? _buildSocialUrl(String domain, String rawUsername) {
+    final username = _extractUsername(rawUsername);
+    if (username.isEmpty) return null;
+    return '$domain$username';
   }
 
   // ══════════════════════════════════════════════════════════
@@ -137,6 +168,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     // Exibe overlay de carregando — bloqueia interação e cobre a tela
     _showLoadingOverlay();
 
+    // O usuário só digitou o @nome — o link completo é montado aqui,
+    // no momento de enviar para o backend. O campo de texto nunca
+    // manipula nem exibe a URL inteira.
+    final instagramUrl =
+        _buildSocialUrl(_instagramDomain, _instagramController.text);
+    final xUrl = _buildSocialUrl(_xDomain, _xController.text);
+
     await controller.saveProfile(
       name:         _nameController.text,
       age:          _ageController.text,
@@ -147,8 +185,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
       profileEmoji: _selectedEmoji,
       currentUser:  widget.currentUser,
       sexo:         _selectedSexo,
-      socialInstagram: _instagramController.text,
-      socialX:         _xController.text,
+      socialInstagram: instagramUrl ?? '',
+      socialX:         xUrl ?? '',
       latitude:     _cityLat,
       longitude:    _cityLng,
       profilePhoto: _selectedProfilePhoto,
@@ -282,6 +320,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         const SizedBox(height: 20),
 
         // ── Redes sociais ──
+        // A pessoa digita SOMENTE o nome de usuário; o link completo
+        // (instagram.com/..., x.com/...) é montado em _onSave, na hora
+        // de enviar para o backend — nunca aparece/é editado aqui.
         _buildFieldLabel('🌐', 'Redes Sociais (opcional)'),
         const SizedBox(height: 4),
         Text(
@@ -472,9 +513,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  /// Campo de rede social: domínio fixo (não-editável) + a pessoa digita
-  /// só o nome de usuário. Sanitiza automaticamente se ela colar @ ou um
-  /// link completo sem querer.
+  /// Campo de rede social: domínio fixo (não-editável, só ilustrativo
+  /// como prefixo visual) + a pessoa digita só o nome de usuário. O
+  /// controller guarda APENAS o @usuario; a URL completa é montada
+  /// somente em _onSave, antes de mandar para o backend. Sanitiza
+  /// automaticamente se ela colar @ ou um link completo sem querer.
   Widget _buildHandleField({
     required String label,
     required String emoji,

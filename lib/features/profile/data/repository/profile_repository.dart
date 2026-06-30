@@ -125,11 +125,58 @@ class ProfileRepository {
   }
 
   /// ✏️ Edita filho
+  ///
+  /// Após salvar, sincroniza os campos denormalizados (childName/
+  /// childEmoji/childAge) em todos os sonhos já cadastrados desse filho
+  /// — eles vivem em `Dreams/{dreamId}` (nó público, separado de Users)
+  /// e são usados pela vitrine pública (PublicProfilePage) sem precisar
+  /// ler o nó privado do filho. Sem isso, editar nome/idade/avatar do
+  /// filho deixaria os sonhos já criados com dados antigos.
   Future<void> updateChild(ChildModel child) async {
     if (child.id == null) {
       throw Exception('❌ Filho sem ID não pode ser atualizado.');
     }
     await _userRef.child('children/${child.id}').update(child.toMap());
+    await _syncChildDreams(child);
+  }
+
+  /// 🔄 Atualiza childName/childEmoji/childAge em todos os sonhos
+  /// vinculados a [child] (Dreams/{dreamId} com childId == child.id).
+  ///
+  /// Requer índice em `childId` no nó `Dreams` (regras do Realtime
+  /// Database): "Dreams": { ".indexOn": ["userId", "childId"] }
+  Future<void> _syncChildDreams(ChildModel child) async {
+    if (child.id == null) return;
+
+    try {
+      final dreamsSnap = await _db
+          .ref('Dreams')
+          .orderByChild('childId')
+          .equalTo(child.id)
+          .get();
+
+      if (!dreamsSnap.exists || dreamsSnap.value is! Map) return;
+
+      final dreamsMap = Map<dynamic, dynamic>.from(dreamsSnap.value as Map);
+      if (dreamsMap.isEmpty) return;
+
+      // Multi-path update: grava em vários sonhos numa única chamada
+      // atômica, em vez de um await por sonho.
+      final updates = <String, dynamic>{};
+      for (final dreamId in dreamsMap.keys) {
+        updates['Dreams/$dreamId/childName']  = child.name;
+        updates['Dreams/$dreamId/childEmoji'] = child.emoji;
+        updates['Dreams/$dreamId/childAge']   = child.age;
+      }
+
+      await _db.ref().update(updates);
+      debugPrint(
+          '✅ ${dreamsMap.length} sonho(s) sincronizado(s) para o filho ${child.name}');
+    } catch (e) {
+      // Não falha a edição do filho se a sincronização dos sonhos der
+      // erro — os dados do filho já foram salvos corretamente acima.
+      debugPrint('⚠️ Erro ao sincronizar sonhos do filho (continuando): $e');
+    }
   }
 
   /// 🗑️ Remove filho

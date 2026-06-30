@@ -68,7 +68,7 @@ class SocialLinksRow extends StatelessWidget {
           ),
         if (x?.trim().isNotEmpty ?? false) ...[
           if (instagram?.trim().isNotEmpty ?? false)
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
           _SocialIcon(
             label: '𝕏',
             color: Colors.black,
@@ -252,33 +252,41 @@ class _SocialIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Responsivo (baseado na largura da tela, funciona em qualquer
+    // dispositivo) e 50% maior que a versão fixa anterior de 68px
+    // (ou seja, referência de ~102px em telas de celular comuns).
+    final screenWidth = MediaQuery.of(context).size.width;
+    final circleSize = (screenWidth * 0.19).clamp(64.0, 102.0);
+    final iconSize = circleSize * 0.5;
+    final labelSize = circleSize * 0.46;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 34,
-        height: 34,
+        width: circleSize,
+        height: circleSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: gradient == null ? color : null,
           gradient: gradient,
           border: light
-              ? Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.2)
+              ? Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5)
               : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Center(
           child: icon != null
-              ? Icon(icon, size: 17, color: Colors.white)
+              ? Icon(icon, size: iconSize, color: Colors.white)
               : Text(
                   label ?? '',
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: labelSize,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
                   ),
