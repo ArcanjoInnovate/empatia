@@ -24,9 +24,9 @@ import 'package:empatia/features/search/controller/search_controller.dart';
 import 'package:empatia/features/search/controller/search_filter_controller.dart';
 import 'package:empatia/features/search/data/repositories/search_location_repository.dart';
 import 'package:empatia/features/search/data/repositories/search_repository.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' hide SearchController;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
