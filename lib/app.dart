@@ -187,7 +187,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           // A CupertinoPageTransitionsBuilder usa um slide horizontal
           // com as duas telas sempre OPACAS (sem crossfade de opacidade),
           // então não existe essa janela de sobreposição visual.
-          pageTransitionsTheme: const PageTransitionsTheme(
+          pageTransitionsTheme: PageTransitionsTheme(
             builders: {
               TargetPlatform.android: CupertinoPageTransitionsBuilder(),
               TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
