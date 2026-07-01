@@ -474,7 +474,7 @@ class _TabDoacoesState extends State<_TabDoacoes> {
               crossAxisCount: 2,      // era 3 — muito apertado para imagem + texto
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.82, // mais altura por card para título e categoria
+              childAspectRatio: 0.78, // card full-bleed (texto sobreposto na foto) — não precisa mais da altura extra para área de texto separada
             ),
             itemCount: donations.length,
             itemBuilder: (_, i) => DonationCardWidget(

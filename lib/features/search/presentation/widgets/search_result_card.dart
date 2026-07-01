@@ -75,6 +75,53 @@ class _MyItemBadge extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LINHA SUPERIOR "SEGURA" — impede overflow entre os dois badges do topo
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Em cards estreitos (grids de 2 colunas, ex. na galeria do PublicProfilePage
+// com childAspectRatio baixo), a soma da largura do badge da esquerda + o
+// badge da direita ("Meu item", status, etc.) pode superar a largura
+// disponível — o clássico "RIGHT OVERFLOWED BY N PIXELS". Isso porque os dois
+// badges tinham largura intrínseca fixa dentro de um Row com
+// spaceBetween, que não encolhe filhos por padrão.
+//
+// Esse helper envolve cada lado num Flexible + FittedBox(scaleDown): quando
+// sobra espaço, os badges aparecem no tamanho normal; quando o card é
+// pequeno demais para os dois lado a lado, eles encolhem proporcionalmente
+// ao invés de vazar pra fora do card. Nunca corta texto — dá zoom out.
+class _SafeTopRow extends StatelessWidget {
+  final Widget left;
+  final Widget? right;
+  const _SafeTopRow({required this.left, this.right});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: left,
+          ),
+        ),
+        if (right != null) const SizedBox(width: 6),
+        if (right != null)
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: right!,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ROUTER — encaminha para o card correto conforme o tipo
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -111,7 +158,7 @@ class _DreamCard extends StatelessWidget {
     [Color(0xFFFF5C8D), Color(0xFFE0457A)],
     [Color(0xFF2563EB), Color(0xFF1E3A5F)],
     [Color(0xFF16A34A), Color(0xFF065F46)],
-    [Color(0xFFF59E0B), Color(0xFFB45309)],
+    [Color(0xFF06B6D4), Color(0xFF6366F1)],
   ];
 
   List<Color> _gradient(String? id) {
@@ -187,52 +234,46 @@ class _DreamCard extends StatelessWidget {
                 top: 10,
                 left: 10,
                 right: 10,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Dream emoji pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.28),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            dreamEmoji,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Sonho',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                child: _SafeTopRow(
+                  left: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.28),
                       ),
                     ),
-
-                    // Badge "Meu item" ou emoji da criança
-                    if (_isMyItem)
-                      const _MyItemBadge()
-                    else if (childEmoji.isNotEmpty && photoUrl == null)
-                      const SizedBox.shrink()
-                    else
-                      ClipOval(
-                        child: AvatarRender(value: childEmoji, size: 18),
-                      ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          dreamEmoji,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Sonho',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Badge "Meu item" ou emoji da criança
+                  right: _isMyItem
+                      ? const _MyItemBadge()
+                      : (childEmoji.isNotEmpty && photoUrl == null
+                          ? null
+                          : ClipOval(
+                              child: AvatarRender(value: childEmoji, size: 18),
+                            )),
                 ),
               ),
 
@@ -248,18 +289,22 @@ class _DreamCard extends StatelessWidget {
                     if (childName.isNotEmpty) ...[
                       Row(
                         children: [
-                          Text(
-                            result.childAge != null
-                                ? '$childName, ${result.childAge} anos'
-                                : childName,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1.1,
-                              shadows: [
-                                Shadow(color: Colors.black45, blurRadius: 6),
-                              ],
+                          Expanded(
+                            child: Text(
+                              result.childAge != null
+                                  ? '$childName, ${result.childAge} anos'
+                                  : childName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                height: 1.1,
+                                shadows: [
+                                  Shadow(color: Colors.black45, blurRadius: 6),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -442,18 +487,14 @@ class _DonationCard extends StatelessWidget {
               top: 10,
               left: 10,
               right: 10,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Badge de doação / oportunidade
-                  _DonationTopBadge(status: result.status),
-
-                  // "Meu item" sobrepõe o badge de indisponibilidade
-                  if (_isMyItem)
-                    const _MyItemBadge()
-                  else if (_isUnavailable)
-                    _UnavailableBadge(status: result.status),
-                ],
+              child: _SafeTopRow(
+                left: _DonationTopBadge(status: result.status),
+                // "Meu item" sobrepõe o badge de indisponibilidade
+                right: _isMyItem
+                    ? const _MyItemBadge()
+                    : (_isUnavailable
+                        ? _UnavailableBadge(status: result.status)
+                        : null),
               ),
             ),
 

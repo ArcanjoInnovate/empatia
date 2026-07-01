@@ -316,7 +316,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         const SizedBox(height: 14),
         _buildField(label: 'Status', emoji: '💖',
             controller: _statusController,
-            hint: 'Ex: Mãe feliz, Super mãe...'),
+            hint: 'Ex: Mãe feliz, Super mãe...',
+            maxLength: 30),
         const SizedBox(height: 20),
 
         // ── Redes sociais ──
@@ -569,6 +570,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
     String? hint,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,6 +580,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          maxLength: maxLength,
           style: const TextStyle(
               fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
           decoration: InputDecoration(
@@ -590,6 +593,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: AppDecorations.editProfileFieldBorder(focused: false),
             focusedBorder: AppDecorations.editProfileFieldBorder(focused: true),
+            counterStyle: TextStyle(fontSize: 11, color: Colors.grey.shade400),
           ),
         ),
       ],

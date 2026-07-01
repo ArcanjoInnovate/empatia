@@ -2,6 +2,7 @@
 
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/widget/verification_block_dialog.dart';
+import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:empatia/core/theme/app_avatars.dart';
 import 'package:empatia/core/widget/avatar_render.dart';
@@ -774,6 +775,23 @@ class _ChatAppBar extends StatelessWidget {
         '${dt.month.toString().padLeft(2, '0')}';
   }
 
+  /// Abre o perfil público do outro participante, se soubermos o UID dele.
+  /// Usa os dados já disponíveis no [chat] como fallback instantâneo —
+  /// a PublicProfilePage busca a versão mais atual em `UsersPublic/{uid}`.
+  void _openProfile(BuildContext context) {
+    if (chat.otherUid.isEmpty) return;
+    HapticFeedback.lightImpact();
+    Navigator.push(
+      context,
+      PublicProfilePage.route(
+        uid: chat.otherUid,
+        fallbackName: chat.otherName,
+        fallbackAvatar: chat.otherEmoji,
+        fallbackImage: chat.otherAvatar,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPad  = MediaQuery.of(context).padding.top;
@@ -789,89 +807,107 @@ class _ChatAppBar extends StatelessWidget {
                 color: Colors.white, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  shape:  BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25), width: 2),
-                ),
-                child: ClipOval(child: _AvatarContent(chat: chat, size: 44)),
-              ),
-              if (online && !completed)
-                Positioned(
-                  bottom: 0, right: -1,
-                  child: Container(
-                    width: 13, height: 13,
-                    decoration: BoxDecoration(
-                      color:  AppTheme.kidsGreenDark,
-                      shape:  BoxShape.circle,
-                      border: Border.all(
-                          color: AppTheme.primaryBlue, width: 2),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 10),
+          // ── Área clicável: avatar + nome + presença + item ──────────
+          // Leva ao perfil público do outro participante da conversa.
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    chat.otherName ?? 'Usuário',
-                    style: const TextStyle(
-                      fontSize:   16,
-                      fontWeight: FontWeight.w800,
-                      color:      Colors.white,
-                      height:     1.15,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 1),
-                  Row(
-                    children: [
-                      if (online && !completed)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Container(
-                            width: 6, height: 6,
-                            decoration: const BoxDecoration(
-                                color: AppTheme.kidsGreen,
-                                shape: BoxShape.circle),
+            child: InkWell(
+              onTap: () => _openProfile(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            shape:  BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25), width: 2),
                           ),
+                          child: ClipOval(child: _AvatarContent(chat: chat, size: 44)),
                         ),
-                      Text(
-                        _presenceText,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: (online && !completed)
-                              ? AppTheme.kidsGreen
-                              : Colors.white.withValues(alpha: 0.70),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (hasItem) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      '${_isDream ? '💭' : '🎁'}  ${chat.itemTitle!}',
-                      style: TextStyle(
-                        fontSize:   11,
-                        color:      Colors.white.withValues(alpha: 0.55),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                        if (online && !completed)
+                          Positioned(
+                            bottom: 0, right: -1,
+                            child: Container(
+                              width: 13, height: 13,
+                              decoration: BoxDecoration(
+                                color:  AppTheme.kidsGreenDark,
+                                shape:  BoxShape.circle,
+                                border: Border.all(
+                                    color: AppTheme.primaryBlue, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              chat.otherName ?? 'Usuário',
+                              style: const TextStyle(
+                                fontSize:   16,
+                                fontWeight: FontWeight.w800,
+                                color:      Colors.white,
+                                height:     1.15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 1),
+                            Row(
+                              children: [
+                                if (online && !completed)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 4),
+                                    child: Container(
+                                      width: 6, height: 6,
+                                      decoration: const BoxDecoration(
+                                          color: AppTheme.kidsGreen,
+                                          shape: BoxShape.circle),
+                                    ),
+                                  ),
+                                Text(
+                                  _presenceText,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: (online && !completed)
+                                        ? AppTheme.kidsGreen
+                                        : Colors.white.withValues(alpha: 0.70),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (hasItem) ...[
+                              const SizedBox(height: 1),
+                              Text(
+                                '${_isDream ? '💭' : '🎁'}  ${chat.itemTitle!}',
+                                style: TextStyle(
+                                  fontSize:   11,
+                                  color:      Colors.white.withValues(alpha: 0.55),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Indicador sutil de que a área é navegável
+                    Icon(Icons.chevron_right_rounded,
+                        color: Colors.white.withValues(alpha: 0.45), size: 20),
                   ],
-                ],
+                ),
               ),
             ),
           ),

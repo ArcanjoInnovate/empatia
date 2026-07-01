@@ -1,7 +1,7 @@
-/// ðŸŽ DONATION MODEL
+/// 🎁 DONATION MODEL
 ///
-/// Representa um item que o usuÃ¡rio estÃ¡ OFERECENDO para doaÃ§Ã£o.
-/// Fica na coleÃ§Ã£o raiz /Donations/{id} no Firebase.
+/// Representa um item que o usuário está OFERECENDO para doação.
+/// Fica na coleção raiz /Donations/{id} no Firebase.
 ///
 /// Firebase structure:
 /// /Donations/{pushId}
@@ -12,13 +12,13 @@ class DonationModel {
   final String? id;
   final String? userId;
 
-  /// TÃ­tulo curto â€” ex: "Roupas 4â€“6 anos"
+  /// Título curto — ex: "Roupas 4–6 anos"
   final String? title;
 
-  /// DescriÃ§Ã£o detalhada do item (obrigatÃ³ria)
+  /// Descrição detalhada do item (obrigatória)
   final String? description;
 
-  /// URL da foto do item no Firebase Storage (obrigatÃ³ria)
+  /// URL da foto do item no Firebase Storage (obrigatória)
   final String? photoUrl;
 
   /// Emoji representativo do item
@@ -37,11 +37,11 @@ class DonationModel {
   final double? latitude;
   final double? longitude;
 
-  /// Nome do doador no momento da criaÃ§Ã£o â€” snapshot, nÃ£o atualiza
-  /// retroativamente se o usuÃ¡rio mudar o nome depois.
+  /// Nome do doador no momento da criação — snapshot, não atualiza
+  /// retroativamente se o usuário mudar o nome depois.
   final String? ownerName;
 
-  /// Foto de perfil do doador no momento da criaÃ§Ã£o â€” mesmo raciocÃ­nio
+  /// Foto de perfil do doador no momento da criação — mesmo raciocínio
   /// do [ownerName].
   final String? ownerPhotoUrl;
 
@@ -163,19 +163,19 @@ class DonationModel {
       case 'toys':      return 'Brinquedos';
       case 'books':     return 'Livros';
       case 'food':      return 'Alimentos';
-      case 'furniture': return 'MÃ³veis / UtensÃ­lios';
+      case 'furniture': return 'Móveis / Utensílios';
       default:          return 'Outros';
     }
   }
 
   static String categoryEmoji(String? category) {
     switch (category) {
-      case 'clothes':   return 'ðŸ‘•';
-      case 'toys':      return 'ðŸ§¸';
-      case 'books':     return 'ðŸ“š';
-      case 'food':      return 'ðŸ¥«';
-      case 'furniture': return 'ðŸª‘';
-      default:          return 'ðŸ“¦';
+      case 'clothes':   return '👕';
+      case 'toys':      return '🧸';
+      case 'books':     return '📚';
+      case 'food':      return '🥫';
+      case 'furniture': return '🪑';
+      default:          return '📦';
     }
   }
 
@@ -183,7 +183,7 @@ class DonationModel {
     switch (status) {
       case 'reserved': return 'Reservado';
       case 'donated':  return 'Doado';
-      default:         return 'DisponÃ­vel';
+      default:         return 'Disponível';
     }
   }
 }

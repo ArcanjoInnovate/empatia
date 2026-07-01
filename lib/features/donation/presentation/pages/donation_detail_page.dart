@@ -986,7 +986,7 @@ class _DonorCardState extends State<_DonorCard> {
                             Text('❤️', style: TextStyle(fontSize: 11)),
                             SizedBox(width: 4),
                             Text(
-                              'Membro da comunidade Empatia',
+                              'Membro da comunidade',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,

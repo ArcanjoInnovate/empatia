@@ -27,17 +27,36 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
+
+    // ── RepaintBoundary por aba ──────────────────────────────────
+    // Como o IndexedStack mantém TODAS as abas montadas e vivas o tempo
+    // todo (nunca são destruídas ao trocar de aba ou ao empurrar/remover
+    // outras rotas por cima), suas camadas de composição (layers) ficam
+    // "quentes" durante toda a sessão do app — diferente de uma rota
+    // normal empurrada via Navigator.push, que é criada do zero a cada
+    // vez e destruída no pop.
+    //
+    // Isso torna o IndexedStack mais sujeito a um glitch de compositor
+    // em que uma camada antiga/parcial de uma aba persistente "vaza"
+    // visualmente por um frame durante a transição de outra rota (como
+    // o PublicProfilePage) — o efeito de "cards fantasmas" relatado.
+    //
+    // Envolver cada aba em seu próprio RepaintBoundary força o Flutter a
+    // isolar cada uma em sua própria camada de composição independente,
+    // impedindo esse tipo de vazamento entre elas durante transições.
     _pages = [
-      HomePage(user: widget.user),
-      SearchPage(),
-      ChatListPage(
-        myUid: widget.user.id ?? '',
-        myName: widget.user.name,
-        myEmoji: widget.user.profileEmoji,
-        myAvatar: widget.user.profileImage,
+      RepaintBoundary(child: HomePage(user: widget.user)),
+      RepaintBoundary(child: SearchPage()),
+      RepaintBoundary(
+        child: ChatListPage(
+          myUid: widget.user.id ?? '',
+          myName: widget.user.name,
+          myEmoji: widget.user.profileEmoji,
+          myAvatar: widget.user.profileImage,
+        ),
       ),
-      DreamPage(),
-      ProfilePage(),
+      RepaintBoundary(child: DreamPage()),
+      RepaintBoundary(child: ProfilePage()),
     ];
   }
 

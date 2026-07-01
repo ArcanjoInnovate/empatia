@@ -1,6 +1,7 @@
 import 'package:empatia/core/auth_guard/auth_guard.dart';
 import 'package:empatia/core/data/models/user_model.dart';
 import 'package:empatia/core/data/repositories/user_repository.dart';
+import 'package:empatia/core/navigation/router_observer.dart';
 import 'package:empatia/features/auth/presentation/pages/login_page.dart';
 import 'package:empatia/features/donation/controller/donation_controller.dart';
 import 'package:empatia/features/donation/data/repository/donation_repository.dart';
@@ -26,10 +27,38 @@ import 'package:empatia/features/search/data/repositories/search_repository.dart
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' hide SearchController;
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Reaaplica immersiveSticky sempre que o app volta ao foco.
+  /// O Android reseta o modo ao exibir dialogs, bottom sheets,
+  /// teclado virtual, notificações, etc.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +160,40 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Empatia',
-        theme: ThemeData(fontFamily: 'Poppins'),
+        // ── RouteObserver global ──────────────────────────────
+        // Permite que widgets (ex.: WeeklyRankingWidget na Home) saibam,
+        // via RouteAware, quando ficam cobertos por outra rota
+        // (didPushNext) e quando voltam a ficar visíveis (didPopNext).
+        // Usado para pausar timers/animações que rodam por baixo de
+        // páginas empilhadas (ex.: PublicProfilePage), evitando que
+        // "vazem" visualmente durante a transição de pop.
+        navigatorObservers: [appRouteObserver],
+        theme: ThemeData(
+          fontFamily: 'Poppins',
+          // ── Transições de página ──────────────────────────────
+          // O Android, por padrão (Material 3), usa o
+          // ZoomPageTransitionsBuilder. Esse builder faz um CROSSFADE de
+          // opacidade entre a página que está saindo e a que está
+          // entrando — ou seja, durante boa parte da animação as DUAS
+          // telas ficam parcialmente visíveis e sobrepostas ao mesmo
+          // tempo. Quando a página de saída tem conteúdo com texto/
+          // ícones em posições que coincidem com a área da próxima tela
+          // (como os cards de estatística e a seção "Filhos" do
+          // PublicProfilePage), esse crossfade faz esse conteúdo
+          // "vazar" visualmente por cima da tela seguinte por uma fração
+          // de segundo, como um fantasma, antes de sumir — efeito
+          // confirmado por captura de frames durante o teste.
+          //
+          // A CupertinoPageTransitionsBuilder usa um slide horizontal
+          // com as duas telas sempre OPACAS (sem crossfade de opacidade),
+          // então não existe essa janela de sobreposição visual.
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            },
+          ),
+        ),
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {

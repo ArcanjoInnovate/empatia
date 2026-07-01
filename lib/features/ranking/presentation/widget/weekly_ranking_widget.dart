@@ -5,10 +5,10 @@
 // ─────────────────────────────────────────────────────────────────
 
 import 'dart:async';
+import 'package:empatia/core/navigation/router_observer.dart';
 import 'package:empatia/core/theme/app_decorations.dart';
 import 'package:empatia/core/theme/app_theme.dart';
 import 'package:empatia/core/widget/avatar_render.dart';
-import 'package:empatia/features/profile/presentation/page/profile/public_profile_page.dart';
 import 'package:empatia/features/ranking/controller/ranking_controller.dart';
 import 'package:empatia/features/ranking/data/repository/ranking_repository.dart';
 import 'package:empatia/features/ranking/presentation/page/ranking_page.dart';
@@ -50,10 +50,23 @@ class WeeklyRankingWidget extends StatefulWidget {
   State<WeeklyRankingWidget> createState() => _WeeklyRankingWidgetState();
 }
 
-class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget> {
+class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget>
+    with RouteAware {
   late final PageController _page;
   Timer? _timer;
   int _current = 0;
+
+  /// Rota desta página (Home). Usada para registrar/cancelar o
+  /// RouteObserver — precisamos saber quando uma página é empurrada por
+  /// cima da Home (didPushNext) e quando voltamos a ela (didPopNext).
+  ModalRoute<dynamic>? _route;
+
+  /// Controla se este widget está "na frente" no momento. Enquanto for
+  /// false (outra rota está por cima), o timer de auto-scroll fica
+  /// pausado — evita que o PageView anime por baixo bem na hora da
+  /// transição de pop, o que causava o flash/"fantasma" visual ao voltar
+  /// para a Home.
+  bool _isVisible = true;
 
   List<RankingEntry> get _top3 =>
       widget.controller.entries.take(3).toList();
@@ -65,18 +78,51 @@ class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget> {
     widget.controller.addListener(_onController);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute && _route != route) {
+      if (_route != null) {
+        appRouteObserver.unsubscribe(this);
+      }
+      _route = route;
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  // ── RouteAware ──────────────────────────────────────────────
+  // Disparado quando outra rota é empurrada por cima desta (ex.: ao
+  // abrir a página de ranking completo).
+  @override
+  void didPushNext() {
+    _isVisible = false;
+    _timer?.cancel();
+  }
+
+  // Disparado quando a rota de cima é removida e voltamos a ver esta
+  // página novamente.
+  @override
+  void didPopNext() {
+    _isVisible = true;
+    if (widget.controller.isLoaded && _top3.isNotEmpty) {
+      _startAuto();
+    }
+  }
+
   void _onController() {
     if (!mounted) return;
     setState(() {});
-    if (widget.controller.isLoaded && _top3.isNotEmpty) {
+    if (_isVisible && widget.controller.isLoaded && _top3.isNotEmpty) {
       _timer?.cancel();
       _startAuto();
     }
   }
 
   void _startAuto() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!mounted || _top3.isEmpty) return;
+      if (!mounted || !_isVisible || _top3.isEmpty) return;
       final next = (_current + 1) % _top3.length;
       _page.animateToPage(
         next,
@@ -91,6 +137,7 @@ class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget> {
     _timer?.cancel();
     _page.dispose();
     widget.controller.removeListener(_onController);
+    appRouteObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -125,7 +172,7 @@ class _WeeklyRankingWidgetState extends State<WeeklyRankingWidget> {
                         letterSpacing: 0.1,
                       ),
                     ),
-                    
+
                   ],
                 ),
               ),
@@ -242,22 +289,10 @@ class _RankSlide extends StatelessWidget {
         ? entry.score - nextEntry!.score
         : null;
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        PublicProfilePage.route(
-          uid: entry.uid,
-          fallbackName: entry.name,
-          fallbackAvatar: entry.profileEmoji,
-          fallbackImage: entry.profileImage,
-          fallbackCity: entry.city,
-          fallbackState: entry.state,
-          score: entry.score,
-          donationsCount: entry.count,
-          position: entry.position,
-        ),
-      ),
-      child: Container(
+    // Removida a navegação para o PublicProfilePage a partir deste
+    // slide — o card do carrossel agora é só informativo (sem
+    // GestureDetector/onTap). "Ver todos" continua levando à RankingPage.
+    return Container(
       margin: EdgeInsets.zero,
       decoration: AppDecorations.rankingSlide(position),
       clipBehavior: Clip.hardEdge,
@@ -360,7 +395,6 @@ class _RankSlide extends StatelessWidget {
           ),
         ],
       ),
-    ),
     );
   }
 }

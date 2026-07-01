@@ -9,10 +9,17 @@ import 'app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Esconde a barra de navegação nativa do Android (botões voltar/home/recentes).
+  // immersiveSticky: some até o usuário arrastar da borda — e re-aparece
+  // brevemente, depois some de novo. O observer em MyApp reaaplica ao voltar
+  // ao foco (Android reseta após dialogs, teclado, notificações, etc.).
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
     systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
   ));
 
   // Inicializa o Firebase UMA única vez aqui no Dart.

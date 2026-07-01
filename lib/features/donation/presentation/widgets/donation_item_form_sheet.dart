@@ -62,6 +62,9 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
   String? _descError;
   String? _photoError;
 
+  // Erro geral de submit (ex: Storage, rede, verificação)
+  String? _submitError;
+
   bool get _isEditing => widget.donation != null;
 
   @override
@@ -246,15 +249,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
           feature: 'criar uma doação',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppTheme.errorRedDeep,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
-          ),
-        );
+        setState(() => _submitError = message.replaceAll('❌ ', ''));
       }
     }
   }
@@ -282,13 +277,23 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
             ),
             const SizedBox(height: 18),
 
-            Text(
-              _isEditing ? 'Editar item' : 'Adicionar item à vitrine',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppTheme.primaryBlue,
-              ),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 20, color: AppTheme.primaryBlue),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _isEditing ? 'Editar item' : 'Adicionar item à vitrine',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -317,6 +322,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
               hasError: _titleError != null,
               onChanged: (_) {
                 if (_titleError != null) setState(() => _titleError = null);
+                if (_submitError != null) setState(() => _submitError = null);
               },
             ),
             const SizedBox(height: 18),
@@ -330,6 +336,7 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
               onSelect: (cat) => setState(() {
                 _category      = cat;
                 _categoryError = null;
+                _submitError   = null;
               }),
             ),
             const SizedBox(height: 18),
@@ -344,9 +351,42 @@ class _DonationItemFormSheetState extends State<DonationItemFormSheet> {
               hasError: _descError != null,
               onChanged: (_) {
                 if (_descError != null) setState(() => _descError = null);
+                if (_submitError != null) setState(() => _submitError = null);
               },
             ),
             const SizedBox(height: 24),
+
+            // ── Erro de submit inline ──
+            if (_submitError != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEDED),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFFB3B3), width: 1.2),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('⚠️', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _submitError!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFB00020),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // ── Botão ──
             GestureDetector(

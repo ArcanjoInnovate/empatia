@@ -13,9 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CATEGORIAS — mesmos valores gravados em Donations no Firebase
-// (inglês minúsculo). O emoji é derivado automaticamente pelo DreamService,
-// não é escolhido pelo usuário.
+// CATEGORIAS
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _kDreamCategories = [
@@ -28,10 +26,6 @@ const _kDreamCategories = [
 ];
 
 /// 📝 DREAM FORM SHEET
-///
-/// Bottom sheet compartilhado para adicionar e editar sonhos.
-/// O usuário escolhe uma **categoria** (não emoji) — o emoji é derivado
-/// automaticamente da categoria pelo DreamService antes de gravar.
 class DreamFormSheet extends StatefulWidget {
   final DreamModel? dream;
   final UserModel currentUser;
@@ -47,14 +41,14 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _dateCtrl;
 
-  /// Categoria selecionada — chave inglesa (ex: 'toys').
-  /// Null = nenhuma selecionada ainda (usuário ainda não escolheu).
   String? _selectedCategory;
-
   ChildModel? _selectedChild;
   XFile? _newPhoto;
   bool _removeCurrentImage = false;
   bool _loading = false;
+
+  /// Mensagem de erro inline — null = sem erro visível
+  String? _errorMessage;
 
   bool get _isEditing => widget.dream != null;
   String? get _existingImageUrl =>
@@ -66,11 +60,8 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
     super.initState();
     _titleCtrl = TextEditingController(text: widget.dream?.title);
     _dateCtrl  = TextEditingController(text: widget.dream?.date);
-
-    // Em edição: recupera a categoria salva no banco
     _selectedCategory = widget.dream?.category;
 
-    // Em edição: pré-seleciona o filho vinculado
     if (widget.dream?.childId != null) {
       _selectedChild = widget.currentUser.children?.firstWhere(
         (c) => c.id == widget.dream!.childId,
@@ -88,6 +79,14 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
     _titleCtrl.dispose();
     _dateCtrl.dispose();
     super.dispose();
+  }
+
+  void _setError(String msg) {
+    setState(() => _errorMessage = msg);
+  }
+
+  void _clearError() {
+    if (_errorMessage != null) setState(() => _errorMessage = null);
   }
 
   // ── Image picker ───────────────────────────────────────────────────────────
@@ -189,13 +188,23 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             ),
             const SizedBox(height: 18),
 
-            Text(
-              _isEditing ? 'Editar sonho' : 'Novo sonho',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppTheme.primaryBlue,
-              ),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 20, color: AppTheme.primaryBlue),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _isEditing ? 'Editar sonho' : 'Novo sonho',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -210,7 +219,10 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             // ── Categoria ───────────────────────────────────────────
             _CategorySelector(
               selected: _selectedCategory,
-              onSelected: (cat) => setState(() => _selectedCategory = cat),
+              onSelected: (cat) {
+                _clearError();
+                setState(() => _selectedCategory = cat);
+              },
             ),
             const SizedBox(height: 16),
 
@@ -226,9 +238,18 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
             _ChildSelector(
               children: widget.currentUser.children ?? [],
               selected: _selectedChild,
-              onSelected: (child) => setState(() => _selectedChild = child),
+              onSelected: (child) {
+                _clearError();
+                setState(() => _selectedChild = child);
+              },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // ── Feedback de erro inline ─────────────────────────────
+            if (_errorMessage != null) ...[
+              _InlineError(message: _errorMessage!),
+              const SizedBox(height: 12),
+            ],
 
             // ── Botão salvar ────────────────────────────────────────
             GestureDetector(
@@ -265,6 +286,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
 
   Widget _field(TextEditingController ctrl, String label) => TextField(
         controller: ctrl,
+        onChanged: (_) => _clearError(),
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -286,6 +308,7 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
       TextField(
         controller: ctrl,
         maxLines: null,
+        onChanged: (_) => _clearError(),
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -305,31 +328,15 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
 
   Future<void> _submit() async {
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione uma categoria para o sonho'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14))),
-        ),
-      );
+      _setError('Selecione uma categoria para o sonho');
       return;
     }
-
     if (_selectedChild == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione para qual filho é este sonho'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14))),
-        ),
-      );
+      _setError('Selecione para qual filho é este sonho');
       return;
     }
 
+    _clearError();
     setState(() => _loading = true);
     final ctrl = context.read<DreamController>();
     bool ok;
@@ -363,15 +370,65 @@ class _DreamFormSheetState extends State<DreamFormSheet> {
       );
     }
 
-    if (mounted) setState(() => _loading = false);
-    if (ok && mounted) Navigator.pop(context);
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (ok) {
+      Navigator.pop(context);
+    } else {
+      final msg = ctrl.errorMessage ?? 'Não foi possível salvar o sonho.';
+      ctrl.resetState();
+      _setError(msg);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INLINE ERROR WIDGET
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InlineError extends StatelessWidget {
+  final String message;
+  const _InlineError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEDED),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFFFB3B3), width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('⚠️', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message.replaceAll('❌ ', ''),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFB00020),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CATEGORY SELECTOR
-// Grade 2 colunas com chips selecionáveis — mesmo padrão visual do
-// seletor de filho existente no form.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CategorySelector extends StatelessWidget {
@@ -394,8 +451,6 @@ class _CategorySelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // Grade de 2 colunas — mais espaçosa que chips horizontais,
-        // mais compacta que uma lista vertical
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -453,7 +508,7 @@ class _CategorySelector extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE PICKER  (sem alterações)
+// IMAGE PICKER
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ImagePicker extends StatelessWidget {
@@ -545,7 +600,7 @@ class _ImagePicker extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CHILD SELECTOR  (sem alterações)
+// CHILD SELECTOR
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ChildSelector extends StatelessWidget {
@@ -666,19 +721,6 @@ void showDreamFormSheet(
   required UserModel currentUser,
   DreamModel? dream,
 }) {
-  if (dream == null && !ProfileService.isFullyVerified(currentUser)) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Termine a verificação para continuar'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(14))),
-      ),
-    );
-    return;
-  }
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,

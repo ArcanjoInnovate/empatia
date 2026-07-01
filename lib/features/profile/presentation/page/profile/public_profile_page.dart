@@ -112,6 +112,35 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   /// 0 = Sonhos dos filhos · 1 = Doações disponíveis
   int _galleryTab = 0;
 
+  /// Referências à rota e à animação — armazenadas no didChangeDependencies
+  /// para que possam ser consultadas de dentro de Futures sem usar context.
+  ModalRoute<dynamic>? _route;
+  Animation<double>? _routeAnimation;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_route == null) {
+      _route          = ModalRoute.of(context);
+      _routeAnimation = _route?.animation;
+    }
+  }
+
+  /// setState seguro para callbacks assíncronos.
+  ///
+  /// Bloqueia a chamada se:
+  ///   • o widget foi desmontado (mounted == false), ou
+  ///   • a animação da rota está em reverse ou dismissed — o que acontece
+  ///     IMEDIATAMENTE ao iniciar o pop, antes mesmo do primeiro frame da
+  ///     transição ser desenhado.
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    final status = _routeAnimation?.status;
+    if (status == AnimationStatus.reverse ||
+        status == AnimationStatus.dismissed) return;
+    setState(fn);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -125,10 +154,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           .ref('UsersPublic/${widget.uid}')
           .get();
 
-      if (!mounted) return;
 
       if (!snap.exists || snap.value is! Map) {
-        setState(() {
+        _safeSetState(() {
           _loading = false;
           _notFound = _name == null; // só marca "não encontrado" se nem o fallback existe
         });
@@ -136,7 +164,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       }
 
       final m = Map<dynamic, dynamic>.from(snap.value as Map);
-      setState(() {
+      _safeSetState(() {
         _name = m['name']?.toString() ?? _name;
         _avatar = m['profileEmoji']?.toString() ?? _avatar;
         _image = m['profileImage']?.toString() ?? _image;
@@ -152,8 +180,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      _safeSetState(() => _loading = false);
     }
   }
 
@@ -177,7 +204,6 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           .equalTo(widget.uid)
           .get();
 
-      if (!mounted) return;
 
       final dreams = <SearchResult>[];
       final childrenMap = <String, _PublicChild>{};
@@ -230,15 +256,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       donations.sort((a, b) =>
           (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
 
-      setState(() {
+      _safeSetState(() {
         _dreams = dreams;
         _availableDonations = donations;
         _children = childrenMap.values.toList();
         _loadingGallery = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingGallery = false);
+      _safeSetState(() => _loadingGallery = false);
     }
   }
 
@@ -365,8 +390,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       otherEmoji: _avatar,
     );
 
-    if (!mounted) return;
     Navigator.push(context, ChatPage.route(myUid: myUid, chat: chat));
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -550,16 +579,33 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               ),
             ),
           SliverToBoxAdapter(
-            child: _loading
-                ? const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(
-                        child: CircularProgressIndicator(
-                            color: AppTheme.kidsPink)),
-                  )
-                : _notFound
-                    ? _buildNotFound()
-                    : _buildBody(),
+            // ── ModalRoute.of(context).isCurrent ──────────────────────────
+            // Diferente de checar o status da AnimationController (que só
+            // muda em um frame futuro, depois que a animação já começou),
+            // `isCurrent` vira `false` de forma SÍNCRONA no exato instante
+            // em que Navigator.pop() é chamado — antes mesmo do primeiro
+            // frame da transição ser agendado. `ModalRoute.of(context)` usa
+            // um InheritedWidget interno do Flutter que notifica os
+            // widgets dependentes automaticamente quando isso muda, então
+            // este builder é reconstruído imediatamente.
+            //
+            // Resultado: assim que você toca em voltar, o grid de sonhos/
+            // doações (o conteúdo pesado) sai da árvore de widgets já no
+            // próximo frame, então não existe mais nada pesado para
+            // "vazar" visualmente durante a animação de saída — seja ela
+            // qual for (zoom, fade, slide, com ou sem snapshot).
+            child: !(ModalRoute.of(context)?.isCurrent ?? true)
+                ? const SizedBox.shrink()
+                : _loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(
+                            child: CircularProgressIndicator(
+                                color: AppTheme.kidsPink)),
+                      )
+                    : _notFound
+                        ? _buildNotFound()
+                        : _buildBody(),
           ),
         ],
       ),
@@ -814,19 +860,39 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.78,
-      ),
-      itemBuilder: (_, i) => SearchResultCard(
-        result: items[i],
-        currentUserId: FirebaseAuth.instance.currentUser?.uid,
+    // ── RepaintBoundary isolado com Key própria ─────────────────────────
+    // O glitch reportado (grid da galeria "vazando" sobre a Home por 1-2
+    // frames durante o pop) é consistente com reuso indevido, pelo engine,
+    // de uma camada de composição (picture layer) já rasterizada desse
+    // GridView. Sem um RepaintBoundary dedicado aqui, essa subárvore
+    // (GridView + Image.network + ClipRRect dos cards) tende a ser
+    // "achatada" dentro da camada de composição do ancestral mais próximo
+    // — e é essa camada ancestral, maior e de vida mais longa, que o
+    // engine reaproveita incorretamente por engano.
+    //
+    // Dar a esse RepaintBoundary uma Key própria (amarrada ao uid e à aba
+    // selecionada) força o Flutter a tratá-lo como um elemento distinto:
+    // isso garante (1) uma camada de composição própria — que é destruída
+    // junto com a rota ao invés de ficar "pendurada" dentro do layer do
+    // pai — e (2) que trocar de aba (sonhos ↔ doações) também descarta o
+    // layer antigo em vez de tentar reaproveitá-lo.
+    return RepaintBoundary(
+      key: ValueKey('gallery_grid_${widget.uid}_$_galleryTab'),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.78,
+        ),
+        itemBuilder: (_, i) => SearchResultCard(
+          key: ValueKey('gallery_item_${items[i].id}'),
+          result: items[i],
+          currentUserId: FirebaseAuth.instance.currentUser?.uid,
+        ),
       ),
     );
   }
