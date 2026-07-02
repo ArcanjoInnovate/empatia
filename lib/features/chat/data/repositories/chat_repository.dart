@@ -1,5 +1,7 @@
 // lib/features/chat/data/repositories/chat_repository.dart
 
+import 'dart:async';
+
 import 'package:empatia/features/search/data/repositories/search_repository.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -102,20 +104,38 @@ class ChatRepository {
 
   /// Atualiza o contexto do chat (item atual).
   ///
-  /// Se o [chat.itemId] for diferente do item gravado no Firebase, os campos
+  /// Se o [chat.itemId] for REALMENTE diferente do item que foi concluído
+  /// (ou do item gravado, se ainda não houve conclusão), os campos
   /// [completed], [completed_at] e [completed_item_id] são resetados para que
   /// a UI de AMBOS os usuários comece limpa. O histórico de mensagens e o
   /// [DonationHistory] são preservados intactos.
+  ///
+  /// Continuar conversando sobre o MESMO item — mesmo depois de concluído
+  /// (ex: combinar detalhes, agradecer) — NUNCA deve resetar a conclusão.
   Future<void> updateContext(ChatModel chat) async {
     final updates = chat.toContextUpdate();
 
-    // Verifica se o item mudou em relação ao que está salvo no Firebase.
-    // Tratamos savedItemId == null (campo ausente em chats antigos) como
-    // "item diferente" sempre que chat.itemId não é nulo — o reset é seguro.
     try {
-      final snap        = await _chats(chat.chatId).child('item_id').get();
-      final savedItemId = snap.value?.toString();
-      final itemChanged = chat.itemId != null && savedItemId != chat.itemId;
+      final snap = await _chats(chat.chatId).get();
+      final data = snap.value is Map ? snap.value as Map : const {};
+
+      final savedItemId     = data['item_id']?.toString();
+      final completedItemId = data['completed_item_id']?.toString();
+      final wasCompleted    = data['completed'] == true;
+
+      // Item "efetivo" para fins de comparação: o completed_item_id é a
+      // fonte da verdade sobre QUAL item gerou a conclusão. Só cai no
+      // fallback de item_id quando o chat nunca foi concluído ou é legado.
+      final effectiveItemId = wasCompleted
+          ? (completedItemId ?? savedItemId)
+          : savedItemId;
+
+      // Só é uma TROCA DE ITEM de verdade quando o item atual do chat
+      // (chat.itemId) é diferente do item gravado/concluído. Tratamos
+      // effectiveItemId == null (chat antigo sem esse campo) como
+      // "item diferente" apenas quando chat.itemId não é nulo.
+      final itemChanged =
+          chat.itemId != null && effectiveItemId != chat.itemId;
 
       if (itemChanged) {
         // Novo item → reseta todos os campos de conclusão atomicamente.
@@ -132,14 +152,18 @@ class ChatRepository {
         // item e NÃO devem contar como "primeiro contato no contexto atual".
         updates['item_changed_at']    = ServerValue.timestamp;
       }
-    } catch (_) {
-      // Se falhar ao ler o item_id atual, reseta completed por precaução
-      // para não deixar o outro usuário preso em estado concluído.
-      if (chat.itemId != null) {
-        updates['completed']         = false;
-        updates['completed_at']      = null;
-        updates['completed_item_id'] = null;
-      }
+    } catch (e) {
+      // 🔧 FIX: falha ao ler o estado atual do chat NÃO reseta mais a
+      // conclusão. O comportamento anterior ("reseta por precaução")
+      // fazia com que qualquer mensagem enviada depois de uma doação
+      // concluída — inclusive sobre o MESMO item — apagasse o estado
+      // de conclusão sempre que essa leitura falhasse (ex: hiccup de
+      // rede). Um erro de leitura transitório nunca deve poder apagar
+      // uma doação já concluída; na dúvida, preservamos o estado atual
+      // e apenas atualizamos os campos de contexto (item_id, título etc).
+      debugPrint(
+          '[ChatRepository] updateContext: falha ao verificar item atual, '
+          'mantendo estado de conclusão intacto: $e');
     }
 
     await _chats(chat.chatId).update(updates);
@@ -462,18 +486,55 @@ class ChatRepository {
     });
   }
 
+  /// Stream reativo da caixa de entrada.
+  ///
+  /// Antes, este stream só reagia a mudanças em `ChatPreviews/{myUid}`.
+  /// Isso deixava a lista desatualizada (exigindo refresh manual) sempre
+  /// que algo mudava apenas em `Chats/{chatId}` sem tocar em ChatPreviews —
+  /// por exemplo: `completeDonation` (marca `completed`) e `updateContext`
+  /// quando chamado fora do fluxo de envio de mensagem.
+  ///
+  /// Agora, além de escutar `ChatPreviews/{myUid}`, mantemos um listener
+  /// individual em `Chats/{chatId}` para cada conversa da lista — qualquer
+  /// mudança em qualquer uma delas dispara um novo emit com a lista
+  /// recalculada, sem precisar de pull-to-refresh.
   Stream<List<ChatModel>> inboxStream(String myUid) {
-    return _db
-        .child('ChatPreviews')
-        .child(myUid)
-        .onValue
-        .asyncMap((event) async {
-      final data = event.snapshot.value;
-      if (data == null || data is! Map) return <ChatModel>[];
+    late final StreamController<List<ChatModel>> controller;
+    StreamSubscription<DatabaseEvent>? previewsSub;
+    final chatSubs = <String, StreamSubscription<DatabaseEvent>>{};
+    Map previewsData = {};
+
+    // 🔧 FIX: serialização dos rebuilds.
+    //
+    // Antes, cada evento (`ChatPreviews` OU qualquer `Chats/{chatId}`)
+    // disparava um `rebuild()` assíncrono independente. Como cada rebuild
+    // faz várias chamadas de rede (.get() por chat), dois rebuilds podiam
+    // rodar em paralelo — e o que TERMINASSE por último vencia, mesmo que
+    // tivesse COMEÇADO com dados mais antigos. Era exatamente esse cenário:
+    // Sarah manda mensagem → dispara rebuild A; um instante depois algo mais
+    // dispara rebuild B; se A (mais antigo, sem ver a conclusão ainda
+    // propagada) terminar DEPOIS de B, a lista do Mavey mostra "em
+    // andamento" mesmo com o Firebase já 100% correto — só "acertava" ao
+    // abrir o chat porque isso forçava mais uma leitura que, por sorte,
+    // terminava por último.
+    //
+    // A fila abaixo garante no máximo 1 rebuild em execução por vez; se
+    // eventos novos chegam enquanto um rebuild está rodando, apenas
+    // marcamos "dirty" e rodamos mais UMA passada ao final (sempre lendo os
+    // dados mais recentes) — nunca há sobreposição, então a última
+    // passada sempre reflete o estado mais atual do Firebase.
+    var rebuilding = false;
+    var dirty      = false;
+
+    Future<void> rebuild() async {
+      if (previewsData.isEmpty) {
+        if (!controller.isClosed) controller.add(<ChatModel>[]);
+        return;
+      }
 
       final chats = <ChatModel>[];
 
-      for (final entry in (data as Map).entries) {
+      for (final entry in previewsData.entries) {
         final chatId = entry.key.toString();
         final val    = entry.value;
         if (val is! Map) continue;
@@ -492,7 +553,8 @@ class ChatRepository {
         } catch (_) {}
 
         String? itemId, itemTitle, itemType, itemPhotoUrl;
-        bool completed = false;
+        bool completed     = false;
+        bool otherHasRead  = false;
         try {
           final cSnap = await _chats(chatId).get();
           if (cSnap.exists && cSnap.value is Map) {
@@ -502,12 +564,19 @@ class ChatRepository {
             itemType     = c['item_type']?.toString();
             itemPhotoUrl = c['item_photo_url']?.toString();
 
-            // Na inbox, completed só é verdadeiro se o item concluído
-            // ainda é o mesmo item do contexto atual do chat.
-            final done              = c['completed'] == true;
-            final completedItemId   = c['completed_item_id']?.toString();
-            final effectiveItemId   = completedItemId ?? itemId;
+            final done             = c['completed'] == true;
+            final completedItemId  = c['completed_item_id']?.toString();
+            final effectiveItemId  = completedItemId ?? itemId;
             completed = done && (itemId == null || effectiveItemId == itemId);
+
+            // "Visto" do outro lado — comparação feita no nó compartilhado
+            // Chats/{chatId}/last_read, que ambos participantes podem ler.
+            final lastRead      = c['last_read'];
+            final lastTimestamp = (val['last_timestamp'] as num?)?.toInt() ?? 0;
+            if (lastRead is Map) {
+              final otherReadAt = (lastRead[otherUid] as num?)?.toInt();
+              otherHasRead = otherReadAt != null && otherReadAt >= lastTimestamp;
+            }
           }
         } catch (_) {}
 
@@ -521,13 +590,74 @@ class ChatRepository {
           itemType:     itemType,
           itemPhotoUrl: itemPhotoUrl,
           completed:    completed,
+          otherHasRead: otherHasRead,
         ));
       }
 
       chats.sort((a, b) =>
           (b.lastTimestamp ?? 0).compareTo(a.lastTimestamp ?? 0));
-      return chats;
-    });
+
+      if (!controller.isClosed) controller.add(chats);
+    }
+
+    // Ponto de entrada para TODO evento — nunca chama rebuild() diretamente.
+    Future<void> scheduleRebuild() async {
+      if (rebuilding) {
+        dirty = true;
+        return;
+      }
+      rebuilding = true;
+      try {
+        do {
+          dirty = false;
+          await rebuild();
+        } while (dirty);
+      } finally {
+        rebuilding = false;
+      }
+    }
+
+    void syncChatSubs(Iterable<String> chatIds) {
+      final idSet = chatIds.toSet();
+
+      // Remove listeners de chats que saíram da lista (ex: dado apagado)
+      final toRemove =
+          chatSubs.keys.where((id) => !idSet.contains(id)).toList();
+      for (final id in toRemove) {
+        chatSubs.remove(id)?.cancel();
+      }
+
+      // Adiciona listeners para chats novos — cada um agenda um rebuild
+      // (serializado) ao mudar (completed, item_id, last_read, etc.)
+      for (final id in idSet) {
+        if (chatSubs.containsKey(id)) continue;
+        chatSubs[id] = _chats(id).onValue.listen((_) => scheduleRebuild());
+      }
+    }
+
+    controller = StreamController<List<ChatModel>>.broadcast(
+      onListen: () {
+        previewsSub = _db
+            .child('ChatPreviews')
+            .child(myUid)
+            .onValue
+            .listen((event) async {
+          final data   = event.snapshot.value;
+          previewsData = (data is Map) ? data : {};
+          syncChatSubs(previewsData.keys.map((k) => k.toString()));
+          await scheduleRebuild();
+        });
+      },
+      onCancel: () {
+        previewsSub?.cancel();
+        for (final s in chatSubs.values) {
+          s.cancel();
+        }
+        chatSubs.clear();
+      },
+    );
+
+    return controller.stream;
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -539,6 +669,16 @@ class ChatRepository {
       'unread':          0,
       'last_read_by_me': true,
     });
+
+    // Grava também no nó compartilhado Chats/{chatId} — é o único lugar
+    // que AMBOS os participantes conseguem ler, então é dali que o outro
+    // usuário descobre se EU já li a última mensagem dele (✓✓ azul).
+    // ChatPreviews é por-usuário e não pode ser lido pelo outro lado.
+    try {
+      await _chats(chatId).child('last_read').update({
+        uid: ServerValue.timestamp,
+      });
+    } catch (_) {}
 
     try {
       final snap = await _msgs(chatId)
@@ -654,7 +794,8 @@ class ChatRepository {
 
       // Contexto do chat principal
       String? itemId, itemTitle, itemType, itemPhotoUrl;
-      bool completed = false;
+      bool completed    = false;
+      bool otherHasRead = false;
       try {
         final cSnap = await _chats(chatId).get();
         if (cSnap.exists && cSnap.value is Map) {
@@ -667,6 +808,13 @@ class ChatRepository {
           final completedItemId = c['completed_item_id']?.toString();
           final effectiveItemId = completedItemId ?? itemId;
           completed = done && (itemId == null || effectiveItemId == itemId);
+
+          final lastRead      = c['last_read'];
+          final lastTimestamp = (preview['last_timestamp'] as num?)?.toInt() ?? 0;
+          if (lastRead is Map) {
+            final otherReadAt = (lastRead[otherUid] as num?)?.toInt();
+            otherHasRead = otherReadAt != null && otherReadAt >= lastTimestamp;
+          }
         }
       } catch (_) {}
 
@@ -680,6 +828,7 @@ class ChatRepository {
         itemType:     itemType,
         itemPhotoUrl: itemPhotoUrl,
         completed:    completed,
+        otherHasRead: otherHasRead,
       );
     } catch (_) {
       return null;
@@ -713,5 +862,93 @@ class ChatRepository {
     } catch (_) {
       return {};
     }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // REPARO — chats corrompidos pelo bug antigo de updateContext
+  // ════════════════════════════════════════════════════════════════
+  //
+  // A versão anterior de updateContext() resetava `completed` e
+  // `completed_item_id` sempre que a leitura do item_id falhava, mesmo
+  // enviando mensagem sobre o MESMO item já concluído. Isso já corrigimos,
+  // mas chats que sofreram esse reset ANTES da correção ficaram com dado
+  // errado gravado no Firebase — o código novo não reescreve sozinho um
+  // dado que já está lá.
+  //
+  // `item_id` nunca era apagado por aquele bug (só completed/completed_at/
+  // completed_item_id), então dá pra reconstruir com segurança: se existe
+  // uma mensagem `delivery_confirmed` no histórico do chat mas o nó
+  // Chats/{chatId} não está marcado como concluído, restauramos.
+
+  /// Repara UM chat, se necessário. Retorna `true` se algo foi corrigido.
+  /// Seguro de chamar repetidamente — não faz nada se já estiver consistente.
+  Future<bool> repairCompletionIfNeeded(String chatId) async {
+    try {
+      final chatSnap = await _chats(chatId).get();
+      if (!chatSnap.exists || chatSnap.value is! Map) return false;
+      final chatData = chatSnap.value as Map;
+
+      final alreadyOk = chatData['completed'] == true &&
+          chatData['completed_item_id'] != null;
+      if (alreadyOk) return false;
+
+      final itemId = chatData['item_id']?.toString();
+      if (itemId == null || itemId.isEmpty) return false;
+
+      final msgSnap = await _msgs(chatId)
+          .orderByChild('timestamp')
+          .limitToLast(200)
+          .get();
+      if (!msgSnap.exists || msgSnap.value is! Map) return false;
+
+      // Encontra a confirmação de entrega mais recente, se existir.
+      Map? confirmedMsg;
+      for (final entry in (msgSnap.value as Map).entries) {
+        final val = entry.value;
+        if (val is! Map) continue;
+        if (val['type']?.toString() != 'delivery_confirmed') continue;
+        final ts     = (val['timestamp'] as num?)?.toInt() ?? 0;
+        final prevTs = (confirmedMsg?['timestamp'] as num?)?.toInt() ?? -1;
+        if (ts >= prevTs) confirmedMsg = val;
+      }
+      if (confirmedMsg == null) return false; // nunca foi confirmado de fato
+
+      final completedAt = (confirmedMsg['timestamp'] as num?)?.toInt() ??
+          DateTime.now().millisecondsSinceEpoch;
+
+      await _chats(chatId).update({
+        'completed':         true,
+        'completed_at':      completedAt,
+        'completed_item_id': itemId,
+      });
+
+      debugPrint('[ChatRepository] repairCompletionIfNeeded: '
+          'chat $chatId restaurado (item $itemId)');
+      return true;
+    } catch (e) {
+      debugPrint('[ChatRepository] repairCompletionIfNeeded error: $e');
+      return false;
+    }
+  }
+
+  /// Roda o reparo em todos os chats de [myUid]. Chame uma vez ao abrir
+  /// a lista de conversas (fire-and-forget) — a inboxStream já escuta
+  /// Chats/{chatId} de cada conversa, então qualquer correção aplicada
+  /// aqui aparece sozinha na tela, sem precisar de refresh manual.
+  Future<int> repairAllChatsForUser(String myUid) async {
+    var repaired = 0;
+    try {
+      final snap = await _db.child('UserChats').child(myUid).get();
+      if (!snap.exists || snap.value is! Map) return 0;
+
+      final chatIds = (snap.value as Map).keys.map((k) => k.toString());
+      for (final chatId in chatIds) {
+        final fixed = await repairCompletionIfNeeded(chatId);
+        if (fixed) repaired++;
+      }
+    } catch (e) {
+      debugPrint('[ChatRepository] repairAllChatsForUser error: $e');
+    }
+    return repaired;
   }
 }

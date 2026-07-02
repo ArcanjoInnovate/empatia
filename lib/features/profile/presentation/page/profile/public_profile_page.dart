@@ -700,46 +700,6 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             const SizedBox(height: 24),
           ],
 
-          if (!_isMyself)
-            GestureDetector(
-              onTap: _openChat,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.kidsPink, AppTheme.kidsPurple],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.kidsPink.withValues(alpha: 0.30),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.chat_bubble_rounded,
-                        color: AppTheme.backgroundColor, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Enviar mensagem',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.backgroundColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 20),
-
           // ── Filhos (derivados dos sonhos públicos) ──────────────────
           if (_children.isNotEmpty) ...[
             const _SectionTitle(emoji: '👨‍👩‍👧‍👦', title: 'Filhos'),

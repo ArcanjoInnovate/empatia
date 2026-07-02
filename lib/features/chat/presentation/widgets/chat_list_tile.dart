@@ -179,12 +179,14 @@ class _ChatListTileState extends State<ChatListTile>
                               // Última mensagem
                               Row(
                                 children: [
-                                  if (isLastMine && !isCompleted) ...[
+                                  if (isLastMine) ...[
                                     Icon(
                                       Icons.done_all_rounded,
                                       size:  14,
-                                      color: chat.lastReadByMe == true
-                                          ? AppTheme.primaryBlueMid
+                                      color: chat.otherHasRead
+                                          ? (isCompleted
+                                              ? AppTheme.kidsGreenDark
+                                              : AppTheme.primaryBlueMid)
                                           : Colors.grey.shade400,
                                     ),
                                     const SizedBox(width: 3),
@@ -197,11 +199,11 @@ class _ChatListTileState extends State<ChatListTile>
                                   ],
                                   Expanded(
                                     child: Text(
-                                      isCompleted
-                                          ? 'Entrega confirmada pelos dois lados'
-                                          : chat.lastMessage?.isNotEmpty == true
-                                              ? chat.lastMessage!
-                                              : 'Inicie a conversa ✨',
+                                      chat.lastMessage?.isNotEmpty == true
+                                          ? chat.lastMessage!
+                                          : (isCompleted
+                                              ? 'Entrega confirmada pelos dois lados'
+                                              : 'Inicie a conversa ✨'),
                                       style: TextStyle(
                                         fontSize: 12.5,
                                         color: isCompleted
@@ -218,9 +220,13 @@ class _ChatListTileState extends State<ChatListTile>
                                       maxLines: 1,
                                     ),
                                   ),
-                                  if (hasUnread && !isCompleted) ...[
+                                  if (hasUnread) ...[
                                     const SizedBox(width: 8),
-                                    _UnreadBadge(count: chat.unread, isDream: isDream),
+                                    _UnreadBadge(
+                                      count:   chat.unread,
+                                      isDream: isDream,
+                                      isCompleted: isCompleted,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -432,7 +438,12 @@ class _StatusInfo {
 class _UnreadBadge extends StatelessWidget {
   final int count;
   final bool isDream;
-  const _UnreadBadge({required this.count, required this.isDream});
+  final bool isCompleted;
+  const _UnreadBadge({
+    required this.count,
+    required this.isDream,
+    this.isCompleted = false,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
@@ -440,11 +451,15 @@ class _UnreadBadge extends StatelessWidget {
         height:  20,
         padding: const EdgeInsets.symmetric(horizontal: 5),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDream
-                ? [AppTheme.kidsPurpleViolet, AppTheme.primaryBlue]
-                : [AppTheme.kidsPink, AppTheme.kidsPinkDeep],
-          ),
+          gradient: isCompleted
+              ? LinearGradient(
+                  colors: [AppTheme.kidsGreenDark, AppTheme.kidsGreenDark.withValues(alpha: 0.75)],
+                )
+              : LinearGradient(
+                  colors: isDream
+                      ? [AppTheme.kidsPurpleViolet, AppTheme.primaryBlue]
+                      : [AppTheme.kidsPink, AppTheme.kidsPinkDeep],
+                ),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Center(

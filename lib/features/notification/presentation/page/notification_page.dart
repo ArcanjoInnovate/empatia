@@ -8,6 +8,7 @@ import 'package:empatia/features/notification/data/model/notification_model.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 class NotificationsPage extends StatefulWidget {
   final NotificationController controller;
@@ -20,12 +21,35 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
+  // ── Locale (pt_BR) para o DateFormat ────────────────────────────────
+  //
+  // DateFormat('EEEE', 'pt_BR') (usado em _formatTime) lança
+  // LocaleDataException se os dados de locale do pacote `intl` não
+  // tiverem sido inicializados antes do primeiro uso. O ideal é chamar
+  // initializeDateFormatting('pt_BR') uma única vez no main(), antes do
+  // runApp() — mas para não depender disso (e não quebrar essa tela se
+  // alguém esquecer), inicializamos aqui também, de forma idempotente
+  // (safe para chamar mais de uma vez) e com fallback caso falhe.
+  static bool _localeReady = false;
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_rebuild);
     // Marca todas como lidas assim que a tela abre
     widget.controller.markAllAsRead();
+    _ensureLocaleInitialized();
+  }
+
+  Future<void> _ensureLocaleInitialized() async {
+    if (_localeReady) return;
+    try {
+      await initializeDateFormatting('pt_BR', null);
+      _localeReady = true;
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('⚠️ Erro ao inicializar locale pt_BR (usando fallback): $e');
+    }
   }
 
   void _rebuild() {
@@ -317,7 +341,18 @@ class _NotificationTile extends StatelessWidget {
     if (diff.inMinutes < 60) return 'há ${diff.inMinutes} min';
     if (diff.inHours   < 24) return 'há ${diff.inHours}h';
     if (diff.inDays    == 1) return 'ontem, ${DateFormat('HH:mm').format(dt)}';
-    if (diff.inDays    < 7)  return DateFormat('EEEE', 'pt_BR').format(dt);
+    if (diff.inDays    < 7) {
+      // 'EEEE' com locale 'pt_BR' precisa dos dados de locale
+      // inicializados (ver _ensureLocaleInitialized em
+      // _NotificationsPageState). Se por algum motivo ainda não
+      // estiverem prontos nesse frame, cai para um formato numérico
+      // seguro em vez de lançar LocaleDataException.
+      try {
+        return DateFormat('EEEE', 'pt_BR').format(dt);
+      } catch (_) {
+        return DateFormat('dd/MM').format(dt);
+      }
+    }
     return DateFormat('dd/MM/yyyy').format(dt);
   }
 }

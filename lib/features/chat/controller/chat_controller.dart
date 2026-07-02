@@ -107,6 +107,13 @@ class ChatController extends ChangeNotifier {
     try {
       _chatExistsInDb = await _repo.chatExists(chat.chatId, myUid);
       if (_chatExistsInDb) {
+        // 🩹 Auto-repara chats afetados pelo bug antigo que podia resetar
+        // o estado de conclusão ao enviar mensagem depois de concluído.
+        // Idempotente — não faz nada se o chat já estiver correto.
+        // O _completedSub já assinado acima capta a correção automaticamente
+        // assim que ela é gravada (é um listener ao vivo em Chats/{chatId}).
+        await _repo.repairCompletionIfNeeded(chat.chatId);
+
         _subscribeMessages();
         _hasPendingRequest =
             await _repo.hasPendingDeliveryRequest(chat.chatId);

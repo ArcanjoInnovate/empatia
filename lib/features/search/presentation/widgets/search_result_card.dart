@@ -122,6 +122,58 @@ class _SafeTopRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DISTÂNCIA — helper de formatação + chip usado nos dois cards
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Formata a distância para exibição compacta:
+///   < 1 km   → "850 m"
+///   < 10 km  → "3,4 km" (uma casa decimal)
+///   >= 10 km → "24 km"  (arredondado)
+String _formatDistanceKm(double km) {
+  if (km < 1) {
+    final meters = (km * 1000).round();
+    return '$meters m';
+  }
+  if (km < 10) {
+    final formatted = km.toStringAsFixed(1).replaceAll('.', ',');
+    return '$formatted km';
+  }
+  return '${km.round()} km';
+}
+
+/// Chip compacto exibindo a distância até o usuário — usado no rodapé
+/// dos cards de doação e sonho quando o modo "Próximo de mim" está ativo.
+class _DistanceChip extends StatelessWidget {
+  final double distanceKm;
+  const _DistanceChip({required this.distanceKm});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.22),
+      borderRadius: BorderRadius.circular(99),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.near_me_rounded, size: 9, color: Colors.white),
+        const SizedBox(width: 3),
+        Text(
+          _formatDistanceKm(distanceKm),
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ROUTER — encaminha para o card correto conforme o tipo
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -132,15 +184,32 @@ class SearchResultCard extends StatelessWidget {
   /// "Meu item" no card.
   final String? currentUserId;
 
-  const SearchResultCard({Key? key, required this.result, this.currentUserId})
-    : super(key: key);
+  /// Distância (em km) até o usuário, exibida como badge quando o modo
+  /// "Próximo de mim" está ativo. `null` = modo proximidade inativo ou
+  /// item sem coordenadas.
+  final double? distanceKm;
+
+  const SearchResultCard({
+    Key? key,
+    required this.result,
+    this.currentUserId,
+    this.distanceKm,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     if (result.type == 'dream') {
-      return _DreamCard(result: result, currentUserId: currentUserId);
+      return _DreamCard(
+        result: result,
+        currentUserId: currentUserId,
+        distanceKm: distanceKm,
+      );
     }
-    return _DonationCard(result: result, currentUserId: currentUserId);
+    return _DonationCard(
+      result: result,
+      currentUserId: currentUserId,
+      distanceKm: distanceKm,
+    );
   }
 }
 
@@ -151,7 +220,8 @@ class SearchResultCard extends StatelessWidget {
 class _DreamCard extends StatelessWidget {
   final SearchResult result;
   final String? currentUserId;
-  const _DreamCard({required this.result, this.currentUserId});
+  final double? distanceKm;
+  const _DreamCard({required this.result, this.currentUserId, this.distanceKm});
 
   static const _gradients = [
     [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -358,7 +428,17 @@ class _DreamCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (distanceKm != null) ...[
+                            const SizedBox(width: 4),
+                            _DistanceChip(distanceKm: distanceKm!),
+                          ],
                         ],
+                      ),
+                    ] else if (distanceKm != null) ...[
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _DistanceChip(distanceKm: distanceKm!),
                       ),
                     ],
                   ],
@@ -428,7 +508,8 @@ class _EmotionalMicrocopy extends StatelessWidget {
 class _DonationCard extends StatelessWidget {
   final SearchResult result;
   final String? currentUserId;
-  const _DonationCard({required this.result, this.currentUserId});
+  final double? distanceKm;
+  const _DonationCard({required this.result, this.currentUserId, this.distanceKm});
 
   bool get _isUnavailable =>
       result.status == 'donated' ||
@@ -549,7 +630,17 @@ class _DonationCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (distanceKm != null) ...[
+                          const SizedBox(width: 4),
+                          _DistanceChip(distanceKm: distanceKm!),
+                        ],
                       ],
+                    ),
+                  ] else if (distanceKm != null) ...[
+                    const SizedBox(height: 5),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _DistanceChip(distanceKm: distanceKm!),
                     ),
                   ],
                 ],

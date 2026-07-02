@@ -43,12 +43,31 @@ class _ChatListPageState extends State<ChatListPage>
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
+    // 🔧 FIX: antes o listener só atualizava `_tabIndex` quando
+    // `!_tab.indexIsChanging` — ou seja, só DEPOIS que a animação interna
+    // do TabController (usada por padrão para deslizar o indicador de uma
+    // TabBar/TabBarView) terminasse. Como aqui não existe TabBar/TabBarView
+    // sendo arrastada (o seletor é o `_SegmentedControl` customizado), essa
+    // animação não tem nenhum propósito visual — só atrasava a atualização
+    // da lista filtrada em ~300ms+ a cada troca, sem necessidade.
+    //
+    // `_tab.index` já é atualizado para o novo valor no exato instante em
+    // que `animateTo()` é chamado (antes mesmo da animação começar), então
+    // reagir a QUALQUER mudança — não só ao fim da animação — deixa a
+    // troca de tab instantânea.
     _tab.addListener(() {
-      if (!_tab.indexIsChanging) {
+      if (_tab.index != _tabIndex) {
         HapticFeedback.selectionClick();
         setState(() => _tabIndex = _tab.index);
       }
     });
+
+    // 🔧 Repara, em segundo plano, chats afetados pelo bug antigo que
+    // resetava `completed` ao enviar mensagem depois de uma conclusão.
+    // Fire-and-forget: qualquer correção aparece sozinha via inboxStream,
+    // sem precisar de refresh manual. Seguro de rodar toda vez que a
+    // lista abre — não faz nada em chats já consistentes.
+    _repo.repairAllChatsForUser(widget.myUid);
   }
 
   @override
@@ -368,7 +387,7 @@ class _SegmentedControl extends StatelessWidget {
           final selected = i == tabIndex;
           return Expanded(
             child: GestureDetector(
-              onTap: () => controller.animateTo(i),
+              onTap: () => controller.index = i,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve:    Curves.easeInOut,
@@ -483,23 +502,29 @@ class _AnimatedTileState extends State<_AnimatedTile>
   late final Animation<double>   _fade;
   late final Animation<Offset>   _slide;
 
+  // 🔧 FIX: antes, cada tile esperava `index * 35ms` pra começar a animar,
+  // e a duração da animação também crescia com o índice
+  // (`300 + index * 40ms`). Isso é reconstruído toda vez que os slivers
+  // mudam — inclusive ao trocar de tab — então numa lista com vários itens
+  // visíveis a soma passava de 1s facilmente, dando a sensação de troca
+  // de tab "lenta" mesmo os dados já estando prontos na hora.
+  //
+  // Agora todos os tiles começam a animar IMEDIATAMENTE e com a MESMA
+  // duração curta, então a troca de tab fica instantânea — só uma leve
+  // transição visual, sem cascata.
+  static const _duration = Duration(milliseconds: 160);
+
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync:    this,
-      duration: Duration(milliseconds: 300 + widget.index * 40),
-    );
+    _ctrl = AnimationController(vsync: this, duration: _duration);
     _fade  = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+      begin: const Offset(0, 0.04),
       end:   Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
 
-    // Atrasa levemente por índice para efeito cascata
-    Future.delayed(Duration(milliseconds: widget.index * 35), () {
-      if (mounted) _ctrl.forward();
-    });
+    _ctrl.forward();
   }
 
   @override

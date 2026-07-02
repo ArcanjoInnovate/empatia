@@ -29,6 +29,11 @@ class SearchController extends ChangeNotifier {
   List<SearchResult> _results = [];
   String? _errorMessage;
 
+  /// Distância (em km) de cada item ao usuário, calculada via Haversine
+  /// quando o modo de proximidade está ativo. Chave = SearchResult.id.
+  /// Fica vazio fora do modo de proximidade.
+  final Map<String, double> _distancesKm = {};
+
   String  _query           = '';
   String? _selectedType;
   String? _selectedCategory; // ← NOVO
@@ -53,6 +58,10 @@ class SearchController extends ChangeNotifier {
   String?            get selectedState    => _selectedState;
   String?            get selectedCity     => _selectedCity;
   double             get radiusKm         => _radiusKm;
+
+  /// Retorna a distância em km do item até o usuário, se disponível
+  /// (apenas em modo de proximidade). `null` caso contrário.
+  double? distanceKmFor(String resultId) => _distancesKm[resultId];
 
   bool get hasActiveFilters =>
       _query.isNotEmpty      ||
@@ -140,6 +149,7 @@ class SearchController extends ChangeNotifier {
     _userLatitude     = null;
     _userLongitude    = null;
     _radiusKm         = 10.0;
+    _distancesKm.clear();
     _debounce?.cancel();
     _initialLoaded    = false;
     loadInitial();
@@ -165,6 +175,8 @@ class SearchController extends ChangeNotifier {
 
       final filtered =
           isProximityMode ? _filterAndSortByProximity(items) : items;
+
+      if (!isProximityMode) _distancesKm.clear();
 
       _results = filtered;
       _state   = filtered.isEmpty ? SearchState.empty : SearchState.success;
@@ -196,6 +208,13 @@ class SearchController extends ChangeNotifier {
     }
 
     withDistance.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+
+    _distancesKm
+      ..clear()
+      ..addEntries(
+        withDistance.map((e) => MapEntry(e.item.id, e.distanceKm)),
+      );
+
     return withDistance.map((e) => e.item).toList();
   }
 

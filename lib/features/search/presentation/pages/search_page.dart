@@ -189,6 +189,9 @@ class _SearchScrollView extends StatelessWidget {
           results:       ctrl.results,
           errorMessage:  ctrl.errorMessage,
           currentUserId: context.read<UserModel?>()?.id,
+          // ✅ Repassa o controller apenas para consulta de distância
+          // (modo proximidade) — não altera estado a partir do card.
+          distanceLookup: ctrl.isProximityMode ? ctrl.distanceKmFor : null,
         ),
       ],
     );
@@ -702,11 +705,16 @@ class _ResultsSliver extends StatelessWidget {
   /// UID do usuário logado — repassado para cada SearchResultCard.
   final String? currentUserId;
 
+  /// Função para consultar a distância (km) de um item ao usuário,
+  /// disponível apenas quando o modo "Próximo de mim" está ativo.
+  final double? Function(String resultId)? distanceLookup;
+
   const _ResultsSliver({
     required this.state,
     required this.results,
     required this.errorMessage,
     this.currentUserId,
+    this.distanceLookup,
   });
 
   @override
@@ -744,6 +752,7 @@ class _ResultsSliver extends StatelessWidget {
               (_, i) => SearchResultCard(
                 result: results[i],
                 currentUserId: currentUserId,
+                distanceKm: distanceLookup?.call(results[i].id),
               ),
               childCount: results.length,
             ),

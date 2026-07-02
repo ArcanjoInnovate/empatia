@@ -40,6 +40,11 @@ class ChatModel {
   /// true quando a última mensagem enviada por mim foi lida pelo outro
   final bool? lastReadByMe;
 
+  /// true quando o OUTRO usuário já leu a última mensagem do chat —
+  /// calculado a partir de Chats/{chatId}/last_read/{otherUid} comparado
+  /// ao timestamp da última mensagem. Usado para o ✓✓ azul no inbox.
+  final bool otherHasRead;
+
   /// true quando a doação foi concluída (delivery_confirmed)
   final bool completed;
 
@@ -64,6 +69,7 @@ class ChatModel {
     this.lastTimestamp,
     this.unread = 0,
     this.lastReadByMe,
+    this.otherHasRead = false,
     this.completed = false,
     this.otherName,
     this.otherAvatar,
@@ -108,6 +114,7 @@ class ChatModel {
     String? itemType,
     String? itemPhotoUrl,
     bool completed = false,
+    bool otherHasRead = false,
   }) {
     final otherUid = map['other_uid']?.toString() ?? '';
     final parts = chatId.split('_');
@@ -129,6 +136,7 @@ class ChatModel {
       itemType: itemType,
       itemPhotoUrl: itemPhotoUrl,
       completed: completed,
+      otherHasRead: otherHasRead,
     );
   }
 

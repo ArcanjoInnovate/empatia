@@ -490,11 +490,7 @@ class _HeroHeader extends StatelessWidget {
                       badge: unreadNotifications,
                       onTap: onNotifications,
                     ),
-                    const SizedBox(width: 10),
-                    _HeaderIconBtn(
-                      icon: AppIcons.person,
-                      onTap: onProfile,
-                    ),
+                    
                   ],
                 ),
 
