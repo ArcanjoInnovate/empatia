@@ -1263,13 +1263,62 @@ class _CtaButtonState extends State<_CtaButton>
     super.dispose();
   }
 
+  void _showUnavailableDialog() {
+    final isDonated = widget.status == _ItemStatus.donated ||
+        widget.status == _ItemStatus.fulfilled;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_T.r20),
+        ),
+        backgroundColor: _T.white,
+        title: Text(
+          isDonated ? '🎉 Doação Concluída!' : '✨ Item Reservado',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: _T.navy,
+          ),
+        ),
+        content: Text(
+          isDonated
+              ? 'Este item já encontrou um novo lar. '
+                'Que tal explorar outras doações disponíveis?'
+              : 'Uma família já demonstrou interesse neste item e ele está reservado. '
+                'Fique de olho — outros itens incríveis aparecem por aqui!',
+          style: const TextStyle(
+            fontSize: 14,
+            color: _T.body,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Entendi',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: _T.blue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _down(TapDownDetails _) {
     if (!widget.status.isUnavailable) _ctrl.reverse();
   }
 
   void _up(TapUpDetails _) {
     _ctrl.forward();
-    if (widget.status.isUnavailable) return;
+    if (widget.status.isUnavailable) {
+      _showUnavailableDialog();
+      return;
+    }
     HapticFeedback.lightImpact();
     _openChat();
   }

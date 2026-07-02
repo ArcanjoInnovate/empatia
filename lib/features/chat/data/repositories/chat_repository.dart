@@ -858,6 +858,7 @@ class ChatRepository {
         'category': m['category']?.toString(),
         'photoUrl': (m['imageUrl'] ?? m['photoUrl'])?.toString(),
         'userId':   m['userId']?.toString(),
+        'status':   m['status']?.toString(),
       };
     } catch (_) {
       return {};
@@ -895,23 +896,32 @@ class ChatRepository {
       final itemId = chatData['item_id']?.toString();
       if (itemId == null || itemId.isEmpty) return false;
 
+      // Marca de quando o contexto atual começou. Mensagens ANTERIORES a
+      // esse instante pertencem a um item diferente (já trocado) e não
+      // podem ser usadas para "reparar" a conclusão do item atual — foi
+      // exatamente essa confusão que causava o chat herdar o `completed`
+      // de uma doação/sonho anterior ao trocar de contexto.
+      final itemChangedAt = (chatData['item_changed_at'] as num?)?.toInt() ?? 0;
+
       final msgSnap = await _msgs(chatId)
           .orderByChild('timestamp')
           .limitToLast(200)
           .get();
       if (!msgSnap.exists || msgSnap.value is! Map) return false;
 
-      // Encontra a confirmação de entrega mais recente, se existir.
+      // Encontra a confirmação de entrega mais recente, se existir —
+      // apenas dentro da janela do contexto ATUAL (timestamp >= item_changed_at).
       Map? confirmedMsg;
       for (final entry in (msgSnap.value as Map).entries) {
         final val = entry.value;
         if (val is! Map) continue;
         if (val['type']?.toString() != 'delivery_confirmed') continue;
-        final ts     = (val['timestamp'] as num?)?.toInt() ?? 0;
+        final ts = (val['timestamp'] as num?)?.toInt() ?? 0;
+        if (ts < itemChangedAt) continue; // pertence a um item anterior
         final prevTs = (confirmedMsg?['timestamp'] as num?)?.toInt() ?? -1;
         if (ts >= prevTs) confirmedMsg = val;
       }
-      if (confirmedMsg == null) return false; // nunca foi confirmado de fato
+      if (confirmedMsg == null) return false; // nunca foi confirmado de fato no contexto atual
 
       final completedAt = (confirmedMsg['timestamp'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch;

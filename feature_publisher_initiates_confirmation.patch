@@ -1,0 +1,295 @@
+diff --git a/lib/features/chat/controller/chat_controller.dart b/lib/features/chat/controller/chat_controller.dart
+index 91f3f16..26e6cf9 100644
+--- a/lib/features/chat/controller/chat_controller.dart
++++ b/lib/features/chat/controller/chat_controller.dart
+@@ -33,6 +33,15 @@ class ChatController extends ChangeNotifier {
+   bool _completed                       = false;
+   bool _showCompletionEffect            = false;
+ 
++  // Quem tem direito de INICIAR a declaração de entrega/recebimento do
++  // item atual: sempre o dono da publicação (quem cadastrou o sonho ou a
++  // doação) — nunca escolhido pela UI.
++  // • donation → dono = quem TEM o item → inicia declarando "Entreguei"
++  // • dream    → dono = quem QUER o item → inicia declarando "Recebi"
++  // O outro participante só pode CONFIRMAR, nunca iniciar.
++  String? _publisherUid;
++  String? _otherPartyUid;
++
+   // Controle de request pendente (impede o outro lado de mandar um também)
+   bool _hasPendingRequest               = false;
+   // true quando FUI EU quem enviou um request ainda sem resposta
+@@ -54,6 +63,13 @@ class ChatController extends ChangeNotifier {
+   bool get iSentPendingRequest          => _iSentPendingRequest;
+   bool get isContextSwitch              => _isContextSwitch;
+ 
++  /// true quando EU sou o dono da publicação (sonho ou doação) — só eu
++  /// posso iniciar a declaração de entrega/recebimento. Enquanto o item
++  /// ainda não foi carregado, fica false (botão some até sabermos com
++  /// certeza quem tem esse direito).
++  bool get iAmPublisher                 => _publisherUid != null && _publisherUid == myUid;
++  String? get publisherUid              => _publisherUid;
++
+   /// A barra de entrega só aparece quando há pelo menos 1 mensagem de texto
+   /// de cada lado — evita confirmar entrega sem ter combinado com o outro.
+   bool get canSendDelivery {
+@@ -77,6 +93,8 @@ class ChatController extends ChangeNotifier {
+   Future<void> init() async {
+     await _repo.goOnline(myUid);
+ 
++    await _loadReceiverInfo();
++
+     _presenceSub = _repo.presenceStream(chat.otherUid).listen((p) {
+       _otherOnline   = p['online'] == true;
+       _otherLastSeen = p['last_seen'] as int?;
+@@ -138,6 +156,25 @@ class ChatController extends ChangeNotifier {
+     }
+   }
+ 
++  /// Descobre, a partir do `userId` gravado no item (Dream/Donation), quem
++  /// é o dono da publicação — ele sempre inicia a declaração de entrega/
++  /// recebimento; o outro participante só pode confirmar.
++  Future<void> _loadReceiverInfo() async {
++    if (chat.itemId == null) return;
++    final itemType = chat.itemType ?? 'dream';
++    try {
++      final meta = await _repo.fetchItemMeta(chat.itemId!, itemType);
++      final itemOwnerUid = meta['userId'];
++      if (itemOwnerUid == null) return;
++
++      _publisherUid  = itemOwnerUid;
++      _otherPartyUid = chat.user1 == itemOwnerUid ? chat.user2 : chat.user1;
++      notifyListeners();
++    } catch (e) {
++      debugPrint('[ChatController] _loadReceiverInfo error: $e');
++    }
++  }
++
+   void _subscribeMessages() {
+     _msgSub = _repo.messagesStream(chat.chatId).listen(
+       (msgs) {
+@@ -225,19 +262,28 @@ class ChatController extends ChangeNotifier {
+   // EVENTOS DE ENTREGA
+   // ════════════════════════════════════════════════════════════════
+ 
+-  /// Quem tem o item avisa que entregou / quem vai buscar avisa que buscou.
++  /// O dono da publicação (sonho ou doação) declara o lado dele da troca.
++  /// Travado por `_publisherUid` (calculado a partir do userId real do
++  /// item, não escolhido pela UI) — o outro participante só confirma.
+   Future<void> sendDeliveryRequest({
+     required String itemTitle,
+     required String itemType,
+-    required bool isDonor,
+   }) async {
+     if (_sending || _hasPendingRequest) return;
++    if (!iAmPublisher) {
++      debugPrint('[ChatController] sendDeliveryRequest bloqueado: '
++          '$myUid não é o publisherUid ($_publisherUid)');
++      return;
++    }
+     _sending = true;
+     _error   = null;
+     notifyListeners();
+ 
+-    final emoji = isDonor ? '📦' : '🛍️';
+-    final acao  = isDonor ? 'Entrega realizada' : 'Retirada realizada';
++    // donation → dono TEM o item → declara que entregou
++    // dream    → dono QUER o item → declara que recebeu
++    final isDonation = itemType == 'donation';
++    final emoji = isDonation ? '📦' : '🛍️';
++    final acao  = isDonation ? 'Entrega realizada' : 'Recebimento declarado';
+     final text  =
+         '$emoji $acao\n"$itemTitle"\nAguardando confirmação do outro participante.';
+ 
+@@ -279,10 +325,16 @@ class ChatController extends ChangeNotifier {
+ 
+     final itemTitle = requestMsg.deliveryItemTitle ?? 'Item';
+     final itemType  = requestMsg.deliveryItemType  ?? 'donation';
++    final isDonation = itemType == 'donation';
+ 
++    // donation → quem confirma é quem BUSCOU o item
++    // dream    → quem confirma é quem ENTREGOU o item
++    final confirmedText = isDonation
++        ? '✅ Retirada confirmada!\n"$itemTitle"\nDoação concluída com sucesso! 🎉'
++        : '✅ Entrega confirmada!\n"$itemTitle"\nSonho concluído com sucesso! 🎉';
+     final text = confirmed
+-        ? '✅ Recebimento confirmado!\n"$itemTitle"\nDoação concluída com sucesso! 🎉'
+-        : '❌ Recebimento não confirmado.\n"$itemTitle"\nEntre em contato para alinhar os detalhes.';
++        ? confirmedText
++        : '❌ Não confirmado.\n"$itemTitle"\nEntre em contato para alinhar os detalhes.';
+ 
+     try {
+       // Verificação server-side: já existe resposta para este request?
+@@ -317,15 +369,15 @@ class ChatController extends ChangeNotifier {
+         final meta = await _repo.fetchItemMeta(chat.itemId!, itemType);
+ 
+         // O doador é sempre derivado do dono do item no Firebase (campo userId),
+-        // independente de quem apertou qual botão na UI:
+-        //   • donation → userId = quem cadastrou a doação = quem TEM o item = doador
++        // independente de quem apertou qual botão na UI — mesmo cálculo já
++        // usado para decidir quem é o `_publisherUid` (que inicia a
++        // declaração):
++        //   • donation → userId = quem cadastrou a doação = quem TEM o item = doador = publisher
+         //   • dream    → userId = quem cadastrou o sonho  = quem QUER receber
+-        //                portanto o doador é o OUTRO participante do chat
+-        final itemOwnerUid = meta['userId'];
+-        final otherUid     = chat.user1 == myUid ? chat.user2 : chat.user1;
+-        final donorUid     = itemType == 'donation'
+-            ? (itemOwnerUid ?? otherUid)   // dono da doação = quem doou
+-            : otherUid;                    // dono do sonho NÃO é o doador
++        //                portanto o doador é o OUTRO participante do chat (otherParty)
++        final donorUid = itemType == 'donation'
++            ? (_publisherUid ?? meta['userId'] ?? myUid)
++            : (_otherPartyUid ?? (chat.user1 == myUid ? chat.user2 : chat.user1));
+ 
+         await _repo.completeDonation(
+           chat:          chat,
+diff --git a/lib/features/chat/presentation/pages/chat_page.dart b/lib/features/chat/presentation/pages/chat_page.dart
+index 702389c..41cdc9f 100644
+--- a/lib/features/chat/presentation/pages/chat_page.dart
++++ b/lib/features/chat/presentation/pages/chat_page.dart
+@@ -191,17 +191,17 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
+                   // 1 mensagem de texto de cada lado (evita confirm prematuro)
+                   if (!_ctrl.completed && !_ctrl.iSentPendingRequest && !_ctrl.isContextSwitch && _ctrl.canSendDelivery)
+                     _DeliveryBar(
+-                      chat:             chat,
+-                      isDream:          _isDream,
+-                      sending:          _ctrl.sending,
++                      chat:              chat,
++                      isDream:           _isDream,
++                      sending:           _ctrl.sending,
+                       hasPendingRequest: _ctrl.hasPendingRequest,
+-                      onDelivery: (isDonor) async {
++                      iAmPublisher:      _ctrl.iAmPublisher,
++                      onDelivery: () async {
+                         final title = widget.chat.itemTitle ?? 'Item';
+                         final type  = widget.chat.itemType  ?? 'dream';
+                         await _ctrl.sendDeliveryRequest(
+                           itemTitle: title,
+                           itemType:  type,
+-                          isDonor:   isDonor,
+                         );
+                         WidgetsBinding.instance
+                             .addPostFrameCallback((_) => _jumpToBottom());
+@@ -1536,13 +1536,18 @@ class _DeliveryBar extends StatelessWidget {
+   final bool isDream;
+   final bool sending;
+   final bool hasPendingRequest;
+-  final Future<void> Function(bool isDonor) onDelivery;
++  /// true quando EU sou o dono da publicação — só o dono pode iniciar a
++  /// declaração de entrega/recebimento. Calculado a partir do userId real
++  /// do item, nunca escolhido na UI.
++  final bool iAmPublisher;
++  final Future<void> Function() onDelivery;
+ 
+   const _DeliveryBar({
+     required this.chat,
+     required this.isDream,
+     required this.sending,
+     required this.hasPendingRequest,
++    required this.iAmPublisher,
+     required this.onDelivery,
+   });
+ 
+@@ -1582,40 +1587,66 @@ class _DeliveryBar extends StatelessWidget {
+       );
+     }
+ 
++    // Só o dono da publicação vê o botão de iniciar a declaração — o outro
++    // lado só vê um aviso, e vai poder CONFIRMAR quando o dono declarar.
++    if (!iAmPublisher) {
++      final waitingText = isDream
++          ? 'Aguardando o dono do sonho confirmar o recebimento'
++          : 'Aguardando quem doou confirmar a entrega';
++      return Container(
++        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
++        color: Colors.white,
++        child: Container(
++          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
++          decoration: BoxDecoration(
++            color:        Colors.grey.withValues(alpha: 0.08),
++            borderRadius: BorderRadius.circular(10),
++            border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
++          ),
++          child: Row(
++            mainAxisAlignment: MainAxisAlignment.center,
++            children: [
++              const Text('🤝', style: TextStyle(fontSize: 14)),
++              const SizedBox(width: 8),
++              Expanded(
++                child: Text(
++                  waitingText,
++                  maxLines: 2,
++                  textAlign: TextAlign.center,
++                  style: TextStyle(
++                    fontSize:   10,
++                    fontWeight: FontWeight.w600,
++                    color:      AppTheme.textSecondary,
++                  ),
++                ),
++              ),
++            ],
++          ),
++        ),
++      );
++    }
++
++    // dream    → dono do sonho declara que RECEBEU o item
++    // donation → dono da doação declara que ENTREGOU o item
++    final label = isDream ? '🛍️ Recebi o item' : '📦 Entreguei o item';
++
+     return Container(
+       padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+       color: Colors.white,
+-      child: Row(
+-        children: [
+-          Expanded(
+-            child: _DeliveryChip(
+-              label:   '📦 Entregou o item',
+-              color:   AppTheme.primaryBlueMid,
+-              sending: sending,
+-              onTap:   () => _confirm(context, isDonor: true),
+-            ),
+-          ),
+-          const SizedBox(width: 8),
+-          Expanded(
+-            child: _DeliveryChip(
+-              label:   '🛍️ Buscou o item',
+-              color:   AppTheme.kidsPurpleViolet,
+-              sending: sending,
+-              onTap:   () => _confirm(context, isDonor: false),
+-            ),
+-          ),
+-        ],
++      child: _DeliveryChip(
++        label:   label,
++        color:   isDream ? AppTheme.kidsPurpleViolet : AppTheme.primaryBlueMid,
++        sending: sending,
++        onTap:   () => _confirm(context),
+       ),
+     );
+   }
+ 
+-  void _confirm(BuildContext context, {required bool isDonor}) {
+-    final label = isDonor
+-        ? 'Você quer marcar que entregou o item?'
+-        : 'Você quer marcar que buscou o item?';
+-    final sub = isDonor
+-        ? 'O outro participante precisará confirmar o recebimento.'
+-        : 'O outro participante precisará confirmar a retirada.';
++  void _confirm(BuildContext context) {
++    final label = isDream
++        ? 'Você quer declarar que recebeu o item?'
++        : 'Você quer declarar que entregou o item?';
++    const sub = 'O outro participante precisará confirmar.';
+ 
+     showModalBottomSheet<void>(
+       context: context,
+@@ -1658,7 +1689,7 @@ class _DeliveryBar extends StatelessWidget {
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                   elevation: 0,
+                 ),
+-                onPressed: () { Navigator.pop(context); onDelivery(isDonor); },
++                onPressed: () { Navigator.pop(context); onDelivery(); },
+                 child: const Text('Confirmar e notificar',
+                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+               ),

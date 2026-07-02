@@ -33,6 +33,15 @@ class ChatController extends ChangeNotifier {
   bool _completed                       = false;
   bool _showCompletionEffect            = false;
 
+  // Quem tem direito de INICIAR a declaração de entrega/recebimento do
+  // item atual: sempre o dono da publicação (quem cadastrou o sonho ou a
+  // doação) — nunca escolhido pela UI.
+  // • donation → dono = quem TEM o item → inicia declarando "Entreguei"
+  // • dream    → dono = quem QUER o item → inicia declarando "Recebi"
+  // O outro participante só pode CONFIRMAR, nunca iniciar.
+  String? _publisherUid;
+  String? _otherPartyUid;
+
   // Controle de request pendente (impede o outro lado de mandar um também)
   bool _hasPendingRequest               = false;
   // true quando FUI EU quem enviou um request ainda sem resposta
@@ -40,6 +49,14 @@ class ChatController extends ChangeNotifier {
 
   // true quando fromDetail e o itemId atual difere do gravado no Firebase
   bool _isContextSwitch             = false;
+
+  // true quando o item (sonho/doação) já está fulfilled/donated e essa
+  // conclusão NÃO pertence a este chat (ou seja: um terceiro usuário está
+  // tentando abrir/usar um chat sobre um item que outra pessoa já concluiu).
+  // Fonte da verdade: o próprio nó do item (Dreams/{id} ou Donations/{id}),
+  // não o campo `completed` do chat — esse só é true para o PAR que de fato
+  // concluiu a troca; um chat novo com um terceiro nunca teria `completed`.
+  bool _itemUnavailable             = false;
 
   List<ChatMessage> get messages        => _messages;
   bool get chatExistsInDb               => _chatExistsInDb;
@@ -53,6 +70,14 @@ class ChatController extends ChangeNotifier {
   bool get hasPendingRequest            => _hasPendingRequest;
   bool get iSentPendingRequest          => _iSentPendingRequest;
   bool get isContextSwitch              => _isContextSwitch;
+  bool get itemUnavailable              => _itemUnavailable;
+
+  /// true quando EU sou o dono da publicação (sonho ou doação) — só eu
+  /// posso iniciar a declaração de entrega/recebimento. Enquanto o item
+  /// ainda não foi carregado, fica false (botão some até sabermos com
+  /// certeza quem tem esse direito).
+  bool get iAmPublisher                 => _publisherUid != null && _publisherUid == myUid;
+  String? get publisherUid              => _publisherUid;
 
   /// A barra de entrega só aparece quando há pelo menos 1 mensagem de texto
   /// de cada lado — evita confirmar entrega sem ter combinado com o outro.
@@ -76,6 +101,8 @@ class ChatController extends ChangeNotifier {
 
   Future<void> init() async {
     await _repo.goOnline(myUid);
+
+    await _loadReceiverInfo();
 
     _presenceSub = _repo.presenceStream(chat.otherUid).listen((p) {
       _otherOnline   = p['online'] == true;
@@ -138,6 +165,37 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  /// Descobre, a partir do `userId` gravado no item (Dream/Donation), quem
+  /// é o dono da publicação — ele sempre inicia a declaração de entrega/
+  /// recebimento; o outro participante só pode confirmar.
+  Future<void> _loadReceiverInfo() async {
+    if (chat.itemId == null) return;
+    final itemType = chat.itemType ?? 'dream';
+    try {
+      final meta = await _repo.fetchItemMeta(chat.itemId!, itemType);
+      final itemOwnerUid = meta['userId'];
+
+      // Disponibilidade real do item — checada sempre, mesmo se userId vier
+      // nulo, pois é o que decide se o usuário pode conversar sobre ele.
+      final status = meta['status'];
+      final isFulfilled = itemType == 'donation'
+          ? status == 'donated'
+          : status == 'fulfilled';
+      if (isFulfilled) {
+        _itemUnavailable = true;
+        notifyListeners();
+      }
+
+      if (itemOwnerUid == null) return;
+
+      _publisherUid  = itemOwnerUid;
+      _otherPartyUid = chat.user1 == itemOwnerUid ? chat.user2 : chat.user1;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[ChatController] _loadReceiverInfo error: $e');
+    }
+  }
+
   void _subscribeMessages() {
     _msgSub = _repo.messagesStream(chat.chatId).listen(
       (msgs) {
@@ -192,6 +250,10 @@ class ChatController extends ChangeNotifier {
   // ════════════════════════════════════════════════════════════════
 
   Future<void> sendMessage(String text) async {
+    // Trava também no controller (não só na UI): item já concluído por
+    // outra pessoa nunca pode receber nova mensagem, mesmo que a tela
+    // de alguma forma deixe o usuário chamar sendMessage.
+    if (_itemUnavailable && !_completed) return;
     if (text.trim().isEmpty || _sending) return;
     _sending = true;
     _error   = null;
@@ -225,19 +287,28 @@ class ChatController extends ChangeNotifier {
   // EVENTOS DE ENTREGA
   // ════════════════════════════════════════════════════════════════
 
-  /// Quem tem o item avisa que entregou / quem vai buscar avisa que buscou.
+  /// O dono da publicação (sonho ou doação) declara o lado dele da troca.
+  /// Travado por `_publisherUid` (calculado a partir do userId real do
+  /// item, não escolhido pela UI) — o outro participante só confirma.
   Future<void> sendDeliveryRequest({
     required String itemTitle,
     required String itemType,
-    required bool isDonor,
   }) async {
     if (_sending || _hasPendingRequest) return;
+    if (!iAmPublisher) {
+      debugPrint('[ChatController] sendDeliveryRequest bloqueado: '
+          '$myUid não é o publisherUid ($_publisherUid)');
+      return;
+    }
     _sending = true;
     _error   = null;
     notifyListeners();
 
-    final emoji = isDonor ? '📦' : '🛍️';
-    final acao  = isDonor ? 'Entrega realizada' : 'Retirada realizada';
+    // donation → dono TEM o item → declara que entregou
+    // dream    → dono QUER o item → declara que recebeu
+    final isDonation = itemType == 'donation';
+    final emoji = isDonation ? '📦' : '🛍️';
+    final acao  = isDonation ? 'Entrega realizada' : 'Recebimento declarado';
     final text  =
         '$emoji $acao\n"$itemTitle"\nAguardando confirmação do outro participante.';
 
@@ -279,10 +350,16 @@ class ChatController extends ChangeNotifier {
 
     final itemTitle = requestMsg.deliveryItemTitle ?? 'Item';
     final itemType  = requestMsg.deliveryItemType  ?? 'donation';
+    final isDonation = itemType == 'donation';
 
+    // donation → quem confirma é quem BUSCOU o item
+    // dream    → quem confirma é quem ENTREGOU o item
+    final confirmedText = isDonation
+        ? '✅ Retirada confirmada!\n"$itemTitle"\nDoação concluída com sucesso! 🎉'
+        : '✅ Entrega confirmada!\n"$itemTitle"\nSonho concluído com sucesso! 🎉';
     final text = confirmed
-        ? '✅ Recebimento confirmado!\n"$itemTitle"\nDoação concluída com sucesso! 🎉'
-        : '❌ Recebimento não confirmado.\n"$itemTitle"\nEntre em contato para alinhar os detalhes.';
+        ? confirmedText
+        : '❌ Não confirmado.\n"$itemTitle"\nEntre em contato para alinhar os detalhes.';
 
     try {
       // Verificação server-side: já existe resposta para este request?
@@ -317,15 +394,15 @@ class ChatController extends ChangeNotifier {
         final meta = await _repo.fetchItemMeta(chat.itemId!, itemType);
 
         // O doador é sempre derivado do dono do item no Firebase (campo userId),
-        // independente de quem apertou qual botão na UI:
-        //   • donation → userId = quem cadastrou a doação = quem TEM o item = doador
+        // independente de quem apertou qual botão na UI — mesmo cálculo já
+        // usado para decidir quem é o `_publisherUid` (que inicia a
+        // declaração):
+        //   • donation → userId = quem cadastrou a doação = quem TEM o item = doador = publisher
         //   • dream    → userId = quem cadastrou o sonho  = quem QUER receber
-        //                portanto o doador é o OUTRO participante do chat
-        final itemOwnerUid = meta['userId'];
-        final otherUid     = chat.user1 == myUid ? chat.user2 : chat.user1;
-        final donorUid     = itemType == 'donation'
-            ? (itemOwnerUid ?? otherUid)   // dono da doação = quem doou
-            : otherUid;                    // dono do sonho NÃO é o doador
+        //                portanto o doador é o OUTRO participante do chat (otherParty)
+        final donorUid = itemType == 'donation'
+            ? (_publisherUid ?? meta['userId'] ?? myUid)
+            : (_otherPartyUid ?? (chat.user1 == myUid ? chat.user2 : chat.user1));
 
         await _repo.completeDonation(
           chat:          chat,

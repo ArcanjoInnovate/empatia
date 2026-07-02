@@ -1419,10 +1419,64 @@ class _CtaButtonState extends State<_CtaButton>
     super.dispose();
   }
 
+  bool get _isFulfilled =>
+      widget.result.status == 'fulfilled' ||
+      (widget.result.dreamProgress ?? 0.0) >= 1.0;
+
+  void _showFulfilledDialog() {
+    final childName = widget.result.childName?.trim();
+    final hasName = childName != null && childName.isNotEmpty;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_T.r20),
+        ),
+        backgroundColor: _T.white,
+        title: const Text(
+          '🎉 Sonho Realizado!',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: _T.navy,
+          ),
+        ),
+        content: Text(
+          hasName
+              ? 'O sonho de $childName já foi realizado por alguém especial. '
+                'Que tal explorar outros sonhos que ainda precisam de você?'
+              : 'Este sonho já foi realizado por alguém especial. '
+                'Que tal explorar outros sonhos que ainda precisam de você?',
+          style: const TextStyle(
+            fontSize: 14,
+            color: _T.body,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Entendi',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: _T.pink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _down(TapDownDetails _) => _ctrl.reverse();
 
   void _up(TapUpDetails _) {
     _ctrl.forward();
+    if (_isFulfilled) {
+      _showFulfilledDialog();
+      return;
+    }
     HapticFeedback.lightImpact();
     _openChat();
   }

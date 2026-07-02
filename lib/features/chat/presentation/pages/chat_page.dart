@@ -96,6 +96,43 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         if (mounted) _showCompletionOverlay();
       });
     }
+    // Item já concluído por outra pessoa (não este chat) — bloqueia e avisa.
+    // Só dispara uma vez, e só quando este chat não foi quem concluiu.
+    if (_ctrl.itemUnavailable && !_ctrl.completed && !_unavailableDialogShown) {
+      _unavailableDialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showItemUnavailableDialog();
+      });
+    }
+  }
+
+  bool _unavailableDialogShown = false;
+
+  void _showItemUnavailableDialog() {
+    final isDream = _isDream;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(isDream ? 'Sonho já realizado' : 'Doação já concluída'),
+        content: Text(
+          isDream
+              ? 'Esse sonho já foi realizado por outra pessoa. Não é mais possível conversar sobre ele.'
+              : 'Essa doação já foi entregue para outra pessoa. Não é mais possível conversar sobre ela.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop(); // fecha o dialog
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop(); // sai do chat
+              }
+            },
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _jumpToBottom() {
@@ -191,17 +228,17 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   // 1 mensagem de texto de cada lado (evita confirm prematuro)
                   if (!_ctrl.completed && !_ctrl.iSentPendingRequest && !_ctrl.isContextSwitch && _ctrl.canSendDelivery)
                     _DeliveryBar(
-                      chat:             chat,
-                      isDream:          _isDream,
-                      sending:          _ctrl.sending,
+                      chat:              chat,
+                      isDream:           _isDream,
+                      sending:           _ctrl.sending,
                       hasPendingRequest: _ctrl.hasPendingRequest,
-                      onDelivery: (isDonor) async {
+                      iAmPublisher:      _ctrl.iAmPublisher,
+                      onDelivery: () async {
                         final title = widget.chat.itemTitle ?? 'Item';
                         final type  = widget.chat.itemType  ?? 'dream';
                         await _ctrl.sendDeliveryRequest(
                           itemTitle: title,
                           itemType:  type,
-                          isDonor:   isDonor,
                         );
                         WidgetsBinding.instance
                             .addPostFrameCallback((_) => _jumpToBottom());
@@ -213,6 +250,11 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                     focusNode:  _focusNode,
                     isDream:    _isDream,
                     sending:    _ctrl.sending,
+                    // Bloqueia digitar/enviar quando: este chat já concluiu
+                    // a troca (completed) OU o item foi concluído por outra
+                    // pessoa (itemUnavailable) — cobre tanto quem participou
+                    // da conclusão quanto um terceiro tentando entrar depois.
+                    disabled:   _ctrl.completed || _ctrl.itemUnavailable,
                     onSend:     _send,
                   ),
                 ],
@@ -1536,13 +1578,18 @@ class _DeliveryBar extends StatelessWidget {
   final bool isDream;
   final bool sending;
   final bool hasPendingRequest;
-  final Future<void> Function(bool isDonor) onDelivery;
+  /// true quando EU sou o dono da publicação — só o dono pode iniciar a
+  /// declaração de entrega/recebimento. Calculado a partir do userId real
+  /// do item, nunca escolhido na UI.
+  final bool iAmPublisher;
+  final Future<void> Function() onDelivery;
 
   const _DeliveryBar({
     required this.chat,
     required this.isDream,
     required this.sending,
     required this.hasPendingRequest,
+    required this.iAmPublisher,
     required this.onDelivery,
   });
 
@@ -1582,40 +1629,73 @@ class _DeliveryBar extends StatelessWidget {
       );
     }
 
+    // Só o dono da publicação vê o botão de iniciar a declaração — o outro
+    // lado só vê um aviso, e vai poder CONFIRMAR quando o dono declarar.
+    if (!iAmPublisher) {
+      final waitingText = isDream
+          ? 'Aguardando o dono do sonho confirmar o recebimento'
+          : 'Aguardando quem doou confirmar a entrega';
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        color: Colors.white,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color:        Colors.grey.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('🤝', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  waitingText,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize:   10,
+                    fontWeight: FontWeight.w600,
+                    color:      AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // dream    → dono do sonho declara que RECEBEU o item
+    // donation → dono da doação declara que ENTREGOU o item
+    // Dentro de _DeliveryBar.build(), troca o bloco final por:
+
+    final label = isDream ? 'Recebi o item' : 'Entreguei o item';
+    final icon  = isDream ? Icons.inventory_2_rounded : Icons.local_shipping_rounded;
+    final gradientColors = isDream
+        ? [AppTheme.kidsPurpleViolet, AppTheme.primaryBlue]
+        : [AppTheme.kidsPink, AppTheme.kidsPinkDeep];
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
       color: Colors.white,
-      child: Row(
-        children: [
-          Expanded(
-            child: _DeliveryChip(
-              label:   '📦 Entregou o item',
-              color:   AppTheme.primaryBlueMid,
-              sending: sending,
-              onTap:   () => _confirm(context, isDonor: true),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _DeliveryChip(
-              label:   '🛍️ Buscou o item',
-              color:   AppTheme.kidsPurpleViolet,
-              sending: sending,
-              onTap:   () => _confirm(context, isDonor: false),
-            ),
-          ),
-        ],
+      child: _DeliveryChip(
+        label:      label,
+        icon:       icon,
+        gradient:   gradientColors,
+        sending:    sending,
+        onTap:      () => _confirm(context),
       ),
     );
   }
 
-  void _confirm(BuildContext context, {required bool isDonor}) {
-    final label = isDonor
-        ? 'Você quer marcar que entregou o item?'
-        : 'Você quer marcar que buscou o item?';
-    final sub = isDonor
-        ? 'O outro participante precisará confirmar o recebimento.'
-        : 'O outro participante precisará confirmar a retirada.';
+  void _confirm(BuildContext context) {
+    final label = isDream
+        ? 'Você quer declarar que recebeu o item?'
+        : 'Você quer declarar que entregou o item?';
+    const sub = 'O outro participante precisará confirmar.';
 
     showModalBottomSheet<void>(
       context: context,
@@ -1658,7 +1738,7 @@ class _DeliveryBar extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
-                onPressed: () { Navigator.pop(context); onDelivery(isDonor); },
+                onPressed: () { Navigator.pop(context); onDelivery(); },
                 child: const Text('Confirmar e notificar',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ),
@@ -1676,12 +1756,21 @@ class _DeliveryBar extends StatelessWidget {
   }
 }
 
+// _DeliveryChip completo, substitui o antigo:
+
 class _DeliveryChip extends StatefulWidget {
   final String label;
-  final Color color;
+  final IconData icon;
+  final List<Color> gradient;
   final bool sending;
   final VoidCallback onTap;
-  const _DeliveryChip({required this.label, required this.color, required this.sending, required this.onTap});
+  const _DeliveryChip({
+    required this.label,
+    required this.icon,
+    required this.gradient,
+    required this.sending,
+    required this.onTap,
+  });
 
   @override
   State<_DeliveryChip> createState() => _DeliveryChipState();
@@ -1697,16 +1786,50 @@ class _DeliveryChipState extends State<_DeliveryChip> {
       onTapUp:     (_) { setState(() => _pressed = false); if (!widget.sending) widget.onTap(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..scale(_pressed ? 0.97 : 1.0),
+        transformAlignment: Alignment.center,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
-          color: _pressed ? widget.color.withValues(alpha: 0.12) : widget.color.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: widget.color.withValues(alpha: _pressed ? 0.40 : 0.20)),
+          gradient: LinearGradient(
+            colors: widget.gradient,
+            begin: Alignment.centerLeft,
+            end:   Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color:      widget.gradient.first.withValues(alpha: _pressed ? 0.18 : 0.32),
+              blurRadius: _pressed ? 8 : 16,
+              offset:     Offset(0, _pressed ? 2 : 6),
+            ),
+          ],
         ),
-        child: Text(widget.label,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: widget.color),
-            textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+        child: widget.sending
+            ? const Center(
+                child: SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(widget.icon, color: Colors.white, size: 19),
+                  const SizedBox(width: 9),
+                  Text(
+                    widget.label,
+                    style: const TextStyle(
+                      fontSize:   14.5,
+                      fontWeight: FontWeight.w800,
+                      color:      Colors.white,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
