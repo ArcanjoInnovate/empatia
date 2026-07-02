@@ -48,6 +48,11 @@ class ChatModel {
   /// true quando a doação foi concluída (delivery_confirmed)
   final bool completed;
 
+  /// true quando o sonho/doação já foi concluído por OUTRO chat — ou seja,
+  /// este chat específico não foi quem concluiu, mas o item não está mais
+  /// disponível. Usado para mostrar a marcação "indisponível" no inbox.
+  final bool itemUnavailable;
+
   // Info do outro usuário
   final String otherUid;
   final String? otherName;
@@ -71,6 +76,7 @@ class ChatModel {
     this.lastReadByMe,
     this.otherHasRead = false,
     this.completed = false,
+    this.itemUnavailable = false,
     this.otherName,
     this.otherAvatar,
     this.otherEmoji,
@@ -114,6 +120,7 @@ class ChatModel {
     String? itemType,
     String? itemPhotoUrl,
     bool completed = false,
+    bool itemUnavailable = false,
     bool otherHasRead = false,
   }) {
     final otherUid = map['other_uid']?.toString() ?? '';
@@ -136,6 +143,7 @@ class ChatModel {
       itemType: itemType,
       itemPhotoUrl: itemPhotoUrl,
       completed: completed,
+      itemUnavailable: itemUnavailable,
       otherHasRead: otherHasRead,
     );
   }

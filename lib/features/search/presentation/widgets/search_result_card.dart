@@ -189,11 +189,19 @@ class SearchResultCard extends StatelessWidget {
   /// item sem coordenadas.
   final double? distanceKm;
 
+  /// true quando este card já está sendo exibido dentro do
+  /// PublicProfilePage do próprio dono do item (ex: galeria de sonhos/
+  /// doações de alguém) — nesse caso, a tela de detalhe não deve
+  /// oferecer um link de volta pro mesmo perfil que o usuário já está
+  /// vendo.
+  final bool hideOwnerLink;
+
   const SearchResultCard({
     Key? key,
     required this.result,
     this.currentUserId,
     this.distanceKm,
+    this.hideOwnerLink = false,
   }) : super(key: key);
 
   @override
@@ -203,12 +211,14 @@ class SearchResultCard extends StatelessWidget {
         result: result,
         currentUserId: currentUserId,
         distanceKm: distanceKm,
+        hideOwnerLink: hideOwnerLink,
       );
     }
     return _DonationCard(
       result: result,
       currentUserId: currentUserId,
       distanceKm: distanceKm,
+      hideOwnerLink: hideOwnerLink,
     );
   }
 }
@@ -221,7 +231,13 @@ class _DreamCard extends StatelessWidget {
   final SearchResult result;
   final String? currentUserId;
   final double? distanceKm;
-  const _DreamCard({required this.result, this.currentUserId, this.distanceKm});
+  final bool hideOwnerLink;
+  const _DreamCard({
+    required this.result,
+    this.currentUserId,
+    this.distanceKm,
+    this.hideOwnerLink = false,
+  });
 
   static const _gradients = [
     [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -263,7 +279,11 @@ class _DreamCard extends StatelessWidget {
         context,
         currentUser: context.read<UserModel?>(),
         feature: 'ver os detalhes deste sonho',
-        route: DreamDetailPage.route(result: result, heroTag: heroTag),
+        route: DreamDetailPage.route(
+          result: result,
+          heroTag: heroTag,
+          hideOwnerLink: hideOwnerLink,
+        ),
       ),
       child: Hero(
         tag: heroTag,
@@ -509,7 +529,13 @@ class _DonationCard extends StatelessWidget {
   final SearchResult result;
   final String? currentUserId;
   final double? distanceKm;
-  const _DonationCard({required this.result, this.currentUserId, this.distanceKm});
+  final bool hideOwnerLink;
+  const _DonationCard({
+    required this.result,
+    this.currentUserId,
+    this.distanceKm,
+    this.hideOwnerLink = false,
+  });
 
   bool get _isUnavailable =>
       result.status == 'donated' ||
@@ -537,7 +563,11 @@ class _DonationCard extends StatelessWidget {
         context,
         currentUser: context.read<UserModel?>(),
         feature: 'ver os detalhes desta doação',
-        route: DonationDetailPage.route(result: result, heroTag: heroTag),
+        route: DonationDetailPage.route(
+          result: result,
+          heroTag: heroTag,
+          hideOwnerLink: hideOwnerLink,
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_C.r20),

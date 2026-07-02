@@ -16,7 +16,8 @@ class SettingsEmailVerificationPage extends StatefulWidget {
 }
 
 class _SettingsEmailVerificationPageState
-    extends State<SettingsEmailVerificationPage> with TickerProviderStateMixin {
+    extends State<SettingsEmailVerificationPage>
+    with TickerProviderStateMixin {
   // ─── CONTROLLER ──────────────────────────────────────────────────────────────
 
   final _controller = EmailVerificationController();
@@ -198,7 +199,9 @@ class _SettingsEmailVerificationPageState
             colors: [Color(0xFFFDF2FF), Color(0xFFFFF0F7), Color(0xFFF0F4FF)],
           ),
         ),
-        child: _alreadyVerified ? _buildSuccessOverlay() : _buildNormalContent(),
+        child: _alreadyVerified
+            ? _buildSuccessOverlay()
+            : _buildNormalContent(),
       ),
     );
   }
@@ -214,10 +217,13 @@ class _SettingsEmailVerificationPageState
             child: ScaleTransition(
               scale: _successScaleAnimation,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                // Menos padding lateral = card mais largo
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 48),
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.backgroundColor,
                     borderRadius: BorderRadius.circular(32),
@@ -233,28 +239,26 @@ class _SettingsEmailVerificationPageState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Ícone animado
+                      // Ícone animado (reduzido)
                       AnimatedBuilder(
                         animation: _floatAnimation,
                         builder: (_, __) => Transform.translate(
                           offset: Offset(0, _floatAnimation.value * 0.5),
                           child: Container(
-                            width: 120,
-                            height: 120,
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: const LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF4ADE80),
-                                  Color(0xFF22C55E),
-                                ],
+                                colors: [Color(0xFF4ADE80), Color(0xFF22C55E)],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF22C55E)
-                                      .withValues(alpha: 0.45),
+                                  color: const Color(
+                                    0xFF22C55E,
+                                  ).withValues(alpha: 0.45),
                                   blurRadius: 30,
                                   spreadRadius: 2,
                                 ),
@@ -263,12 +267,12 @@ class _SettingsEmailVerificationPageState
                             child: const Icon(
                               Icons.mark_email_read_rounded,
                               color: AppTheme.backgroundColor,
-                              size: 56,
+                              size: 38,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
                       // Título
                       const Text(
@@ -304,8 +308,9 @@ class _SettingsEmailVerificationPageState
                           child: LinearProgressIndicator(
                             value: value,
                             minHeight: 6,
-                            backgroundColor:
-                                const Color(0xFF4ADE80).withValues(alpha: 0.2),
+                            backgroundColor: const Color(
+                              0xFF4ADE80,
+                            ).withValues(alpha: 0.2),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Color(0xFF22C55E),
                             ),
@@ -333,12 +338,13 @@ class _SettingsEmailVerificationPageState
         ..._buildBubbles(),
         SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            // Menos padding lateral = mais espaço para o card/textos
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
-                const SizedBox(height: 48),
-                _buildAnimatedEnvelope(),
-                const SizedBox(height: 36),
+                const SizedBox(height: 40),
+                _buildAnimatedEnvelope(context),
+                const SizedBox(height: 32),
                 _buildCard(email),
                 const SizedBox(height: 24),
                 _buildBackButton(),
@@ -351,9 +357,17 @@ class _SettingsEmailVerificationPageState
     );
   }
 
-  // ─── ENVELOPE ANIMADO ────────────────────────────────────────────────────────
+  // ─── ENVELOPE ANIMADO (reduzido) ─────────────────────────────────────────────
 
-  Widget _buildAnimatedEnvelope() {
+  Widget _buildAnimatedEnvelope(BuildContext context) {
+    // Largura de referência (ex: iPhone padrão). Ajuste conforme seu design base.
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = (screenWidth / 390).clamp(0.85, 1.15);
+
+    final circleSize = 120 * scale;
+    final innerSize = 104 * scale;
+    final fontSize = 58 * scale;
+
     return AnimatedBuilder(
       animation: _floatAnimation,
       builder: (_, __) => Transform.translate(
@@ -363,8 +377,8 @@ class _SettingsEmailVerificationPageState
           builder: (_, __) => Transform.scale(
             scale: _pulseAnimation.value,
             child: Container(
-              width: 140,
-              height: 140,
+              width: circleSize,
+              height: circleSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
@@ -375,8 +389,8 @@ class _SettingsEmailVerificationPageState
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFFFF6B9D).withValues(alpha: 0.45),
-                    blurRadius: 40,
-                    spreadRadius: 4,
+                    blurRadius: 30,
+                    spreadRadius: 3,
                   ),
                 ],
               ),
@@ -388,19 +402,21 @@ class _SettingsEmailVerificationPageState
                     builder: (_, __) => Transform.rotate(
                       angle: _floatController.value * 2 * math.pi,
                       child: Container(
-                        width: 132,
-                        height: 132,
+                        width: innerSize,
+                        height: innerSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [
-                            AppTheme.backgroundColor.withValues(alpha: 0.15),
-                            Colors.transparent,
-                          ]),
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.backgroundColor.withValues(alpha: 0.15),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const Text('✉️', style: TextStyle(fontSize: 60)),
+                  Text('✉️', style: TextStyle(fontSize: fontSize)),
                 ],
               ),
             ),
@@ -442,7 +458,8 @@ class _SettingsEmailVerificationPageState
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+            // Padding horizontal reduzido: mais "eixo x" livre para o texto
+            padding: const EdgeInsets.fromLTRB(18, 28, 18, 28),
             child: Column(
               children: [
                 const Text(
@@ -467,12 +484,16 @@ class _SettingsEmailVerificationPageState
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 12),
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [
-                      const Color(0xFFFF6B9D).withValues(alpha: 0.08),
-                      const Color(0xFFA855F7).withValues(alpha: 0.08),
-                    ]),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF6B9D).withValues(alpha: 0.08),
+                        const Color(0xFFA855F7).withValues(alpha: 0.08),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: const Color(0xFFFF6B9D).withValues(alpha: 0.25),
@@ -547,7 +568,8 @@ class _SettingsEmailVerificationPageState
 
   Widget _buildStep(String number, String emoji, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      // Padding horizontal reduzido para dar mais largura ao texto do passo
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFDF4FF),
         borderRadius: BorderRadius.circular(14),
@@ -575,7 +597,7 @@ class _SettingsEmailVerificationPageState
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Text(emoji, style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 10),
           Expanded(
@@ -659,7 +681,7 @@ class _SettingsEmailVerificationPageState
 
     if (_resentOk) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: const Color(0xFF4ADE80).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
@@ -670,8 +692,11 @@ class _SettingsEmailVerificationPageState
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_rounded,
-                color: Color(0xFF22C55E), size: 20),
+            Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF22C55E),
+              size: 20,
+            ),
             SizedBox(width: 8),
             Text(
               'E-mail reenviado com sucesso! ✅',
@@ -689,7 +714,7 @@ class _SettingsEmailVerificationPageState
     return GestureDetector(
       onTap: (onCooldown || _isResending) ? null : _resendEmail,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           border: Border.all(
             color: onCooldown
@@ -720,18 +745,21 @@ class _SettingsEmailVerificationPageState
                 ),
               ),
             const SizedBox(width: 10),
-            Text(
-              _isResending
-                  ? 'Reenviando...'
-                  : onCooldown
-                      ? 'Reenviar em ${_resendCooldown}s'
-                      : 'Não recebeu? Reenviar e-mail',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: onCooldown
-                    ? Colors.grey.shade400
-                    : const Color(0xFFA855F7),
+            Flexible(
+              child: Text(
+                _isResending
+                    ? 'Reenviando...'
+                    : onCooldown
+                    ? 'Reenviar em ${_resendCooldown}s'
+                    : 'Não recebeu? Reenviar e-mail',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: onCooldown
+                      ? Colors.grey.shade400
+                      : const Color(0xFFA855F7),
+                ),
               ),
             ),
           ],
@@ -755,8 +783,11 @@ class _SettingsEmailVerificationPageState
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.arrow_back_ios_new_rounded,
-                color: Color(0xFF6B7280), size: 16),
+            Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF6B7280),
+              size: 16,
+            ),
             SizedBox(width: 8),
             Text(
               'Voltar para configurações',
@@ -805,10 +836,12 @@ class _SettingsEmailVerificationPageState
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [
-                const Color(0xFFFF6B9D).withOpacity(opacity),
-                const Color(0xFFA855F7).withOpacity(opacity * 0.3),
-              ]),
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFFFF6B9D).withOpacity(opacity),
+                  const Color(0xFFA855F7).withOpacity(opacity * 0.3),
+                ],
+              ),
             ),
           ),
         ),

@@ -5,14 +5,36 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Response } from 'express';
+import { getApps, initializeApp } from 'firebase-admin/app';
 
 // ══════════════════════════════════════════════════════════════
-// LAZY INIT — Firebase Admin
-// Chame dentro de cada handler, nunca no topo do módulo.
+// INIT — Firebase Admin
+//
+// Histórico do bug "The default Firebase app does not exist":
+//   1ª tentativa: initializeApp() lazy dentro de cada handler → falhava
+//      de forma consistente em cold start.
+//   2ª tentativa: hook onInit() do firebase-functions/v2 → deveria
+//      garantir execução antes de qualquer handler, mas na prática se
+//      mostrou intermitente (funcionava, depois voltava a falhar sem
+//      mudança de código — sinal de corrida, não de ausência de init).
+//
+// Correção final: initializeApp() direto no topo do módulo, síncrono,
+// executado uma única vez quando o módulo é carregado pela primeira vez
+// (cold start) — antes de QUALQUER handler existir, sem depender de
+// nenhum hook do framework rodar "na hora certa". É o padrão usado nos
+// exemplos oficiais do Firebase. `initializeApp()` sem argumentos não
+// faz I/O de rede (só lê variáveis de ambiente locais como
+// FIREBASE_CONFIG) — não deve travar a fase de "discovery" do
+// `firebase deploy` (esse timeout específico, quando ocorreu antes
+// neste projeto, foi por região inválida de trigger, não por isso).
 // ══════════════════════════════════════════════════════════════
 
+if (!getApps().length) initializeApp();
+
+/** Mantido por compatibilidade com o restante do código — agora é só
+ *  um no-op seguro, já que a inicialização real acontece acima, no
+ *  carregamento do módulo. */
 export function getAdminApp(): void {
-  const { getApps, initializeApp } = require('firebase-admin/app');
   if (!getApps().length) initializeApp();
 }
 

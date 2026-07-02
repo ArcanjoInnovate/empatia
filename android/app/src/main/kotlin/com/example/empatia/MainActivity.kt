@@ -23,20 +23,38 @@ class MainActivity : FlutterActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Canal "ação necessária" — pedidos de confirmação de entrega e
+            // afins, que bloqueiam a conclusão até o usuário responder.
+            // Mantém o nome/id original pra não perder as preferências que
+            // o usuário já configurou pra esse canal no Android.
+            val actionChannel = NotificationChannel(
                 "empatia_notifications",
-                "Notificações Empatia",
+                "Ações pendentes",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Canal principal de notificações do app Empatia"
+                description = "Pedidos de confirmação e ações que precisam de resposta"
                 enableLights(true)
                 lightColor = Color.BLUE
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 250, 250, 250)
             }
+            manager.createNotificationChannel(actionChannel)
 
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+            // Canal "informativo" — mensagens de chat, doação concluída,
+            // etc. Importância mais baixa: aparece na lista/badge, mas
+            // sem som/vibração forte a cada evento.
+            val infoChannel = NotificationChannel(
+                "empatia_info",
+                "Atualizações",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Mensagens e atualizações gerais do app"
+                enableLights(false)
+                enableVibration(false)
+            }
+            manager.createNotificationChannel(infoChannel)
         }
     }
 }

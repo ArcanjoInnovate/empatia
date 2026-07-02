@@ -56,6 +56,7 @@ class _ChatListTileState extends State<ChatListTile>
     final isLastMine  = chat.lastSenderId == widget.myUid;
     final isDream     = (chat.itemType ?? 'dream') != 'donation';
     final isCompleted = chat.completed;
+    final isUnavailable = chat.itemUnavailable;
 
     return GestureDetector(
       onTapDown:   (_) => _ctrl.reverse(),
@@ -73,23 +74,27 @@ class _ChatListTileState extends State<ChatListTile>
             borderRadius: BorderRadius.circular(20),
             border: isCompleted
                 ? Border.all(color: AppTheme.kidsGreenDark.withValues(alpha: 0.45), width: 1.5)
-                : hasUnread
-                    ? Border.all(
-                        color: isDream
-                            ? AppTheme.kidsPurpleViolet.withValues(alpha: 0.25)
-                            : AppTheme.kidsPink.withValues(alpha: 0.25),
-                        width: 1.5,
-                      )
-                    : Border.all(color: Colors.grey.withValues(alpha: 0.10)),
+                : isUnavailable
+                    ? Border.all(color: const Color(0xFF64748B).withValues(alpha: 0.30), width: 1.5)
+                    : hasUnread
+                        ? Border.all(
+                            color: isDream
+                                ? AppTheme.kidsPurpleViolet.withValues(alpha: 0.25)
+                                : AppTheme.kidsPink.withValues(alpha: 0.25),
+                            width: 1.5,
+                          )
+                        : Border.all(color: Colors.grey.withValues(alpha: 0.10)),
             boxShadow: [
               BoxShadow(
                 color: isCompleted
                     ? AppTheme.kidsGreenDark.withValues(alpha: 0.10)
-                    : hasUnread
-                        ? (isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink)
-                            .withValues(alpha: 0.08)
-                        : Colors.black.withValues(alpha: 0.04),
-                blurRadius: isCompleted ? 14 : hasUnread ? 12 : 8,
+                    : isUnavailable
+                        ? const Color(0xFF64748B).withValues(alpha: 0.08)
+                        : hasUnread
+                            ? (isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink)
+                                .withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.04),
+                blurRadius: isCompleted || isUnavailable ? 14 : hasUnread ? 12 : 8,
                 offset:     const Offset(0, 3),
               ),
             ],
@@ -114,6 +119,31 @@ class _ChatListTileState extends State<ChatListTile>
                           fontSize:   12,
                           fontWeight: FontWeight.w700,
                           color:      AppTheme.kidsGreenDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              // ── Banner "Sonho/doação indisponível" ──────────
+              // Item foi concluído em OUTRO chat — este aqui não teve a
+              // troca fechada por ele, mas o item já não existe mais.
+              else if (isUnavailable)
+                Container(
+                  width:   double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+                  color:   const Color(0xFF64748B).withValues(alpha: 0.10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.lock_rounded,
+                          size: 13, color: Color(0xFF64748B)),
+                      const SizedBox(width: 5),
+                      Text(
+                        isDream ? 'Sonho indisponível' : 'Doação indisponível',
+                        style: const TextStyle(
+                          fontSize:   12,
+                          fontWeight: FontWeight.w700,
+                          color:      Color(0xFF64748B),
                         ),
                       ),
                     ],

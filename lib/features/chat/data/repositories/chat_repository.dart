@@ -21,6 +21,34 @@ class ChatRepository {
   DatabaseReference _userChats(String uid, String cid) => _db.child('UserChats').child(uid).child(cid);
   DatabaseReference _usersPublic(String uid)           => _db.child('UsersPublic').child(uid);
   DatabaseReference _presence(String uid)              => _db.child('Presence').child(uid);
+  DatabaseReference _seenDialog(String uid, String key) =>
+      _db.child('Users').child(uid).child('seenChatDialogs').child(key);
+
+  // ════════════════════════════════════════════════════════════════
+  // DIÁLOGOS DE CONCLUSÃO/INDISPONIBILIDADE — mostrar apenas 1x
+  // ════════════════════════════════════════════════════════════════
+
+  /// Verifica se este usuário já viu um determinado diálogo
+  /// (identificado por [key], normalmente `{chatId}_{itemId}_{tipo}`).
+  Future<bool> hasSeenDialog(String uid, String key) async {
+    try {
+      final snap = await _seenDialog(uid, key).get();
+      return snap.value == true;
+    } catch (_) {
+      // Em caso de erro de leitura, assume que não viu — melhor mostrar
+      // de novo do que nunca mostrar.
+      return false;
+    }
+  }
+
+  /// Marca um diálogo como já visto por este usuário — não mostra de novo.
+  Future<void> markDialogSeen(String uid, String key) async {
+    try {
+      await _seenDialog(uid, key).set(true);
+    } catch (_) {
+      // Não crítico — pior caso, o diálogo aparece de novo na próxima vez.
+    }
+  }
 
   // ════════════════════════════════════════════════════════════════
   // PRESENCE — online / offline
@@ -43,6 +71,27 @@ class ChatRepository {
       'online':    false,
       'last_seen': ServerValue.timestamp,
     });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // CHAT ATIVO — usado pelo backend pra suprimir notificação/push
+  // quando o destinatário já está literalmente olhando aquele chat
+  // em tempo real (não faz sentido notificar algo que a pessoa já
+  // está vendo na tela).
+  // ════════════════════════════════════════════════════════════════
+
+  Future<void> setActiveChat(String uid, String chatId) async {
+    final ref = _presence(uid);
+    // Garante que, se o app cair/perder conexão com o chat aberto, o
+    // activeChat não fica "preso" indicando presença que não é real.
+    await ref.onDisconnect().update({'activeChat': null});
+    await ref.update({'activeChat': chatId});
+  }
+
+  Future<void> clearActiveChat(String uid) async {
+    try {
+      await _presence(uid).update({'activeChat': null});
+    } catch (_) {}
   }
 
   Stream<Map<String, dynamic>> presenceStream(String uid) {
@@ -463,6 +512,42 @@ class ChatRepository {
   /// Isso garante que uma nova conversa sobre um item diferente no mesmo
   /// canal entre dois usuários não herde o status da doação anterior.
   /// O histórico de mensagens permanece intacto.
+  /// Versão "one-shot" (não-stream) de [chatCompletedStream] — usada quando
+  /// precisamos saber, de forma síncrona/pontual, se ESTE chat foi quem
+  /// concluiu o item, sem esperar o listener em tempo real (que ainda não
+  /// teve chance de emitir nada logo na abertura do chat).
+  Future<bool> isCompletedByThisChat(String chatId, String? currentItemId) async {
+    try {
+      final snap = await _chats(chatId).get();
+      final data = snap.value;
+      if (data is! Map) return false;
+
+      final done = data['completed'] == true;
+      if (!done) return false;
+      if (currentItemId == null) return true;
+
+      final completedItemId = data['completed_item_id']?.toString();
+      final contextItemId   = completedItemId ?? data['item_id']?.toString();
+      return contextItemId == currentItemId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Stream ao vivo do campo `status` do item (Dream ou Donation).
+  ///
+  /// Necessário porque a checagem de "item já indisponível" precisa
+  /// reagir em tempo real: se o usuário já está com este chat aberto
+  /// quando o item é concluído em OUTRO chat (ex: duas abas, ou duas
+  /// conversas paralelas sobre o mesmo item), uma checagem feita apenas
+  /// uma vez na abertura da tela nunca pegaria essa mudança.
+  Stream<String?> itemStatusStream(String itemId, String itemType) {
+    final path = itemType == 'donation'
+        ? 'Donations/$itemId/status'
+        : 'Dreams/$itemId/status';
+    return _db.child(path).onValue.map((e) => e.snapshot.value as String?);
+  }
+
   Stream<bool> chatCompletedStream(String chatId, {String? currentItemId}) {
     return _chats(chatId).onValue.map((event) {
       final data = event.snapshot.value;
@@ -553,8 +638,9 @@ class ChatRepository {
         } catch (_) {}
 
         String? itemId, itemTitle, itemType, itemPhotoUrl;
-        bool completed     = false;
-        bool otherHasRead  = false;
+        bool completed       = false;
+        bool itemUnavailable = false;
+        bool otherHasRead    = false;
         try {
           final cSnap = await _chats(chatId).get();
           if (cSnap.exists && cSnap.value is Map) {
@@ -568,6 +654,20 @@ class ChatRepository {
             final completedItemId  = c['completed_item_id']?.toString();
             final effectiveItemId  = completedItemId ?? itemId;
             completed = done && (itemId == null || effectiveItemId == itemId);
+
+            // Marcação "indisponível" — item já foi fulfilled/donated, mas
+            // NÃO por este chat (senão seria `completed`, não `unavailable`).
+            if (!completed && itemId != null && itemType != null) {
+              final statusPath = itemType == 'donation'
+                  ? 'Donations/$itemId/status'
+                  : 'Dreams/$itemId/status';
+              final statusSnap = await _db.child(statusPath).get();
+              final status = statusSnap.value?.toString();
+              final isFulfilled = itemType == 'donation'
+                  ? status == 'donated'
+                  : status == 'fulfilled';
+              itemUnavailable = isFulfilled;
+            }
 
             // "Visto" do outro lado — comparação feita no nó compartilhado
             // Chats/{chatId}/last_read, que ambos participantes podem ler.
@@ -590,6 +690,7 @@ class ChatRepository {
           itemType:     itemType,
           itemPhotoUrl: itemPhotoUrl,
           completed:    completed,
+          itemUnavailable: itemUnavailable,
           otherHasRead: otherHasRead,
         ));
       }
@@ -794,8 +895,9 @@ class ChatRepository {
 
       // Contexto do chat principal
       String? itemId, itemTitle, itemType, itemPhotoUrl;
-      bool completed    = false;
-      bool otherHasRead = false;
+      bool completed       = false;
+      bool itemUnavailable = false;
+      bool otherHasRead    = false;
       try {
         final cSnap = await _chats(chatId).get();
         if (cSnap.exists && cSnap.value is Map) {
@@ -808,6 +910,18 @@ class ChatRepository {
           final completedItemId = c['completed_item_id']?.toString();
           final effectiveItemId = completedItemId ?? itemId;
           completed = done && (itemId == null || effectiveItemId == itemId);
+
+          if (!completed && itemId != null && itemType != null) {
+            final statusPath = itemType == 'donation'
+                ? 'Donations/$itemId/status'
+                : 'Dreams/$itemId/status';
+            final statusSnap = await _db.child(statusPath).get();
+            final status = statusSnap.value?.toString();
+            final isFulfilled = itemType == 'donation'
+                ? status == 'donated'
+                : status == 'fulfilled';
+            itemUnavailable = isFulfilled;
+          }
 
           final lastRead      = c['last_read'];
           final lastTimestamp = (preview['last_timestamp'] as num?)?.toInt() ?? 0;
@@ -828,6 +942,7 @@ class ChatRepository {
         itemType:     itemType,
         itemPhotoUrl: itemPhotoUrl,
         completed:    completed,
+        itemUnavailable: itemUnavailable,
         otherHasRead: otherHasRead,
       );
     } catch (_) {

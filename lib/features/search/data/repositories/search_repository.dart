@@ -127,8 +127,13 @@ class SearchResult {
       // category é lido para ambos os tipos — se o nó Dreams tiver o campo
       // 'category' no Firebase, ele será filtrado normalmente.
       category: map['category'] as String?,
-      ownerName: map['ownerName'] as String?,
-      ownerPhotoUrl: map['ownerPhotoUrl'] as String?,
+      // Donations grava ownerName/ownerPhotoUrl; Dreams grava userName/
+      // userProfileImage/userProfileEmoji — sem esse fallback, todo sonho
+      // vinha com ownerName nulo e o card "Quem está pedindo" nunca
+      // aparecia em lugar nenhum do app.
+      ownerName: (map['ownerName'] as String?) ?? (map['userName'] as String?),
+      ownerPhotoUrl: (map['ownerPhotoUrl'] as String?) ??
+          (map['userProfileImage'] as String?),
       ownerId: map['userId'] as String?,
     );
   }

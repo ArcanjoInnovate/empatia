@@ -324,7 +324,12 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
         left: 24, right: 24, top: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
+      // SingleChildScrollView é essencial aqui: sem ele, quando o teclado
+      // abre (ex: para digitar a idade), o conteúdo do sheet não tem como
+      // rolar — o campo de idade, que vem depois do de nome, fica
+      // literalmente atrás do teclado, sem jeito de alcançá-lo.
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -476,6 +481,7 @@ class _ChildFormSheetState extends State<_ChildFormSheet> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

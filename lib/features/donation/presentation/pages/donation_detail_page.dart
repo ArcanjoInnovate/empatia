@@ -120,24 +120,30 @@ class DonationDetailPage extends StatelessWidget {
   final SearchResult result;
   final String heroTag;
   final bool hideCta;
+  /// true quando o usuário chegou aqui a partir do PublicProfilePage do
+  /// próprio dono desta doação — evita link circular pro mesmo perfil.
+  final bool hideOwnerLink;
 
   const DonationDetailPage({
     Key? key,
     required this.result,
     required this.heroTag,
     this.hideCta = false,
+    this.hideOwnerLink = false,
   }) : super(key: key);
 
   static Route<void> route({
     required SearchResult result,
     required String heroTag,
     bool hideCta = false,
+    bool hideOwnerLink = false,
   }) =>
       MaterialPageRoute(
         builder: (_) => DonationDetailPage(
           result: result,
           heroTag: heroTag,
           hideCta: hideCta,
+          hideOwnerLink: hideOwnerLink,
         ),
       );
 
@@ -158,7 +164,9 @@ class DonationDetailPage extends StatelessWidget {
                 _HeroSliver(result: result, heroTag: heroTag),
 
                 // 2+ — Corpo narrativo
-                SliverToBoxAdapter(child: _PageBody(result: result)),
+                SliverToBoxAdapter(
+                  child: _PageBody(result: result, hideOwnerLink: hideOwnerLink),
+                ),
 
                 SliverToBoxAdapter(child: SizedBox(height: hideCta ? 32 : 128)),
               ],
@@ -427,7 +435,8 @@ class _BackButton extends StatelessWidget {
 
 class _PageBody extends StatelessWidget {
   final SearchResult result;
-  const _PageBody({required this.result});
+  final bool hideOwnerLink;
+  const _PageBody({required this.result, this.hideOwnerLink = false});
 
   @override
   Widget build(BuildContext context) {
@@ -467,7 +476,7 @@ class _PageBody extends StatelessWidget {
           const SizedBox(height: 28),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _DonorCard(result: result),
+            child: _DonorCard(result: result, disableLink: hideOwnerLink),
           ),
         ],
 
@@ -816,7 +825,10 @@ class _DonorSignature extends StatelessWidget {
 
 class _DonorCard extends StatefulWidget {
   final SearchResult result;
-  const _DonorCard({required this.result});
+  /// true quando o usuário chegou aqui a partir do PublicProfilePage do
+  /// próprio doador — evita link circular pro mesmo perfil.
+  final bool disableLink;
+  const _DonorCard({required this.result, this.disableLink = false});
 
   @override
   State<_DonorCard> createState() => _DonorCardState();
@@ -873,6 +885,7 @@ class _DonorCardState extends State<_DonorCard> {
   }
 
   void _openProfile() {
+    if (widget.disableLink) return;
     if (_ownerId.isEmpty) return;
     Navigator.push(
       context,
@@ -890,7 +903,7 @@ class _DonorCardState extends State<_DonorCard> {
   Widget build(BuildContext context) {
     final ownerName = _name?.trim() ?? '';
     final city = _city?.trim() ?? '';
-    final hasOwnerId = _ownerId.isNotEmpty;
+    final hasOwnerId = _ownerId.isNotEmpty && !widget.disableLink;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

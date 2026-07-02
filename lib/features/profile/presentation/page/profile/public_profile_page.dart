@@ -852,6 +852,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           key: ValueKey('gallery_item_${items[i].id}'),
           result: items[i],
           currentUserId: FirebaseAuth.instance.currentUser?.uid,
+          // Toda a galeria aqui pertence a widget.uid — o usuário já está
+          // dentro do perfil dele, então o card de detalhe não deve
+          // oferecer um link de volta pro mesmo perfil.
+          hideOwnerLink: true,
         ),
       ),
     );

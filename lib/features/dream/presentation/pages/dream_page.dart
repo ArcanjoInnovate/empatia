@@ -391,7 +391,9 @@ class _TabSonhosState extends State<_TabSonhos> {
         key: _streamKey,
         stream: ctrl.watchDreams(),
         builder: (context, snapshot) {
-          final dreams = snapshot.data ?? [];
+          final dreams = (snapshot.data ?? [])
+              .where((d) => d.status != 'fulfilled')
+              .toList();
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
@@ -452,7 +454,9 @@ class _TabDoacoesState extends State<_TabDoacoes> {
         key: _streamKey,
         stream: ctrl.watchMyDonations(),
         builder: (context, snapshot) {
-          final donations = snapshot.data ?? [];
+          final donations = (snapshot.data ?? [])
+              .where((d) => d.status != 'donated')
+              .toList();
           if (donations.isEmpty) {
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),

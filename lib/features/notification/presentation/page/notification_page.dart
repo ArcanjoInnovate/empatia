@@ -224,6 +224,7 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnread = !notification.read;
+    final isPending = notification.isActionRequired && isUnread;
     final accent   = _accentColor();
 
     return GestureDetector(
@@ -237,14 +238,19 @@ class _NotificationTile extends StatelessWidget {
               : AppTheme.surfaceWhite,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isUnread
-                ? accent.withValues(alpha: 0.30)
-                : Colors.transparent,
-            width: 1.5,
+            // Pendência de ação ganha borda mais grossa/sólida — precisa
+            // se destacar de verdade, não é só "mais uma notificação".
+            color: isPending
+                ? accent
+                : isUnread
+                    ? accent.withValues(alpha: 0.30)
+                    : Colors.transparent,
+            width: isPending ? 2 : 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: (isPending ? accent : Colors.black)
+                  .withValues(alpha: isPending ? 0.14 : 0.04),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -255,7 +261,9 @@ class _NotificationTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ícone
+              // Ícone — mostra a foto real do remetente quando disponível,
+              // senão cai no emoji do tipo de notificação (comportamento
+              // anterior, sempre funciona mesmo sem imagem).
               Container(
                 width: 44,
                 height: 44,
@@ -263,12 +271,24 @@ class _NotificationTile extends StatelessWidget {
                   color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    notification.type.emoji,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: notification.senderImageUrl != null
+                    ? Image.network(
+                        notification.senderImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            notification.type.emoji,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          notification.type.emoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      ),
               ),
 
               const SizedBox(width: 12),
@@ -292,6 +312,25 @@ class _NotificationTile extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (isUnread && notification.unreadCount > 1) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '+${notification.unreadCount}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
                         if (isUnread)
                           Container(
                             width: 8,

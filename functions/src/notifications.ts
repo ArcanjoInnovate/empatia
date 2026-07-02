@@ -1,21 +1,21 @@
 // functions/src/notifications.ts
 //
-// âš ï¸  Assim como em index.ts: NÃƒO chame initializeApp()/getDatabase() no
-//     topo do mÃ³dulo. O Firebase CLI carrega este arquivo para descobrir
-//     as funÃ§Ãµes exportadas; I/O no topo (initializeApp sÃ­ncrono tentando
+// ⚠️  Assim como em index.ts: NÃO chame initializeApp()/getDatabase() no
+//     topo do módulo. O Firebase CLI carrega este arquivo para descobrir
+//     as funções exportadas; I/O no topo (initializeApp síncrono tentando
 //     detectar credenciais/projeto) pode travar essa descoberta e gerar
 //     o erro "Cannot determine backend specification. Timeout after 10000".
-//     Por isso a inicializaÃ§Ã£o do Admin SDK Ã© sempre lazy, dentro de getDB().
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//     Por isso a inicialização do Admin SDK é sempre lazy, dentro de getDB().
+// ─────────────────────────────────────────────────────────────
 
-import { onValueCreated, onValueUpdated } from 'firebase-functions/v2/database';
+import { onValueCreated, onValueWritten } from 'firebase-functions/v2/database';
 import { onSchedule }                     from 'firebase-functions/v2/scheduler';
 import * as logger                         from 'firebase-functions/logger';
 import { getAdminApp }                     from './shared';
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 // HELPERS LOCAIS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 
 function getDB() {
   getAdminApp();
@@ -37,91 +37,241 @@ function weekKey(): string {
   return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
-async function getUserPublic(db: any, uid: string): Promise<{name: string; emoji: string}> {
+// Detecta se o valor de profileEmoji é um emoji de verdade (curto, sem
+// barra/extensão) ou um caminho de asset (ex: 'assets/parents/man/
+// avatar_11.webp') — o app migrou de emojis literais pra avatares em
+// imagem, mas manteve o nome antigo do campo. Um caminho de asset nunca
+// pode ser colado direto num texto de notificação (viraria a string
+// crua "assets/..." em vez de um avatar) — nesse caso cai no emoji
+// genérico.
+function isRealEmoji(value: string): boolean {
+  return !value.includes('/') && !value.includes('.') && value.length <= 8;
+}
+
+// Bucket do Firebase Storage do projeto — usado pra montar a URL
+// pública dos avatares padrão espelhados por scripts/upload-avatars.js.
+const STORAGE_BUCKET = 'empatia-34400.firebasestorage.app';
+
+// Converte um caminho de asset local (ex: 'assets/parents/man/
+// avatar_11.webp') na URL pública do espelho desse arquivo no Firebase
+// Storage (ver scripts/upload-avatars.js — sobe pra 'avatars/**',
+// preservando a mesma estrutura de 'assets/**'). Retorna null se o
+// valor não parecer um caminho de asset (ex: já é um emoji de verdade).
+function assetPathToStorageUrl(assetPath: string): string | null {
+  if (!assetPath.startsWith('assets/')) return null;
+  const remotePath = assetPath.replace(/^assets\//, 'avatars/');
+  const encoded = encodeURIComponent(remotePath);
+  return `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encoded}?alt=media`;
+}
+
+async function getUserPublic(
+  db: any,
+  uid: string,
+): Promise<{ name: string; emoji: string; imageUrl?: string }> {
   try {
     const snap = await db.ref(`UsersPublic/${uid}`).get();
-    if (!snap.exists()) return { name: 'AlguÃ©m', emoji: 'ðŸ‘¤' };
+    if (!snap.exists()) return { name: 'Alguém', emoji: '👤' };
     const data = snap.val();
+    const rawEmoji = data.profileEmoji as string | undefined;
+    const realPhoto = (data.profileImage as string | undefined)?.trim();
+
+    // Prioridade pra imagem da notificação: foto real do usuário
+    // primeiro; se não tiver, cai pro avatar padrão espelhado no
+    // Storage (só funciona depois de rodar scripts/upload-avatars.js).
+    const imageUrl =
+      (realPhoto && realPhoto.length > 0)
+        ? realPhoto
+        : (rawEmoji ? assetPathToStorageUrl(rawEmoji) ?? undefined : undefined);
+
     return {
-      name:  data.name         ?? 'AlguÃ©m',
-      emoji: data.profileEmoji ?? 'ðŸ‘¤',
+      name:  data.name ?? 'Alguém',
+      emoji: (rawEmoji && isRealEmoji(rawEmoji)) ? rawEmoji : '👤',
+      imageUrl,
     };
   } catch {
-    return { name: 'AlguÃ©m', emoji: 'ðŸ‘¤' };
+    return { name: 'Alguém', emoji: '👤' };
   }
 }
+
+// Tipos que representam uma AÇÃO pendente — bloqueiam algo até o usuário
+// responder. Todo o resto é só informativo (mensagem, celebração, etc).
+// Essa distinção decide: canal do Android, som do push, e ordenação na
+// tela de notificações (pendências primeiro).
+function priorityForType(type: string): 'action' | 'info' {
+  return type === 'delivery_request' ? 'action' : 'info';
+}
+
+// Cor de destaque por tipo de notificação — mesma paleta "kids" usada
+// no app (ver AppTheme.kidsPink/kidsPurple/kidsGreen/etc), pra manter
+// a identidade visual lúdica e colorida também no push nativo do
+// Android (aparece como cor de fundo do ícone pequeno na barra de
+// notificações e, em alguns launchers, como acento do card).
+function colorForType(type: string): string {
+  switch (type) {
+    case 'first_message':      return '#FF6B9D'; // kidsPink
+    case 'message':            return '#8B5CF6'; // kidsPurple
+    case 'donation_done':      return '#4ADE80'; // kidsGreen
+    case 'ranking_reset':      return '#FFD700'; // kidsYellowGold
+    case 'delivery_request':   return '#FB923C'; // kidsOrange
+    case 'delivery_confirmed': return '#4ADE80'; // kidsGreen
+    case 'delivery_denied':    return '#F87171'; // kidsRed
+    default:                   return '#8B5CF6'; // kidsPurple (fallback)
+  }
+}
+
+// Verifica se o destinatário já está, agora, literalmente olhando esse
+// chat na tela — nesse caso a notificação seria só ruído (ele já está
+// vendo em tempo real), então suprimimos DB + push por completo.
+async function isReceiverViewingChat(
+  db: any,
+  uid: string,
+  chatId: string,
+): Promise<boolean> {
+  if (!chatId) return false;
+  try {
+    const snap = await db.ref(`Presence/${uid}`).get();
+    if (!snap.exists()) return false;
+    const p = snap.val();
+    return p.online === true && p.activeChat === chatId;
+  } catch {
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// writeNotification — grava (ou atualiza) UMA entrada por chat, não uma
+// entrada por evento. Mandar 5 mensagens seguidas atualiza a mesma
+// célula (preview + contador), em vez de empilhar 5 notificações
+// soltas na lista.
+//
+// Exceção: se já existe uma notificação de AÇÃO pendente e não lida
+// pra esse chat (ex: delivery_request aguardando resposta), um evento
+// meramente informativo (ex: nova mensagem) NÃO derruba essa pendência
+// — só atualiza o corpo/timestamp, mantendo o tipo/prioridade de ação
+// visível até o usuário resolver.
+// ─────────────────────────────────────────────────────────────
 
 async function writeNotification(
   db: any,
   uid: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const ref = db.ref(`Notifications/${uid}`).push();
-  await ref.set({ ...payload, timestamp: Date.now(), read: false });
+  const chatId = String(payload['chatId'] ?? '');
+  const type   = String(payload['type']   ?? '');
+
+  if (await isReceiverViewingChat(db, uid, chatId)) {
+    logger.info('[writeNotification] suprimido — usuário já está no chat', { uid, chatId });
+    return;
+  }
+
+  const priority = priorityForType(type);
+  const groupKey = chatId || `event_${Date.now()}`;
+  const groupRef = db.ref(`Notifications/${uid}/${groupKey}`);
+
+  let unreadChatsForBadge = 0;
+
+  try {
+    const existingSnap = await groupRef.get();
+    const existing      = existingSnap.exists() ? existingSnap.val() : null;
+    const prevUnread     = existing?.unreadCount ?? 0;
+
+    // Não rebaixa uma pendência de ação ainda não lida pra um evento
+    // meramente informativo — só atualiza atividade recente.
+    const keepAction =
+      existing && existing.read === false &&
+      existing.priority === 'action' && priority === 'info';
+
+    await groupRef.set({
+      ...payload,
+      type:     keepAction ? existing.type     : type,
+      priority: keepAction ? 'action'           : priority,
+      title:    keepAction ? existing.title     : payload['title'],
+      timestamp: Date.now(),
+      read:      false,
+      unreadCount: prevUnread + 1,
+    });
+
+    // Badge do dispositivo = número de CONVERSAS com notificação não
+    // lida (agrupado), não número de eventos individuais.
+    const allSnap = await db.ref(`Notifications/${uid}`).get();
+    if (allSnap.exists()) {
+      const all = allSnap.val() as Record<string, any>;
+      unreadChatsForBadge = Object.values(all).filter(
+        (n: any) => n && n.read === false,
+      ).length;
+    }
+  } catch (err) {
+    logger.error('[writeNotification] falha ao gravar', { uid, chatId, err });
+    return;
+  }
 
   try {
     const tokenSnap = await db.ref(`Users/${uid}/fcmToken`).get();
     const token = tokenSnap.val() as string | null;
 
     logger.info('[writeNotification] token lookup', {
-      uid,
-      hasToken: !!token,
-      tokenPrefix: token ? token.slice(0, 20) : null,
+      uid, hasToken: !!token, priority,
     });
 
     if (!token) return;
 
-    // Conta notificaÃ§Ãµes nÃ£o lidas para o badge real no iOS
-    const notifsSnap = await db.ref(`Notifications/${uid}`).get();
-    let unreadCount = 0;
-    if (notifsSnap.exists()) {
-      const notifs = notifsSnap.val() as Record<string, any>;
-      unreadCount = Object.values(notifs).filter(
-        (n: any) => n && n.read === false
-      ).length;
-    }
+    const imageUrl = payload['senderImageUrl'] as string | undefined;
 
     const result = await getFCM().send({
       token,
       notification: {
         title: payload['title'] as string,
         body:  payload['body']  as string,
+        imageUrl,
       },
       android: {
         priority: 'high',
-        notification: { sound: 'default' },
+        notification: {
+          channelId: priority === 'action' ? 'empatia_notifications' : 'empatia_info',
+          sound:     priority === 'action' ? 'default' : undefined,
+          color:     colorForType(type),
+          imageUrl,
+        },
       },
       apns: {
-        payload: { aps: { sound: 'default', badge: unreadCount } },
+        payload: {
+          aps: {
+            sound: priority === 'action' ? 'default' : undefined,
+            badge: unreadChatsForBadge,
+            'mutable-content': imageUrl ? 1 : undefined,
+          },
+        },
+        fcmOptions: imageUrl ? { imageUrl } : undefined,
       },
       data: {
-        type:         String(payload['type']   ?? ''),
-        chatId:       String(payload['chatId'] ?? ''),
+        type,
+        chatId,
+        priority,
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
     });
 
-    logger.info('[writeNotification] FCM sent', { uid, result });
+    logger.info('[writeNotification] FCM sent', { uid, result, priority });
   } catch (fcmErr) {
     logger.error('[writeNotification] FCM push falhou', { uid, fcmErr });
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// HELPER â€” detecta primeiro contato no contexto atual do item
+// ══════════════════════════════════════════════════════════════
+// HELPER — detecta primeiro contato no contexto atual do item
 //
-// LÃ³gica:
-//   â€¢ O Flutter grava `item_changed_at` (timestamp) no nÃ³ Chats/{chatId}
+// Lógica:
+//   • O Flutter grava `item_changed_at` (timestamp) no nó Chats/{chatId}
 //     sempre que o item muda (updateContext) ou ao criar o chat (valor 0).
-//   â€¢ "Primeiro contato no contexto" = ainda nÃ£o existe nenhuma mensagem
+//   • "Primeiro contato no contexto" = ainda não existe nenhuma mensagem
 //     de texto com timestamp > item_changed_at enviada pelo RECEIVER
-//     (ou por qualquer um, dependendo da semÃ¢ntica desejada).
-//   â€¢ NÃ£o usa orderByChild('timestamp') â†’ sem necessidade de index extra.
-//     LÃª todas as mensagens e filtra em memÃ³ria. AceitÃ¡vel porque:
-//       â€“ A query sÃ³ roda uma vez por mensagem enviada.
-//       â€“ Chats com muitas mensagens jÃ¡ terÃ£o item_changed_at recente,
-//         entÃ£o msgCount serÃ¡ > 0 quase imediatamente.
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//     (ou por qualquer um, dependendo da semântica desejada).
+//   • Não usa orderByChild('timestamp') → sem necessidade de index extra.
+//     Lê todas as mensagens e filtra em memória. Aceitável porque:
+//       – A query só roda uma vez por mensagem enviada.
+//       – Chats com muitas mensagens já terão item_changed_at recente,
+//         então msgCount será > 0 quase imediatamente.
+// ══════════════════════════════════════════════════════════════
 async function isFirstMessageInContext(
   db: any,
   chatId: string,
@@ -142,20 +292,20 @@ async function isFirstMessageInContext(
       if (m.type && m.type !== 'text') continue;           // ignora eventos de entrega
       const ts = (m.timestamp as number) ?? 0;
       if (ts < itemChangedAt) continue;                    // pertence a item anterior
-      if (ts === currentMsgTimestamp) continue;            // Ã© a prÃ³pria mensagem atual
+      if (ts === currentMsgTimestamp) continue;            // é a própria mensagem atual
       countInContext++;
     }
 
-    return countInContext === 0; // nenhuma outra mensagem neste contexto â†’ Ã© a primeira
+    return countInContext === 0; // nenhuma outra mensagem neste contexto → é a primeira
   } catch (err) {
     logger.warn('[isFirstMessageInContext] erro ao contar mensagens', { chatId, err });
-    return false; // em caso de erro, trata como nÃ£o-primeira (seguro)
+    return false; // em caso de erro, trata como não-primeira (seguro)
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 // 1. MENSAGEM NOVA NO CHAT
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 
 export const onNewChatMessage = onValueCreated(
   {
@@ -185,7 +335,7 @@ export const onNewChatMessage = onValueCreated(
     const user2:          string = chatData.user2         ?? '';
     const itemTitle:      string = chatData.item_title    ?? '';
     const itemType:       string = chatData.item_type     ?? '';
-    // item_changed_at = 0 em chats novos (toda mensagem Ã© "primeiro contato")
+    // item_changed_at = 0 em chats novos (toda mensagem é "primeiro contato")
     // item_changed_at = ServerValue.timestamp quando o item mudou
     const itemChangedAt: number  = (chatData.item_changed_at as number) ?? 0;
 
@@ -194,7 +344,7 @@ export const onNewChatMessage = onValueCreated(
 
     const sender = await getUserPublic(db, senderId);
 
-    // â”€â”€ NotificaÃ§Ã£o para delivery_request â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Notificação para delivery_request ──────────────────────
     if (msgType === 'delivery_request') {
       const isDonor   = (msgData.is_donor as boolean | undefined) ?? true;
       const actionMsg = isDonor
@@ -203,59 +353,55 @@ export const onNewChatMessage = onValueCreated(
 
       await writeNotification(db, receiverId, {
         type:       'delivery_request',
-        title:      'ðŸ“¦ ConfirmaÃ§Ã£o de entrega pendente',
+        title:      '📦 Confirmação de entrega pendente',
         body:       actionMsg,
         chatId,
         senderUid:  senderId,
         senderName: sender.name,
+        senderImageUrl: sender.imageUrl,
         itemTitle,
         itemType,
       });
 
-      logger.info(`[onNewChatMessage] delivery_request notif â†’ ${receiverId}`, { chatId, senderId });
+      logger.info(`[onNewChatMessage] delivery_request notif → ${receiverId}`, { chatId, senderId });
       return;
     }
 
-    // â”€â”€ NotificaÃ§Ã£o para delivery_confirmed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── delivery_confirmed NÃO gera notificação própria aqui ──────────
+    // Antes gerava, mas era redundante com onDonationCompleted: aceitar
+    // dispara `Chats/{chatId}/completed = true`, e onDonationCompleted já
+    // notifica os DOIS lados (doador + receptor) de forma simétrica com
+    // o texto certo pra cada papel. Manter os dois gerava notificação
+    // duplicada pra quem pediu a confirmação (delivery_confirmed +
+    // donation_done) e só 1 pra quem confirmou — inconsistente.
     if (msgType === 'delivery_confirmed') {
-      await writeNotification(db, receiverId, {
-        type:       'delivery_confirmed',
-        title:      'âœ… Entrega confirmada!',
-        body:       `${sender.emoji} ${sender.name} confirmou o recebimento${itemTitle ? ` de "${itemTitle}"` : ''}.`,
-        chatId,
-        senderUid:  senderId,
-        senderName: sender.name,
-        itemTitle,
-        itemType,
-      });
-
-      logger.info(`[onNewChatMessage] delivery_confirmed notif â†’ ${receiverId}`, { chatId, senderId });
       return;
     }
 
-    // â”€â”€ NotificaÃ§Ã£o para delivery_denied â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Notificação para delivery_denied ────────────────────────
     if (msgType === 'delivery_denied') {
       await writeNotification(db, receiverId, {
         type:       'delivery_denied',
-        title:      'âŒ Entrega nÃ£o confirmada',
-        body:       `${sender.emoji} ${sender.name} indicou que o item ainda nÃ£o chegou.`,
+        title:      '❌ Entrega não confirmada',
+        body:       `${sender.emoji} ${sender.name} indicou que o item ainda não chegou.`,
         chatId,
         senderUid:  senderId,
         senderName: sender.name,
+        senderImageUrl: sender.imageUrl,
         itemTitle,
         itemType,
       });
 
-      logger.info(`[onNewChatMessage] delivery_denied notif â†’ ${receiverId}`, { chatId, senderId });
+      logger.info(`[onNewChatMessage] delivery_denied notif → ${receiverId}`, { chatId, senderId });
       return;
     }
 
-    // â”€â”€ NotificaÃ§Ã£o para mensagens de texto normais â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Notificação para mensagens de texto normais ─────────────
     if (msgType && msgType !== 'text') return; // ignora outros tipos
 
-    // â”€â”€ Detecta primeiro contato NO CONTEXTO DO ITEM ATUAL â”€â”€â”€
+    // ── Detecta primeiro contato NO CONTEXTO DO ITEM ATUAL ──────
     // Usa item_changed_at gravado pelo Flutter para ignorar mensagens
-    // de itens anteriores entre os mesmos dois usuÃ¡rios.
+    // de itens anteriores entre os mesmos dois usuários.
     const isFirstMessage = await isFirstMessageInContext(
       db, chatId, itemChangedAt, msgTs,
     );
@@ -264,16 +410,16 @@ export const onNewChatMessage = onValueCreated(
     let body:  string;
 
     if (isFirstMessage) {
-      const itemLabel = itemType === 'dream' ? 'sonho' : 'doaÃ§Ã£o';
+      const itemLabel = itemType === 'dream' ? 'sonho' : 'doação';
       const article   = itemType === 'dream' ? 'o' : 'a';
       title = itemTitle
         ? `${sender.emoji} ${sender.name} quer realizar ${article} "${itemTitle}"!`
-        : `${sender.emoji} ${sender.name} tem interesse em sua publicaÃ§Ã£o!`;
-      body = msgText.length > 80 ? `${msgText.slice(0, 80)}â€¦` : msgText;
+        : `${sender.emoji} ${sender.name} tem interesse em sua publicação!`;
+      body = msgText.length > 80 ? `${msgText.slice(0, 80)}…` : msgText;
       if (!body) body = `Toque para ver a mensagem sobre ${article} ${itemLabel}.`;
     } else {
       title = `${sender.emoji} ${sender.name}`;
-      body  = msgText.length > 100 ? `${msgText.slice(0, 100)}â€¦` : msgText;
+      body  = msgText.length > 100 ? `${msgText.slice(0, 100)}…` : msgText;
     }
 
     await writeNotification(db, receiverId, {
@@ -283,21 +429,31 @@ export const onNewChatMessage = onValueCreated(
       chatId,
       senderUid:  senderId,
       senderName: sender.name,
+      senderImageUrl: sender.imageUrl,
       itemTitle,
       itemType,
     });
 
-    logger.info(`[onNewChatMessage] notif â†’ ${receiverId}`, {
+    logger.info(`[onNewChatMessage] notif → ${receiverId}`, {
       chatId, isFirstMessage, itemChangedAt, senderId,
     });
   }
 );
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// 2. DOAÃ‡ÃƒO CONCLUÃDA
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
+// 2. DOAÇÃO CONCLUÍDA
+// ══════════════════════════════════════════════════════════════
 
-export const onDonationCompleted = onValueUpdated(
+// 🐛 FIX CRÍTICO: era onValueUpdated, que só dispara quando o valor JÁ
+// EXISTIA antes e mudou. O campo `Chats/{chatId}/completed` nunca é
+// inicializado na criação do chat (toChatNode() não o inclui) — a
+// primeira escrita feita por completeDonation() é uma CRIAÇÃO desse
+// campo, não uma atualização. Com onValueUpdated, essa function nunca
+// disparava para nenhuma doação/sonho — daí as notificações de
+// "doação concluída" nunca chegando pra ninguém. onValueWritten cobre
+// tanto criação quanto atualização; o guard abaixo (before/after)
+// continua garantindo que só processa a transição false/inexistente → true.
+export const onDonationCompleted = onValueWritten(
   {
     ref:      '/Chats/{chatId}/completed',
     instance: 'empatia-34400-default-rtdb',
@@ -340,47 +496,49 @@ export const onDonationCompleted = onValueUpdated(
           receiverUid = user1;
         }
       }
-    } catch { /* mantÃ©m default */ }
+    } catch { /* mantém default */ }
 
     const [donor, receiver] = await Promise.all([
       getUserPublic(db, donorUid),
       getUserPublic(db, receiverUid),
     ]);
 
-    const itemLabel = itemType === 'dream' ? 'sonho' : 'doaÃ§Ã£o';
+    const itemLabel = itemType === 'dream' ? 'sonho' : 'doação';
     const article   = itemType === 'dream' ? 'o'     : 'a';
 
     await writeNotification(db, donorUid, {
       type:       'donation_done',
-      title:      `ðŸŽ‰ ${article.toUpperCase().charAt(0) + article.slice(1)} "${itemTitle}" foi entregue${itemType === 'dream' ? ' â€” sonho realizado!' : '!'}`,
-      body:       `${receiver.emoji} ${receiver.name} confirmou o recebimento. Obrigado por fazer a diferenÃ§a! ðŸ’›`,
+      title:      `🎉 ${article.toUpperCase().charAt(0) + article.slice(1)} "${itemTitle}" foi entregue${itemType === 'dream' ? ' — sonho realizado!' : '!'}`,
+      body:       `${receiver.emoji} ${receiver.name} confirmou o recebimento. Obrigado por fazer a diferença! 💛`,
       chatId,
       senderUid:  receiverUid,
       senderName: receiver.name,
+      senderImageUrl: receiver.imageUrl,
       itemTitle,
       itemType,
     });
 
     await writeNotification(db, receiverUid, {
       type:       'donation_done',
-      title:      `ðŸŽ‰ ${itemTitle ? `"${itemTitle}" chegou!` : `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} concluÃ­d${itemType === 'dream' ? 'o' : 'a'}!`}`,
-      body:       `${donor.emoji} ${donor.name} realizou ${article} ${itemLabel}. Aproveite muito! ðŸŒŸ`,
+      title:      `🎉 ${itemTitle ? `"${itemTitle}" chegou!` : `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} concluíd${itemType === 'dream' ? 'o' : 'a'}!`}`,
+      body:       `${donor.emoji} ${donor.name} realizou ${article} ${itemLabel}. Aproveite muito! 🌟`,
       chatId,
       senderUid:  donorUid,
       senderName: donor.name,
+      senderImageUrl: donor.imageUrl,
       itemTitle,
       itemType,
     });
 
-    logger.info(`[onDonationCompleted] notifs â†’ ${donorUid}, ${receiverUid}`, {
+    logger.info(`[onDonationCompleted] notifs → ${donorUid}, ${receiverUid}`, {
       chatId, itemTitle,
     });
   }
 );
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 // 3. RESET SEMANAL DO RANKING
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════
 
 export const weeklyRankingReset = onSchedule(
   {
@@ -422,13 +580,13 @@ export const weeklyRankingReset = onSchedule(
     await db.ref(`Rankings/weekly/${currentKey}`).set(null);
 
     const podium = topNames.length > 0
-      ? topNames.map((n, i) => `${['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰'][i]} ${n}`).join(' Â· ')
+      ? topNames.map((n, i) => `${['🥇','🥈','🥉'][i]} ${n}`).join(' · ')
       : 'Sem doadores esta semana';
 
     await db.ref('Notifications/broadcast').set({
       type:      'ranking_reset',
-      title:     'ðŸ† Ranking semanal reiniciado!',
-      body:      `A semana terminou! ${podium}. Seja o prÃ³ximo GuardiÃ£o desta semana!`,
+      title:     '🏆 Ranking semanal reiniciado!',
+      body:      `A semana terminou! ${podium}. Seja o próximo Guardião desta semana!`,
       timestamp: Date.now(),
       read:      false,
       weekKey:   prevWeekKey,
@@ -438,18 +596,18 @@ export const weeklyRankingReset = onSchedule(
   }
 );
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// 4. LIMPEZA SEMANAL DE NOTIFICAÃ‡Ã•ES
+// ══════════════════════════════════════════════════════════════
+// 4. LIMPEZA SEMANAL DE NOTIFICAÇÕES
 //
-// Roda toda segunda-feira Ã s 03:30 (BRT), 20 min apÃ³s o reset
-// do ranking para nÃ£o disputar I/O com ele.
+// Roda toda segunda-feira às 03:30 (BRT), 20 min após o reset
+// do ranking para não disputar I/O com ele.
 //
-// Regras de retenÃ§Ã£o:
-//   â€¢ NotificaÃ§Ãµes lidas   â†’ removidas apÃ³s 7 dias
-//   â€¢ NotificaÃ§Ãµes nÃ£o lidas â†’ removidas apÃ³s 30 dias (failsafe)
-//   â€¢ Broadcast            â†’ nÃ£o mexe (jÃ¡ tem TTL de 7 dias no
-//                            broadcastStream do Flutter)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Regras de retenção:
+//   • Notificações lidas    → removidas após 7 dias
+//   • Notificações não lidas → removidas após 30 dias (failsafe)
+//   • Broadcast             → não mexe (já tem TTL de 7 dias no
+//                             broadcastStream do Flutter)
+// ══════════════════════════════════════════════════════════════
 
 export const weeklyNotificationCleanup = onSchedule(
   {
@@ -469,10 +627,10 @@ export const weeklyNotificationCleanup = onSchedule(
     logger.info('[weeklyNotificationCleanup] iniciando limpeza');
 
     try {
-      // Lista todos os UIDs com notificaÃ§Ãµes (exclui o nÃ³ broadcast)
+      // Lista todos os UIDs com notificações (exclui o nó broadcast)
       const rootSnap = await db.ref('Notifications').get();
       if (!rootSnap.exists()) {
-        logger.info('[weeklyNotificationCleanup] nenhuma notificaÃ§Ã£o encontrada');
+        logger.info('[weeklyNotificationCleanup] nenhuma notificação encontrada');
         return;
       }
 
@@ -503,7 +661,7 @@ export const weeklyNotificationCleanup = onSchedule(
       }
 
       if (Object.keys(batchUpdates).length > 0) {
-        // Firebase limita multi-path updates a ~1000 nÃ³s por chamada
+        // Firebase limita multi-path updates a ~1000 nós por chamada
         const entries = Object.entries(batchUpdates);
         const CHUNK   = 500;
         for (let i = 0; i < entries.length; i += CHUNK) {
@@ -512,7 +670,7 @@ export const weeklyNotificationCleanup = onSchedule(
         }
       }
 
-      logger.info('[weeklyNotificationCleanup] concluÃ­do', {
+      logger.info('[weeklyNotificationCleanup] concluído', {
         usersProcessed: uids.length,
         totalRemoved,
       });

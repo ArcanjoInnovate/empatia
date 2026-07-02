@@ -58,6 +58,11 @@ class ChatController extends ChangeNotifier {
   // concluiu a troca; um chat novo com um terceiro nunca teria `completed`.
   bool _itemUnavailable             = false;
 
+  // true apenas na primeira vez que este usuário vê cada diálogo — depois
+  // de mostrado, fica persistido no RTDB e nunca mais volta a true para
+  // esse par (chatId + itemId), mesmo reabrindo o chat depois.
+  bool _showUnavailableDialog       = false;
+
   List<ChatMessage> get messages        => _messages;
   bool get chatExistsInDb               => _chatExistsInDb;
   bool get loading                      => _loading;
@@ -71,6 +76,11 @@ class ChatController extends ChangeNotifier {
   bool get iSentPendingRequest          => _iSentPendingRequest;
   bool get isContextSwitch              => _isContextSwitch;
   bool get itemUnavailable              => _itemUnavailable;
+  bool get showUnavailableDialog        => _showUnavailableDialog;
+
+  /// Chave única por chat + item, usada para persistir "já visto" no RTDB.
+  String get _completionDialogKey  => '${chat.chatId}_${chat.itemId ?? "none"}_completed';
+  String get _unavailableDialogKey => '${chat.chatId}_${chat.itemId ?? "none"}_unavailable';
 
   /// true quando EU sou o dono da publicação (sonho ou doação) — só eu
   /// posso iniciar a declaração de entrega/recebimento. Enquanto o item
@@ -98,11 +108,22 @@ class ChatController extends ChangeNotifier {
   StreamSubscription<List<ChatMessage>>?    _msgSub;
   StreamSubscription<Map<String, dynamic>>? _presenceSub;
   StreamSubscription<bool>?                 _completedSub;
+  StreamSubscription<String?>?              _itemStatusSub;
 
   Future<void> init() async {
     await _repo.goOnline(myUid);
+    await _repo.setActiveChat(myUid, chat.chatId);
 
     await _loadReceiverInfo();
+
+    // Escuta o status do item AO VIVO — cobre o caso de este chat já
+    // estar aberto (ex: outra aba) quando o item é concluído em OUTRO
+    // chat. Sem isso, só pegaríamos essa mudança reabrindo a tela.
+    if (chat.itemId != null) {
+      _itemStatusSub = _repo
+          .itemStatusStream(chat.itemId!, chat.itemType ?? 'dream')
+          .listen((status) => _handleItemStatus(status));
+    }
 
     _presenceSub = _repo.presenceStream(chat.otherUid).listen((p) {
       _otherOnline   = p['online'] == true;
@@ -115,10 +136,16 @@ class ChatController extends ChangeNotifier {
     // false — o novo sonho/doação começa com estado limpo.
     _completedSub = _repo
         .chatCompletedStream(chat.chatId, currentItemId: chat.itemId)
-        .listen((done) {
+        .listen((done) async {
       if (done && !_completed) {
-        _completed            = true;
-        _showCompletionEffect = true;
+        _completed = true;
+        // Só mostra o efeito de celebração se este usuário ainda não viu
+        // esse diálogo para este chat+item — persistido no RTDB.
+        final seen = await _repo.hasSeenDialog(myUid, _completionDialogKey);
+        if (!seen) {
+          _showCompletionEffect = true;
+          await _repo.markDialogSeen(myUid, _completionDialogKey);
+        }
         notifyListeners();
       } else if (done) {
         _completed = true;
@@ -177,14 +204,7 @@ class ChatController extends ChangeNotifier {
 
       // Disponibilidade real do item — checada sempre, mesmo se userId vier
       // nulo, pois é o que decide se o usuário pode conversar sobre ele.
-      final status = meta['status'];
-      final isFulfilled = itemType == 'donation'
-          ? status == 'donated'
-          : status == 'fulfilled';
-      if (isFulfilled) {
-        _itemUnavailable = true;
-        notifyListeners();
-      }
+      await _handleItemStatus(meta['status'] as String?);
 
       if (itemOwnerUid == null) return;
 
@@ -194,6 +214,38 @@ class ChatController extends ChangeNotifier {
     } catch (e) {
       debugPrint('[ChatController] _loadReceiverInfo error: $e');
     }
+  }
+
+  /// Processa uma leitura (pontual ou ao vivo) do `status` do item e decide
+  /// se o chat deve ser marcado como indisponível e/ou mostrar o diálogo
+  /// de terceiro. Compartilhado entre a checagem inicial (_loadReceiverInfo)
+  /// e o listener ao vivo (_itemStatusSub) — mesma lógica, duas origens.
+  Future<void> _handleItemStatus(String? status) async {
+    final itemType = chat.itemType ?? 'dream';
+    final isFulfilled = itemType == 'donation'
+        ? status == 'donated'
+        : status == 'fulfilled';
+
+    if (!isFulfilled) return;
+    if (_itemUnavailable) return; // já processado, evita reprocessar à toa
+
+    _itemUnavailable = true;
+
+    // CRÍTICO: item fulfilled/donated não significa necessariamente que
+    // este chat é de um TERCEIRO — pode ser exatamente o par que concluiu
+    // a troca (participante legítimo). Sem essa checagem, até quem
+    // participou da conclusão veria o diálogo de "terceiro" por engano.
+    final belongsToThisChat =
+        await _repo.isCompletedByThisChat(chat.chatId, chat.itemId);
+
+    if (!belongsToThisChat) {
+      final seen = await _repo.hasSeenDialog(myUid, _unavailableDialogKey);
+      if (!seen) {
+        _showUnavailableDialog = true;
+        await _repo.markDialogSeen(myUid, _unavailableDialogKey);
+      }
+    }
+    notifyListeners();
   }
 
   void _subscribeMessages() {
@@ -294,6 +346,10 @@ class ChatController extends ChangeNotifier {
     required String itemTitle,
     required String itemType,
   }) async {
+    // Mesma trava do sendMessage: item já indisponível (concluído em
+    // outro chat) nunca pode iniciar uma nova declaração de entrega,
+    // mesmo que a UI de alguma forma deixe chamar isso.
+    if (_itemUnavailable && !_completed) return;
     if (_sending || _hasPendingRequest) return;
     if (!iAmPublisher) {
       debugPrint('[ChatController] sendDeliveryRequest bloqueado: '
@@ -341,6 +397,9 @@ class ChatController extends ChangeNotifier {
     required ChatMessage requestMsg,
     required bool confirmed,
   }) async {
+    // Mesma trava — não deixa confirmar/negar entrega de um item que já
+    // foi concluído em outro chat.
+    if (_itemUnavailable && !_completed) return;
     // Dupla trava: _sending E _respondingDelivery evitam race condition
     if (_sending || _respondingDelivery) return;
     _sending            = true;
@@ -414,6 +473,15 @@ class ChatController extends ChangeNotifier {
           itemPhotoUrl:  meta['photoUrl'],
           itemCategory:  meta['category'],
         );
+
+        // Fecha o chat IMEDIATAMENTE no dispositivo de quem confirmou —
+        // não espera o round-trip do chatCompletedStream (RTDB) voltar.
+        // Isso garante que quem confirmou nunca fique com o campo de
+        // mensagem liberado por causa de latência/race do listener em
+        // tempo real. O stream, quando chegar, só vai confirmar o que já
+        // setamos aqui (idempotente).
+        _completed = true;
+        notifyListeners();
       }
     } catch (e) {
       _error = 'Falha ao responder entrega.';
@@ -428,9 +496,11 @@ class ChatController extends ChangeNotifier {
   @override
   void dispose() {
     _repo.goOffline(myUid);
+    _repo.clearActiveChat(myUid);
     _msgSub?.cancel();
     _presenceSub?.cancel();
     _completedSub?.cancel();
+    _itemStatusSub?.cancel();
     super.dispose();
   }
 }

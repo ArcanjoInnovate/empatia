@@ -44,3 +44,9 @@ export {
   weeklyRankingReset,
   weeklyNotificationCleanup,
 } from './notifications';
+
+// ── Reconciliação de verificação ───────────────────────────────
+export {
+  reconcileIsVerifiedOnEmail,
+  reconcileIsVerifiedOnProfile,
+} from './verification_sync';

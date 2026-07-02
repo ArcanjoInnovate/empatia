@@ -125,7 +125,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               IconButton(
@@ -143,14 +143,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   padding: const EdgeInsets.all(10),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 5),
               const Text(
                 'CONFIGURAÇÕES DA CONTA',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 17,
                   fontWeight: FontWeight.w900,
                   color: AppTheme.backgroundColor,
-                  letterSpacing: 1.5,
                 ),
               ),
             ],

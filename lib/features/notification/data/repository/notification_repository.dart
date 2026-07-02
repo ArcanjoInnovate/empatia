@@ -63,7 +63,10 @@ class NotificationRepository {
 
   Future<void> markAsRead(String uid, String notifId) async {
     try {
-      await _userNotifs(uid).child(notifId).update({'read': true});
+      await _userNotifs(uid).child(notifId).update({
+        'read': true,
+        'unreadCount': 0,
+      });
     } catch (e) {
       debugPrint('[NotificationRepository] markAsRead error: $e');
     }
@@ -77,6 +80,7 @@ class NotificationRepository {
       (snap.value as Map).forEach((key, val) {
         if (val is Map && val['read'] != true) {
           updates['Notifications/$uid/$key/read'] = true;
+          updates['Notifications/$uid/$key/unreadCount'] = 0;
         }
       });
       if (updates.isNotEmpty) await _db.update(updates);
@@ -101,8 +105,16 @@ class NotificationRepository {
         }
       }
     });
-    // Mais recentes primeiro
-    list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    // Pendências de ação não lidas primeiro (precisam de resposta),
+    // depois o resto por ordem cronológica normal — mesmo padrão de
+    // apps de mensageria/produtividade profissionais: o que bloqueia
+    // algo não deve ficar enterrado embaixo de itens só informativos.
+    list.sort((a, b) {
+      final aPending = a.isActionRequired && !a.read;
+      final bPending = b.isActionRequired && !b.read;
+      if (aPending != bPending) return aPending ? -1 : 1;
+      return b.timestamp.compareTo(a.timestamp);
+    });
     return list;
   }
 }

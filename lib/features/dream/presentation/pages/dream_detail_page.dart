@@ -133,21 +133,31 @@ class DreamDetailPage extends StatelessWidget {
   final SearchResult result;
   final String heroTag;
   final bool hideCta;
+  /// true quando o usuário chegou aqui a partir do PublicProfilePage do
+  /// próprio dono deste sonho — nesse caso o card "Quem está pedindo"
+  /// não deve linkar de volta pro mesmo perfil que ele já está vendo.
+  final bool hideOwnerLink;
 
   const DreamDetailPage({
     Key? key,
     required this.result,
     required this.heroTag,
     this.hideCta = false,
+    this.hideOwnerLink = false,
   }) : super(key: key);
 
   static Route<void> route({
     required SearchResult result,
     required String heroTag,
     bool hideCta = false,
+    bool hideOwnerLink = false,
   }) => MaterialPageRoute(
-    builder: (_) =>
-        DreamDetailPage(result: result, heroTag: heroTag, hideCta: hideCta),
+    builder: (_) => DreamDetailPage(
+      result: result,
+      heroTag: heroTag,
+      hideCta: hideCta,
+      hideOwnerLink: hideOwnerLink,
+    ),
   );
 
   @override
@@ -167,7 +177,9 @@ class DreamDetailPage extends StatelessWidget {
                 _HeroSliver(result: result, heroTag: heroTag),
 
                 // 2+ — Corpo da página em sequência narrativa
-                SliverToBoxAdapter(child: _PageBody(result: result)),
+                SliverToBoxAdapter(
+                  child: _PageBody(result: result, hideOwnerLink: hideOwnerLink),
+                ),
 
                 // Espaço para CTA não cobrir conteúdo
                 SliverToBoxAdapter(child: SizedBox(height: hideCta ? 32 : 128)),
@@ -461,7 +473,8 @@ class _HeroPlaceholder extends StatelessWidget {
 
 class _PageBody extends StatelessWidget {
   final SearchResult result;
-  const _PageBody({required this.result});
+  final bool hideOwnerLink;
+  const _PageBody({required this.result, this.hideOwnerLink = false});
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +523,7 @@ class _PageBody extends StatelessWidget {
         const SizedBox(height: 28),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _ParentCard(result: result),
+          child: _ParentCard(result: result, disableLink: hideOwnerLink),
         ),
 
         // ④ Progresso inspirador
@@ -903,9 +916,14 @@ class _FamilySignature extends StatelessWidget {
 
 class _ParentCard extends StatelessWidget {
   final SearchResult result;
-  const _ParentCard({required this.result});
+  /// true quando o usuário já está dentro do PublicProfilePage deste
+  /// mesmo dono (ex: entrou no sonho a partir do perfil dele) — nesse
+  /// caso não faz sentido oferecer um link que leva pro mesmo lugar.
+  final bool disableLink;
+  const _ParentCard({required this.result, this.disableLink = false});
 
   void _openProfile(BuildContext context) {
+    if (disableLink) return;
     final ownerId = result.ownerId ?? '';
     if (ownerId.isEmpty) return;
     Navigator.push(
@@ -933,7 +951,7 @@ class _ParentCard extends StatelessWidget {
         const _SectionHeader(emoji: '🤝', label: 'Quem está pedindo'),
         const SizedBox(height: 14),
         GestureDetector(
-          onTap: () => _openProfile(context),
+          onTap: disableLink ? null : () => _openProfile(context),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1005,7 +1023,8 @@ class _ParentCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: _T.subtle),
+                if (!disableLink)
+                  const Icon(Icons.chevron_right_rounded, color: _T.subtle),
               ],
             ),
           ),

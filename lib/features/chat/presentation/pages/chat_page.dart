@@ -90,15 +90,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       _prevMsgCount = count;
       WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottom());
     }
-    // Mostra efeito de conclusão quando chegar
-    if (_ctrl.showCompletionEffect) {
+    // Mostra efeito de conclusão quando chegar — só 1x por sessão, mesma
+    // lógica do diálogo de terceiro. Sem essa trava local, cada
+    // notifyListeners() disparado enquanto showCompletionEffect ainda não
+    // foi dispensado (dismissCompletionEffect só roda dentro do próprio
+    // dialog, no próximo frame) agendava OUTRO popup — daí os múltiplos
+    // diálogos abrindo em sequência.
+    if (_ctrl.showCompletionEffect && !_completionDialogShown) {
+      _completionDialogShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showCompletionOverlay();
       });
     }
     // Item já concluído por outra pessoa (não este chat) — bloqueia e avisa.
-    // Só dispara uma vez, e só quando este chat não foi quem concluiu.
-    if (_ctrl.itemUnavailable && !_ctrl.completed && !_unavailableDialogShown) {
+    // Só dispara uma vez por usuário+chat+item (persistido no RTDB via
+    // ChatController), não mais uma vez por sessão/abertura do chat.
+    if (_ctrl.showUnavailableDialog && !_unavailableDialogShown) {
       _unavailableDialogShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showItemUnavailableDialog();
@@ -107,30 +114,23 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   bool _unavailableDialogShown = false;
+  bool _completionDialogShown  = false;
 
   void _showItemUnavailableDialog() {
     final isDream = _isDream;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(isDream ? 'Sonho já realizado' : 'Doação já concluída'),
-        content: Text(
-          isDream
-              ? 'Esse sonho já foi realizado por outra pessoa. Não é mais possível conversar sobre ele.'
-              : 'Essa doação já foi entregue para outra pessoa. Não é mais possível conversar sobre ela.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop(); // fecha o dialog
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop(); // sai do chat
-              }
-            },
-            child: const Text('Entendi'),
-          ),
-        ],
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (dialogCtx) => _ItemUnavailableDialog(
+        isDream: isDream,
+        itemTitle: widget.chat.itemTitle,
+        onClose: () {
+          Navigator.of(dialogCtx).pop();
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        },
       ),
     );
   }
@@ -226,7 +226,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                   // Barra de entrega — oculta quando concluído, quando eu enviei
                   // um request sem resposta, ou quando ainda não há ao menos
                   // 1 mensagem de texto de cada lado (evita confirm prematuro)
-                  if (!_ctrl.completed && !_ctrl.iSentPendingRequest && !_ctrl.isContextSwitch && _ctrl.canSendDelivery)
+                  // Oculta quando: concluído, request pendente enviado por
+                  // mim, troca de contexto, ou item já indisponível (foi
+                  // concluído em outro chat) — sem o itemUnavailable aqui,
+                  // dava pra mandar um novo pedido de confirmação mesmo com
+                  // o campo de texto travado.
+                  if (!_ctrl.completed && !_ctrl.itemUnavailable && !_ctrl.iSentPendingRequest && !_ctrl.isContextSwitch && _ctrl.canSendDelivery)
                     _DeliveryBar(
                       chat:              chat,
                       isDream:           _isDream,
@@ -251,10 +256,16 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                     isDream:    _isDream,
                     sending:    _ctrl.sending,
                     // Bloqueia digitar/enviar quando: este chat já concluiu
-                    // a troca (completed) OU o item foi concluído por outra
-                    // pessoa (itemUnavailable) — cobre tanto quem participou
-                    // da conclusão quanto um terceiro tentando entrar depois.
-                    disabled:   _ctrl.completed || _ctrl.itemUnavailable,
+                    // a troca (completed), o item foi concluído por outra
+                    // pessoa (itemUnavailable), OU o controller ainda está
+                    // carregando (loading) — sem o loading aqui, existia uma
+                    // janela onde itemUnavailable ainda não tinha sido
+                    // determinado (é assíncrono) e o campo ficava digitável,
+                    // permitindo criar uma conversa real sobre um item já
+                    // indisponível antes do bloqueio "pegar".
+                    disabled:   _ctrl.completed || _ctrl.itemUnavailable || _ctrl.loading,
+                    loading:    _ctrl.loading,
+                    itemUnavailable: _ctrl.itemUnavailable,
                     onSend:     _send,
                   ),
                 ],
@@ -543,6 +554,170 @@ class _HistoricCompletedBanner extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 // DIALOG DE CONCLUSÃO (efeito visual único)
 // ═══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DIÁLOGO — item já indisponível (terceiro, não participou da conclusão)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _ItemUnavailableDialog extends StatefulWidget {
+  final bool isDream;
+  final String? itemTitle;
+  final VoidCallback onClose;
+
+  const _ItemUnavailableDialog({
+    required this.isDream,
+    required this.itemTitle,
+    required this.onClose,
+  });
+
+  @override
+  State<_ItemUnavailableDialog> createState() => _ItemUnavailableDialogState();
+}
+
+class _ItemUnavailableDialogState extends State<_ItemUnavailableDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleCtrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _scale = CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeOutBack);
+    _scaleCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: 300,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color:        Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color:      Colors.black.withValues(alpha: 0.18),
+                blurRadius: 40,
+                offset:     const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ícone
+              Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF64748B), Color(0xFF94A3B8)],
+                    begin:  Alignment.topLeft,
+                    end:    Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color:      const Color(0xFF64748B).withValues(alpha: 0.35),
+                      blurRadius: 24,
+                      offset:     const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    widget.isDream ? '🌙' : '📦',
+                    style: const TextStyle(fontSize: 34),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                widget.isDream ? 'Sonho já realizado' : 'Doação já concluída',
+                style: const TextStyle(
+                  fontSize:   20,
+                  fontWeight: FontWeight.w900,
+                  color:      Color(0xFF1E293B),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+
+              if (widget.itemTitle != null && widget.itemTitle!.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color:        const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    widget.itemTitle!,
+                    style: const TextStyle(
+                      fontSize:   13,
+                      fontWeight: FontWeight.w700,
+                      color:      Color(0xFF475569),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              Text(
+                widget.isDream
+                    ? 'Esse sonho já foi realizado por outra pessoa. Não é mais possível conversar sobre ele.'
+                    : 'Essa doação já foi entregue para outra pessoa. Não é mais possível conversar sobre ela.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height:   1.45,
+                  color:    Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: widget.onClose,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF334155),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Entendi',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _CompletionDialog extends StatefulWidget {
   final String itemTitle;
@@ -1405,6 +1580,8 @@ class _InputBar extends StatefulWidget {
   final bool isDream;
   final bool sending;
   final bool disabled;
+  final bool loading;
+  final bool itemUnavailable;
   final ValueChanged<String> onSend;
 
   const _InputBar({
@@ -1414,6 +1591,8 @@ class _InputBar extends StatefulWidget {
     required this.sending,
     required this.onSend,
     this.disabled = false,
+    this.loading = false,
+    this.itemUnavailable = false,
   });
 
   @override
@@ -1459,6 +1638,28 @@ class _InputBarState extends State<_InputBar> {
     final accent    = widget.isDream ? AppTheme.kidsPurpleViolet : AppTheme.kidsPink;
 
     if (widget.disabled) {
+      // Enquanto ainda está carregando o estado do chat, mostra um
+      // placeholder neutro — não afirma "concluída" antes de saber.
+      if (widget.loading) {
+        return Container(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 18, height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      }
+
+      final message = widget.itemUnavailable
+          ? '🔒 Esta conversa não está mais disponível'
+          : '✅ Esta conversa foi concluída';
+
       return Container(
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
         decoration: const BoxDecoration(
@@ -1467,10 +1668,11 @@ class _InputBarState extends State<_InputBar> {
         ),
         child: Center(
           child: Text(
-            '✅ Esta conversa foi concluída',
+            message,
             style: TextStyle(
               fontSize:   13,
-              color:      AppTheme.kidsGreenDark.withValues(alpha: 0.80),
+              color:      (widget.itemUnavailable ? AppTheme.textSecondary : AppTheme.kidsGreenDark)
+                  .withValues(alpha: 0.80),
               fontWeight: FontWeight.w600,
             ),
           ),

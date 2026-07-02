@@ -49,10 +49,16 @@ extension NotificationTypeExt on NotificationType {
 
   /// Notificações de chat puro — não aparecem na tela de notificações,
   /// pois o usuário já vê essas mensagens dentro do próprio chat.
+  ///
+  /// IMPORTANTE: firstMessage NÃO entra aqui — é o aviso de "alguém tem
+  /// interesse na sua doação/sonho", que é uma notificação relevante por
+  /// si só (não é só "mais uma mensagem de chat"), então precisa aparecer
+  /// na aba de notificações e contar no badge, igual delivery_request/
+  /// delivery_confirmed/donation_done. Só a 2ª mensagem em diante
+  /// (message) é chat puro de verdade.
   bool get isChatOnly {
     switch (this) {
       case NotificationType.message:
-      case NotificationType.firstMessage:
         return true;
       default:
         return false;
@@ -68,10 +74,20 @@ class AppNotification {
   final int timestamp;
   final bool read;
 
+  /// 'action' = pendência que bloqueia algo até o usuário responder
+  /// (ex: delivery_request). 'info' = tudo mais. Usado pra ordenar a
+  /// lista (pendências primeiro) e pro canal/som do push.
+  final String priority;
+
+  /// Quantos eventos se acumularam nessa célula (agrupada por chat)
+  /// desde a última leitura — ex: "3 mensagens novas".
+  final int unreadCount;
+
   // Contexto opcional — para navegar direto ao chat ao tocar
   final String? chatId;
   final String? senderUid;
   final String? senderName;
+  final String? senderImageUrl;
   final String? itemTitle;
   final String? itemType;
 
@@ -82,9 +98,12 @@ class AppNotification {
     required this.body,
     required this.timestamp,
     this.read = false,
+    this.priority = 'info',
+    this.unreadCount = 1,
     this.chatId,
     this.senderUid,
     this.senderName,
+    this.senderImageUrl,
     this.itemTitle,
     this.itemType,
   });
@@ -98,9 +117,12 @@ class AppNotification {
       timestamp:  (map['timestamp'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch,
       read:       map['read'] == true,
+      priority:   map['priority']?.toString() ?? 'info',
+      unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 1,
       chatId:     map['chatId']?.toString(),
       senderUid:  map['senderUid']?.toString(),
       senderName: map['senderName']?.toString(),
+      senderImageUrl: map['senderImageUrl']?.toString(),
       itemTitle:  map['itemTitle']?.toString(),
       itemType:   map['itemType']?.toString(),
     );
@@ -112,9 +134,12 @@ class AppNotification {
     'body':       body,
     'timestamp':  timestamp,
     'read':       read,
+    'priority':   priority,
+    'unreadCount': unreadCount,
     if (chatId     != null) 'chatId':     chatId,
     if (senderUid  != null) 'senderUid':  senderUid,
     if (senderName != null) 'senderName': senderName,
+    if (senderImageUrl != null) 'senderImageUrl': senderImageUrl,
     if (itemTitle  != null) 'itemTitle':  itemTitle,
     if (itemType   != null) 'itemType':   itemType,
   };
@@ -126,12 +151,17 @@ class AppNotification {
     body:       body,
     timestamp:  timestamp,
     read:       read ?? this.read,
+    priority:   priority,
+    unreadCount: unreadCount,
     chatId:     chatId,
     senderUid:  senderUid,
     senderName: senderName,
+    senderImageUrl: senderImageUrl,
     itemTitle:  itemTitle,
     itemType:   itemType,
   );
+
+  bool get isActionRequired => priority == 'action';
 
   DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(timestamp);
 
