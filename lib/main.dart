@@ -1,3 +1,4 @@
+import 'package:empatia/core/service/notification_display_service.dart';
 import 'package:empatia/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -28,6 +29,20 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inicializa o serviço de notificação — cobre o banner interno (app
+  // aberto) e a navegação ao tocar. Notificação de sistema em
+  // background/fechado volta a ser 100% padrão do FCM/Android — não
+  // precisa de nenhum handler nosso pra isso.
+  await NotificationDisplayService.instance.init();
+
+  // Cenário "app fechado de vez, usuário abriu tocando na notificação"
+  // — só dá pra checar isso DEPOIS que o primeiro frame (e portanto o
+  // Navigator) já estiver montado, senão não tem pra onde navegar.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationDisplayService.instance.checkLaunchedFromNotification();
+  });
+
   print('teste');
   // Desativa verificação de reCAPTCHA/Play Integrity em debug.
   if (kDebugMode) {

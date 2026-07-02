@@ -160,6 +160,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ],
       child: MaterialApp(
         title: 'Empatia',
+        // Chave global de navegação — usada pelo NotificationDisplayService
+        // pra abrir o chat certo quando o usuário toca numa notificação
+        // (local, composta pelo próprio app) mesmo sem um BuildContext
+        // de tela disponível naquele momento.
+        navigatorKey: rootNavigatorKey,
         // ── RouteObserver global ──────────────────────────────
         // Permite que widgets (ex.: WeeklyRankingWidget na Home) saibam,
         // via RouteAware, quando ficam cobertos por outra rota

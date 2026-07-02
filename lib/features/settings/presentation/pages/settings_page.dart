@@ -6,6 +6,7 @@ import 'package:empatia/features/settings/features/account_information/presentat
 import 'package:empatia/features/settings/features/account_verification/presentation/pages/account_settings_page.dart';
 import 'package:empatia/features/settings/features/change_password/presentation/pages/change_password_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -22,6 +23,45 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _emailNotifications = false;
   bool _privateProfile = false;
   bool _showOnline = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationsPreference();
+  }
+
+  /// Carrega a preferência salva em Users/{uid}/notificationsEnabled —
+  /// esse é o mesmo campo que a Cloud Function (writeNotification em
+  /// notifications.ts) consulta antes de gravar/enviar qualquer
+  /// notificação. Sem sincronizar os dois lados, o toggle aqui seria
+  /// só decoração, sem efeito real nenhum.
+  Future<void> _loadNotificationsPreference() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final snap = await FirebaseDatabase.instance
+          .ref('Users/$uid/notificationsEnabled')
+          .get();
+      // Ausente no banco = usuário nunca mexeu no toggle → default ligado.
+      final enabled = snap.exists ? (snap.value == true) : true;
+      if (mounted) setState(() => _notificationsEnabled = enabled);
+    } catch (_) {
+      // Falha ao carregar — mantém o default (true) já setado acima.
+    }
+  }
+
+  Future<void> _setNotificationsEnabled(bool value) async {
+    setState(() => _notificationsEnabled = value);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseDatabase.instance
+          .ref('Users/$uid/notificationsEnabled')
+          .set(value);
+    } catch (e) {
+      debugPrint('[SettingsPage] falha ao salvar notificationsEnabled: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +90,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         title: 'Notificações push',
                         subtitle: 'Receba alertas no celular',
                         value: _notificationsEnabled,
-                        onChanged: (v) =>
-                            setState(() => _notificationsEnabled = v),
+                        onChanged: _setNotificationsEnabled,
                       ),
                       
                     ],

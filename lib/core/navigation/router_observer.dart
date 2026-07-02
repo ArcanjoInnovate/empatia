@@ -10,3 +10,9 @@
 import 'package:flutter/material.dart';
 
 final RouteObserver<PageRoute> appRouteObserver = RouteObserver<PageRoute>();
+
+/// Chave global do Navigator — permite navegar (ex: abrir um chat) a
+/// partir de código que não tem um BuildContext de tela à mão, como o
+/// callback de toque numa notificação local (NotificationDisplayService),
+/// que pode disparar até com o app inteiro em background.
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();

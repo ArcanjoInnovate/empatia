@@ -611,6 +611,13 @@ class ChatRepository {
     var rebuilding = false;
     var dirty      = false;
 
+    // Cache do último nome/avatar que conseguimos buscar com sucesso
+    // pra cada otherUid — usado como fallback se uma leitura pontual
+    // de UsersPublic falhar ou vier vazia, pra não deixar o card
+    // completamente em branco (sem nome, sem foto) por causa de um
+    // hiccup passageiro de rede/permissão.
+    final publicInfoCache = <String, Map<String, String?>>{};
+
     Future<void> rebuild() async {
       if (previewsData.isEmpty) {
         if (!controller.isClosed) controller.add(<ChatModel>[]);
@@ -634,8 +641,31 @@ class ChatRepository {
             name   = u['name']?.toString();
             avatar = u['profileImage']?.toString();
             emoji  = u['profileEmoji']?.toString();
+            publicInfoCache[otherUid] = {
+              'name': name, 'avatar': avatar, 'emoji': emoji,
+            };
+          } else {
+            debugPrint(
+              '[ChatRepository] inboxStream: UsersPublic/$otherUid não '
+              'existe (chatId=$chatId) — usando cache/fallback',
+            );
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint(
+            '[ChatRepository] inboxStream: falha ao buscar '
+            'UsersPublic/$otherUid (chatId=$chatId): $e',
+          );
+        }
+
+        // Fallback: se essa leitura não trouxe nada (falhou ou o nó
+        // ainda não existia), usa o último valor bom conhecido pra
+        // esse mesmo usuário, se tivermos.
+        if (name == null && publicInfoCache.containsKey(otherUid)) {
+          final cached = publicInfoCache[otherUid]!;
+          name   ??= cached['name'];
+          avatar ??= cached['avatar'];
+          emoji  ??= cached['emoji'];
+        }
 
         String? itemId, itemTitle, itemType, itemPhotoUrl;
         bool completed       = false;
@@ -890,8 +920,18 @@ class ChatRepository {
           name   = u['name']?.toString();
           avatar = u['profileImage']?.toString();
           emoji  = u['profileEmoji']?.toString();
+        } else {
+          debugPrint(
+            '[ChatRepository] fetchChatModel: UsersPublic/$otherUid não '
+            'existe (chatId=$chatId)',
+          );
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint(
+          '[ChatRepository] fetchChatModel: falha ao buscar '
+          'UsersPublic/$otherUid (chatId=$chatId): $e',
+        );
+      }
 
       // Contexto do chat principal
       String? itemId, itemTitle, itemType, itemPhotoUrl;

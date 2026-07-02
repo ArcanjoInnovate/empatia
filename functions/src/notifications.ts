@@ -159,6 +159,22 @@ async function writeNotification(
   const chatId = String(payload['chatId'] ?? '');
   const type   = String(payload['type']   ?? '');
 
+  // Preferência do usuário (toggle "Notificações push" em Settings) —
+  // desligado bloqueia TODOS os tipos, não só o push: nem grava na
+  // aba de notificações, nem manda push. Ausente no banco = nunca
+  // mexeu no toggle = tratamos como ligado (default do app).
+  try {
+    const prefSnap = await db.ref(`Users/${uid}/notificationsEnabled`).get();
+    if (prefSnap.exists() && prefSnap.val() === false) {
+      logger.info('[writeNotification] suprimido — usuário desativou notificações', { uid, chatId, type });
+      return;
+    }
+  } catch (err) {
+    // Falha ao ler a preferência não deve bloquear a notificação —
+    // segue o fluxo normal (fail-open).
+    logger.warn('[writeNotification] falha ao checar notificationsEnabled', { uid, err });
+  }
+
   if (await isReceiverViewingChat(db, uid, chatId)) {
     logger.info('[writeNotification] suprimido — usuário já está no chat', { uid, chatId });
     return;
@@ -215,14 +231,23 @@ async function writeNotification(
 
     if (!token) return;
 
-    const imageUrl = payload['senderImageUrl'] as string | undefined;
+    const imageUrl = (payload['senderImageUrl'] as string | undefined) ?? '';
 
+    // Volta ao padrão: manda `notification` (título/corpo/imagem) pro
+    // Android/iOS exibirem sozinhos quando o app está em background ou
+    // fechado — sem composição/canal customizado nosso. Mantém `data`
+    // com o essencial (chatId, type, priority) só pra navegação ao
+    // tocar (ver NotificationDisplayService no app). Quando o app está
+    // ABERTO, o app intercepta via onMessage e mostra um banner interno
+    // em vez desse push de sistema — não há duplicidade porque o
+    // Android só desenha `notification` quando o app NÃO está em
+    // primeiro plano.
     const result = await getFCM().send({
       token,
       notification: {
         title: payload['title'] as string,
         body:  payload['body']  as string,
-        imageUrl,
+        imageUrl: imageUrl || undefined,
       },
       android: {
         priority: 'high',
@@ -230,7 +255,6 @@ async function writeNotification(
           channelId: priority === 'action' ? 'empatia_notifications' : 'empatia_info',
           sound:     priority === 'action' ? 'default' : undefined,
           color:     colorForType(type),
-          imageUrl,
         },
       },
       apns: {
@@ -238,15 +262,17 @@ async function writeNotification(
           aps: {
             sound: priority === 'action' ? 'default' : undefined,
             badge: unreadChatsForBadge,
-            'mutable-content': imageUrl ? 1 : undefined,
           },
         },
-        fcmOptions: imageUrl ? { imageUrl } : undefined,
       },
       data: {
         type,
         chatId,
         priority,
+        title: payload['title'] as string,
+        body:  payload['body']  as string,
+        senderUid: (payload['senderUid'] as string | undefined) ?? '',
+        senderImageUrl: imageUrl,
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
     });
