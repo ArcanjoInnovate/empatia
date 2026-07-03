@@ -271,7 +271,7 @@ class _ChatHeader extends StatelessWidget {
     final donations= allChats.where((c) => c.itemType == 'donation').length;
 
     if (total == 0)   return '💬 Nenhuma conversa ainda';
-    if (unread > 0)   return '🔔 $unread ${unread == 1 ? "mensagem" : "mensagens"} não ${unread == 1 ? "lida" : "lidas"}';
+    if (unread > 0)   return '🔔 $unread ${unread == 1 ? "conversa não lida" : "conversas não lidas"}';
     if (donations > 0 && dreams > 0) {
       return '💭 $dreams ${dreams == 1 ? "sonho" : "sonhos"}  ·  🎁 $donations ${donations == 1 ? "doação" : "doações"}';
     }

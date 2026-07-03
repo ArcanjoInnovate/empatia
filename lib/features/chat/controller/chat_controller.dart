@@ -110,6 +110,32 @@ class ChatController extends ChangeNotifier {
   StreamSubscription<bool>?                 _completedSub;
   StreamSubscription<String?>?              _itemStatusSub;
 
+  /// Chamado quando o app vai pra background enquanto este chat está
+  /// aberto.
+  ///
+  /// 🐛 FIX: só limpar `activeChat` não era suficiente — a escrita
+  /// dessa limpeza compete com o Android suspendendo o processo/rede
+  /// rapidamente ao minimizar, então às vezes não chegava a tempo no
+  /// servidor. Marcar `online: false` explicitamente aqui garante que
+  /// a condição da Cloud Function (`online === true && activeChat ===
+  /// chatId`) falhe de qualquer jeito — mesmo que só UMA das duas
+  /// escritas realmente chegue a tempo, já basta pra não suprimir a
+  /// notificação por engano.
+  void onBackground() {
+    _repo.clearActiveChat(myUid);
+    _repo.goOffline(myUid);
+  }
+
+  /// Chamado quando o app volta pro foreground e este chat ainda é a
+  /// tela ativa — restaura online + activeChat, já que os dois foram
+  /// limpos ao pausar. goOnline() também re-registra o onDisconnect
+  /// (necessário, já que qualquer onDisconnect anterior é descartado
+  /// quando a conexão cai e volta).
+  void onForeground() {
+    _repo.goOnline(myUid);
+    _repo.setActiveChat(myUid, chat.chatId);
+  }
+
   Future<void> init() async {
     await _repo.goOnline(myUid);
     await _repo.setActiveChat(myUid, chat.chatId);

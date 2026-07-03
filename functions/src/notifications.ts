@@ -185,27 +185,69 @@ async function writeNotification(
   const groupRef = db.ref(`Notifications/${uid}/${groupKey}`);
 
   let unreadChatsForBadge = 0;
+  let groupUnreadCount    = 1;
+  let committedData: any  = null;
 
   try {
-    const existingSnap = await groupRef.get();
-    const existing      = existingSnap.exists() ? existingSnap.val() : null;
-    const prevUnread     = existing?.unreadCount ?? 0;
+    // 🐛 FIX: era get() seguido de set() — duas escritas não-atômicas.
+    // Quando várias mensagens chegam quase juntas (ex: 3 seguidas), cada
+    // uma dispara sua própria execução da function, e a 2ª podia ler o
+    // valor de unreadCount ANTES da 1ª terminar de escrever — cada
+    // execução "achava" que era a única, e o contador nunca passava de
+    // 1 mesmo com várias mensagens empilhadas. transaction() resolve
+    // isso: o Firebase lê e escreve atomicamente, e re-executa sozinho
+    // se detectar que o valor mudou no meio do caminho.
+    const txResult = await groupRef.transaction((current: any) => {
+      const prevUnread = current?.unreadCount ?? 0;
 
-    // Não rebaixa uma pendência de ação ainda não lida pra um evento
-    // meramente informativo — só atualiza atividade recente.
-    const keepAction =
-      existing && existing.read === false &&
-      existing.priority === 'action' && priority === 'info';
+      // 🐛 FIX: antes dependia de `current.read === false` pra saber se
+      // a pendência ainda estava "ativa". Isso quebrou quando passamos
+      // a resetar `read` só de abrir o chat (ver ChatRepository.
+      // markAsRead) — olhar o chat não significa ter respondido o
+      // pedido de confirmação, mas derrubava essa proteção mesmo
+      // assim, e a próxima mensagem normal engolia a pendência.
+      //
+      // Correção: a proteção agora olha o TIPO do evento anterior, não
+      // se foi "lido". Uma pendência de entrega (delivery_request) só
+      // pode ser derrubada por outra pendência de entrega (nova) ou
+      // por algo que realmente a resolve (delivery_denied, ou
+      // donation_done — que só existe DEPOIS de aceita). Uma mensagem
+      // de chat comum (message/first_message) nunca derruba.
+      const currentIsPendingAction =
+        current?.type === 'delivery_request';
+      const newEventResolvesIt =
+        type === 'delivery_request' ||
+        type === 'delivery_denied' ||
+        type === 'donation_done';
+      const keepAction = currentIsPendingAction && !newEventResolvesIt;
 
-    await groupRef.set({
-      ...payload,
-      type:     keepAction ? existing.type     : type,
-      priority: keepAction ? 'action'           : priority,
-      title:    keepAction ? existing.title     : payload['title'],
-      timestamp: Date.now(),
-      read:      false,
-      unreadCount: prevUnread + 1,
+      return {
+        ...payload,
+        type:      keepAction ? current.type  : type,
+        priority:  keepAction ? 'action'       : priority,
+        title:     keepAction ? current.title  : payload['title'],
+        // Se a pendência continua ativa, o corpo TAMBÉM precisa
+        // continuar sendo o texto da pendência — senão o título dizia
+        // "confirmação pendente" mas o corpo mostrava a última
+        // mensagem de chat qualquer ("Kkkk"), parecendo visualmente
+        // uma notificação comum mesmo com o tipo certo por trás.
+        body:      keepAction ? current.body   : payload['body'],
+        timestamp: Date.now(),
+        read:      false,
+        unreadCount: prevUnread + 1,
+      };
     });
+
+    if (!txResult.committed) {
+      logger.error('[writeNotification] transaction não commitou', { uid, chatId });
+      return;
+    }
+
+    // Valor final e correto do contador — vem do resultado já commitado
+    // da transaction, não de uma leitura separada (que poderia estar
+    // desatualizada por outra execução concorrente).
+    committedData = txResult.snapshot.val();
+    groupUnreadCount = (committedData?.unreadCount as number) ?? 1;
 
     // Badge do dispositivo = número de CONVERSAS com notificação não
     // lida (agrupado), não número de eventos individuais.
@@ -233,6 +275,24 @@ async function writeNotification(
 
     const imageUrl = (payload['senderImageUrl'] as string | undefined) ?? '';
 
+    // Usa o valor FINAL já commitado pela transaction (que pode ter
+    // preservado o título/corpo da pendência original, em vez do que
+    // chegou agora) — não o payload cru, senão o push mostraria texto
+    // desencontrado do que ficou salvo (ex: título de "confirmação
+    // pendente" com corpo de uma mensagem de chat qualquer).
+    const committed = committedData ?? payload;
+
+    // Quando várias mensagens/eventos se acumulam pro mesmo chat antes
+    // do usuário ler, o corpo do push mostra quantas são, em vez de só
+    // a mais recente sumir as anteriores sem deixar rastro nenhum de
+    // que existiam. Título deixa fixo (nome de quem manda), só o corpo
+    // ganha o prefixo de contagem.
+    const pushTitle = committed['title'] as string;
+    const latestBody = committed['body'] as string;
+    const pushBody = groupUnreadCount > 1
+      ? `${groupUnreadCount} mensagens novas · ${latestBody}`
+      : latestBody;
+
     // Volta ao padrão: manda `notification` (título/corpo/imagem) pro
     // Android/iOS exibirem sozinhos quando o app está em background ou
     // fechado — sem composição/canal customizado nosso. Mantém `data`
@@ -245,13 +305,19 @@ async function writeNotification(
     const result = await getFCM().send({
       token,
       notification: {
-        title: payload['title'] as string,
-        body:  payload['body']  as string,
+        title: pushTitle,
+        body:  pushBody,
         imageUrl: imageUrl || undefined,
       },
       android: {
         priority: 'high',
+        // tag = mesmo agrupamento usado no banco (chatId). Duas
+        // notificações com a mesma tag fazem o Android SUBSTITUIR a
+        // anterior na bandeja em vez de empilhar uma nova — sem isso,
+        // 3 mensagens do mesmo chat viravam 3 pushes separados, mesmo
+        // com o dado já agrupado corretamente em Notifications/{uid}.
         notification: {
+          tag:       groupKey,
           channelId: priority === 'action' ? 'empatia_notifications' : 'empatia_info',
           sound:     priority === 'action' ? 'default' : undefined,
           color:     colorForType(type),
@@ -262,6 +328,11 @@ async function writeNotification(
           aps: {
             sound: priority === 'action' ? 'default' : undefined,
             badge: unreadChatsForBadge,
+            // Equivalente ao tag do Android — agrupa visualmente as
+            // notificações da mesma conversa na Central de Notificações
+            // do iOS (não substitui uma pela outra como o Android faz,
+            // mas evita virar uma lista solta de itens desconexos).
+            'thread-id': groupKey,
           },
         },
       },

@@ -133,8 +133,30 @@ class NotificationDisplayService {
     _openChat(message.data['chatId'] as String?);
   }
 
+  // 🐛 FIX: com o app TOTALMENTE fechado, getInitialMessage() (usado em
+  // checkLaunchedFromNotification) e o listener onMessageOpenedApp
+  // podem disparar OS DOIS pra essa mesma notificação que abriu o app
+  // — é um comportamento conhecido do firebase_messaging nesse cenário
+  // específico. Sem essa trava, isso empilhava duas telas de chat (a
+  // segunda por cima da primeira, daí o botão voltar levando pra
+  // "outro chat" que na verdade era o mesmo aberto de novo).
+  String? _lastOpenedChatId;
+  DateTime? _lastOpenedAt;
+
   Future<void> _openChat(String? chatId) async {
     if (chatId == null || chatId.isEmpty) return;
+
+    final now = DateTime.now();
+    if (_lastOpenedChatId == chatId &&
+        _lastOpenedAt != null &&
+        now.difference(_lastOpenedAt!) < const Duration(seconds: 5)) {
+      debugPrint(
+        '[NotificationDisplayService] navegação duplicada ignorada (chatId=$chatId)',
+      );
+      return;
+    }
+    _lastOpenedChatId = chatId;
+    _lastOpenedAt = now;
 
     // Espera a sessão do Firebase Auth terminar de restaurar, se
     // necessário — no cenário "app abriu agora, do zero, por causa da

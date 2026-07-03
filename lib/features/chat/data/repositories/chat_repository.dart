@@ -801,6 +801,20 @@ class ChatRepository {
       'last_read_by_me': true,
     });
 
+    // 🐛 FIX: abrir o chat de verdade (fluxo normal, não via toque na
+    // notificação) nunca zerava Notifications/{uid}/{chatId} — só o
+    // "visto" do chat em si. Resultado: unreadCount da notificação
+    // nunca resetava sozinho, só crescia pra sempre até alguém tocar
+    // especificamente na notificação (raro, já que a maioria abre o
+    // chat direto pela lista). Abrir o chat É a forma mais natural e
+    // comum de "eu vi isso" — precisa contar como leitura aqui também.
+    try {
+      await _db.child('Notifications/$uid/$chatId').update({
+        'read':        true,
+        'unreadCount': 0,
+      });
+    } catch (_) {}
+
     // Grava também no nó compartilhado Chats/{chatId} — é o único lugar
     // que AMBOS os participantes conseguem ler, então é dali que o outro
     // usuário descobre se EU já li a última mensagem dele (✓✓ azul).
@@ -853,15 +867,25 @@ class ChatRepository {
     }
   }
 
+  /// Badge do ícone de chat na navegação — número de CONVERSAS com
+  /// mensagem não lida, não a soma de mensagens não lidas.
+  ///
+  /// 🐛 FIX: somava `unread` (contagem de mensagens) de cada chat —
+  /// 2 chats com 5 mensagens não lidas cada mostravam "10" no badge,
+  /// quando o esperado é "2" (duas conversas pendentes). Mesmo
+  /// critério já usado em outros lugares do app (ex: badge de
+  /// notificações conta conversas, não eventos empilhados).
   Stream<int> totalUnreadStream(String uid) {
     return _db.child('ChatPreviews').child(uid).onValue.map((event) {
       final data = event.snapshot.value;
       if (data == null || data is! Map) return 0;
-      int total = 0;
+      int chatsWithUnread = 0;
       (data as Map).forEach((_, v) {
-        if (v is Map) total += (v['unread'] as num?)?.toInt() ?? 0;
+        if (v is Map && ((v['unread'] as num?)?.toInt() ?? 0) > 0) {
+          chatsWithUnread++;
+        }
       });
-      return total;
+      return chatsWithUnread;
     });
   }
 

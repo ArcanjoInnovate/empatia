@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:empatia/core/widget/avatar_render.dart';
+import 'package:empatia/core/widget/pending_confirmation_dialog.dart';
 import 'package:empatia/features/chat/data/models/chat_model.dart';
 import 'package:empatia/features/chat/data/repositories/chat_repository.dart';
 import 'package:empatia/features/chat/presentation/pages/chat_page.dart';
@@ -1529,6 +1530,38 @@ class _CtaButtonState extends State<_CtaButton>
     if (!mounted) return;
 
     final chatId = ChatModel.buildId(myUid, ownerId);
+
+    // Bloqueia entrar num contexto NOVO se já existe uma confirmação de
+    // entrega pendente e sem resposta com essa mesma pessoa — precisa
+    // resolver isso primeiro, não dá pra simplesmente abrir outra
+    // negociação e "fugir" do pedido pendente.
+    final hasPending =
+        await ChatRepository.instance.hasPendingDeliveryRequest(chatId);
+    if (!mounted) return;
+    if (hasPending) {
+      await showPendingConfirmationDialog(
+        context,
+        onGoToPendingChat: () async {
+          final sorted = ([myUid, ownerId]..sort());
+          final pendingChat = ChatModel(
+            chatId: chatId,
+            user1: sorted[0],
+            user2: sorted[1],
+            otherUid: ownerId,
+            otherName: userInfo['name'] ?? widget.result.ownerName,
+            otherAvatar: userInfo['profileImage'] ?? widget.result.ownerPhotoUrl,
+            otherEmoji: userInfo['profileEmoji'],
+          );
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            ChatPage.route(myUid: myUid, chat: pendingChat),
+          );
+        },
+      );
+      return;
+    }
+
     final sorted = ([myUid, ownerId]..sort());
     final chat = ChatModel(
       chatId: chatId,

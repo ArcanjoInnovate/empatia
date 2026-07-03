@@ -82,6 +82,35 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
+  // 🐛 FIX: "usuário online = mensagem marcada como vista sem abrir o
+  // chat". Causa: activeChat (usado pra suprimir notificação de quem
+  // já está OLHANDO aquele chat) só era limpo no dispose() normal —
+  // se o app fosse minimizado/fechado de forma abrupta enquanto este
+  // chat estava aberto, o campo ficava "grudado" naquele chatId no
+  // Presence, mesmo com o usuário fora da tela. Qualquer mensagem nova
+  // ali era tratada como "já vista" só por ele estar online em
+  // qualquer lugar do app depois. Limpar já na transição pra
+  // background (sem esperar o socket desconectar, que é pouco
+  // confiável em mobile) fecha essa janela.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // No Flutter Web, trocar de aba não dispara `paused`/`inactive` de
+    // forma confiável do mesmo jeito que minimizar um app nativo — o
+    // estado que realmente reflete "essa aba não está mais visível" é
+    // `hidden`. Sem cobrir esse caso, alguém usando a versão web (ex:
+    // Chrome no Android) podia trocar de aba e o activeChat continuava
+    // "grudado" nesse chat, reproduzindo o mesmo bug que já corrigimos
+    // pro app nativo.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _ctrl.onBackground();
+    } else if (state == AppLifecycleState.resumed) {
+      _ctrl.onForeground();
+    }
+  }
+
   void _onState() {
     if (!mounted) return;
     setState(() {});
